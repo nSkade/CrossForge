@@ -137,8 +137,6 @@ int main(int argc, char* argv[]) {
 #endif
 
 	SCrossForgeDevice* pDev = nullptr;
-	auto f = exec("pwd");
-	std::cout << f << std::endl;
 
 	try {
 		 pDev = SCrossForgeDevice::instance();
