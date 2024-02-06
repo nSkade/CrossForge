@@ -30,6 +30,7 @@
 #include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
 #include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
 #include "Prototypes/TestScenes/TransparencyTestScene.hpp"
+#include "Prototypes/TestScenes/InverseKinematicsTestScene.hpp"
 
 #include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
 
@@ -58,10 +59,11 @@ using namespace Eigen;
 //#define ActiveScene CameraCaptureTestScene
 //#define ActiveScene TransparencyTestScene
 
-#define ActiveScene AutoRiggingTestScene
-
-//#define ActiveScene ImuInputDeviceTestScene	
+//#define ActiveScene ImuInputDeviceTestScene
 //#define ActiveScene B02DemonstratorScene
+
+//#define ActiveScene AutoRiggingTestScene
+#define ActiveScene InverseKinematicsTestScene
 
 ActiveScene* pScene = nullptr;
 
