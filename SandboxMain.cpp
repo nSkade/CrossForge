@@ -34,6 +34,9 @@
 #include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
 #include "Subprojects/B02Demonstrator/B02DemonstratorScene.hpp"
 
+#include <cstdlib>
+#include <iostream>
+
 using namespace CForge;
 using namespace Eigen;
 
@@ -42,7 +45,7 @@ using namespace Eigen;
 //#define ActiveScene ExampleMinimumGraphicsSetup
 //#define ActiveScene ExampleSkybox
 //#define ActiveScene ExampleTextRendering
-//#define ActiveScene ExampleShapesAndMaterials
+#define ActiveScene ExampleShapesAndMaterials
 //#define ActiveScene ExampleLighting
 //#define ActiveScene ExampleSceneGraph
 //#define ActiveScene ExampleSkeletalAnimation
@@ -54,12 +57,25 @@ using namespace Eigen;
 //#define ActiveScene SurfaceSamplerTestScene
 //#define ActiveScene AssetGLTFTestScene
 //#define ActiveScene CameraCaptureTestScene
-#define ActiveScene TransparencyTestScene
+//#define ActiveScene TransparencyTestScene
 
 //#define ActiveScene ImuInputDeviceTestScene	
 //#define ActiveScene B02DemonstratorScene
 
 ActiveScene* pScene = nullptr;
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
 
 void mainLoop(void *pArg) {
 	static_cast<ActiveScene*>(pArg)->mainLoop();
@@ -134,6 +150,8 @@ int main(int argc, char* argv[]) {
 #endif
 
 	SCrossForgeDevice* pDev = nullptr;
+	auto f = exec("pwd");
+	std::cout << f << std::endl;
 
 	try {
 		 pDev = SCrossForgeDevice::instance();
