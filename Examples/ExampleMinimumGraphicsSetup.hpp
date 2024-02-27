@@ -12,7 +12,7 @@
 * The file(s) mentioned above are provided as is under the terms of the     *
 * MIT License without any warranty or guaranty to work properly.            *
 * For additional license, copyright and contact/support issues see the      *
-* supplied documentation.                                                   *
+* supplied documentation.                                                   * 
 *                                                                           *
 \****************************************************************************/
 #ifndef __CFORGE_EXAMPLEMINIMUMGRAPHICSSETUP_HPP__

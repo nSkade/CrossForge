@@ -107,7 +107,14 @@ add_executable(CForgeSandbox
 	"Prototypes/Actor/UBOInstancedData.cpp"
 	"Prototypes/MeshProcessing/MeshDecimate.cpp"
 
-	
+	"Prototypes/SMPLTexturing/SpacePartition.cpp"
+	"Prototypes/SMPLTexturing/ICP.cpp"
+
+	# taken from: https://github.com/cstew2/asicp
+	"Prototypes/asicp/asicp.cxx"
+	"Prototypes/asicp/asopa.cxx"
+	"Prototypes/asicp/pca.cxx"
+	"Prototypes/asicp/rotation.cxx"
 
 	)
 	

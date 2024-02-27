@@ -1,5 +1,6 @@
 #include "SGNGeometry.h"
 #include "../OpenGLHeader.h"
+#include <crossforge/Math/CForgeMath.h>
 
 using namespace Eigen;
 
@@ -40,6 +41,10 @@ namespace CForge {
 
 	void SGNGeometry::rotation(Eigen::Quaternionf Rotation) {
 		m_Rotation = Rotation;
+	}//rotation
+
+	void SGNGeometry::rotation(float rot, Eigen::Vector3f axis) {
+		m_Rotation = Quaternionf(AngleAxis(CForgeMath::degToRad(rot), axis));
 	}//rotation
 
 	void SGNGeometry::scale(Eigen::Vector3f Scale) {

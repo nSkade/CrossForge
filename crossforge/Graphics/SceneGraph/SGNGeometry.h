@@ -44,6 +44,7 @@ namespace CForge {
 
 		void position(Eigen::Vector3f Position);
 		void rotation(Eigen::Quaternionf Rotation);
+		void rotation(float rot, Eigen::Vector3f axis);
 		void scale(Eigen::Vector3f Scale);
 		void actor(IRenderableActor* pActor);
 

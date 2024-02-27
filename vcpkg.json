@@ -12,6 +12,7 @@
     "tinyxml2",
     "tinygltf",
     "libjpeg-turbo",
+    "nanoflann", 
     {
       "name": "ffmpeg",
       "default-features": true,

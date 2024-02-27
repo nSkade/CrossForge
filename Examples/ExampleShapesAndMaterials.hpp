@@ -141,9 +141,22 @@ namespace CForge {
 
 			// show one specific object 
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_P, true)) {
-				m_Object_vis += 1 % m_joints.size();
+				m_Object_vis = (m_Object_vis + 1) % (m_joints.size()-1);
 			}
 
+			// show one specific joint 
+			//auto old_color = m_Objects[m_Object_vis + m_SphereStart - 1]->material(0)->color();
+			m_ObjectSGNs[m_Object_vis + m_SphereStart]->scale(Vector3f(0.0275f, 0.0275f, 0.0275f));
+			m_Objects[m_Object_vis + m_SphereStart]->material(0)->color(Vector4f(1.0f, 0.0f, 0.0f, 1.0f));
+
+			if(m_Object_vis > 0){
+				m_ObjectSGNs[m_Object_vis + m_SphereStart -1]->scale(Vector3f(0.008f, 0.008f, 0.008f));
+				//m_Objects[m_Object_vis + m_SphereStart - 1]->material(0)->color(old_color);
+			}
+			else{
+				m_ObjectSGNs[m_SphereStart]->scale(Vector3f(0.008f, 0.008f, 0.008f));
+				//m_Objects[m_joints.size() + m_SphereStart - 1]->material(0)->color(old_color);
+			}
 		}//mainLoop
 
 	protected:
@@ -211,6 +224,8 @@ namespace CForge {
    			pTrans2->init(&m_RootSGN);
    			pTrans2->rotation(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitZ())));
 			
+			m_SphereStart = m_Objects.size();
+
 			for (size_t i = 0; i < m_joints.size(); i++)
             {
                 StaticActor* pActor = new StaticActor();
@@ -226,30 +241,23 @@ namespace CForge {
                 m_Objects.push_back(pActor);
                 m_ObjectSGNs.push_back(pGeomSGN);
                 m_ObjectTransformSGNs.push_back(pTransSGN);
-
             }
-
-			StaticActor* pActorVis = new StaticActor();
-            SGNGeometry* pGeomSGNVis = new SGNGeometry();
-            SGNTransformation* pTransSGNVis = new SGNTransformation();
+			
+			
+			// StaticActor* pActorVis = new StaticActor();
+            // SGNGeometry* pGeomSGNVis = new SGNGeometry();
+            // SGNTransformation* pTransSGNVis = new SGNTransformation();
              
-            pActorVis->init(&M);
+            // pActorVis->init(&M);
 			
-        	pTransSGNVis->init(pTrans2, m_joints[m_Object_vis]);
+        	// pTransSGNVis->init(pTrans2, m_joints[m_Object_vis]);
 
-            pGeomSGNVis->init(pTransSGNVis, pActorVis);
-            pGeomSGNVis->scale(Vector3f(0.0275f, 0.0275f, 0.0275f));
+            // pGeomSGNVis->init(pTransSGNVis, pActorVis);
+            // pGeomSGNVis->scale(Vector3f(0.0275f, 0.0275f, 0.0275f));
 
-            m_Objects.push_back(pActorVis);
-            m_ObjectSGNs.push_back(pGeomSGNVis);
-            m_ObjectTransformSGNs.push_back(pTransSGNVis);
-
-
-
-			
-
-
-			
+            // m_Objects.push_back(pActorVis);
+            // m_ObjectSGNs.push_back(pGeomSGNVis);
+            // m_ObjectTransformSGNs.push_back(pTransSGNVis);
 
 			// create 10 x 10 objects with variation of roughness along the x axis and metallic along the z axis
 			/*
@@ -426,6 +434,7 @@ namespace CForge {
 		bool m_Wireframe;
 
 		int32_t m_Object_vis = 0; 
+		int32_t m_SphereStart; 
 
 	};//ExampleShapesAndMaterials
 

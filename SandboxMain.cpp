@@ -34,6 +34,9 @@
 #include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
 #include "Subprojects/B02Demonstrator/B02DemonstratorScene.hpp"
 
+#include "Examples/ExampleScanScreenshot.hpp"
+#include "Examples/ExampleICP.hpp"
+
 #include <cstdlib>
 #include <iostream>
 
@@ -45,13 +48,15 @@ using namespace Eigen;
 //#define ActiveScene ExampleMinimumGraphicsSetup
 //#define ActiveScene ExampleSkybox
 //#define ActiveScene ExampleTextRendering
-#define ActiveScene ExampleShapesAndMaterials
+//#define ActiveScene ExampleShapesAndMaterials
 //#define ActiveScene ExampleLighting
 //#define ActiveScene ExampleSceneGraph
 //#define ActiveScene ExampleSkeletalAnimation
 //#define ActiveScene ExampleMorphTargetAnimation
 //#define ActiveScene ExampleMultiViewport
 //#define ActiveScene ExampleSocket
+//#define ActiveScene ExampleScanScreenshot
+#define ActiveScene ExampleICP
 
 //#define ActiveScene SkelAnimTestScene
 //#define ActiveScene SurfaceSamplerTestScene
