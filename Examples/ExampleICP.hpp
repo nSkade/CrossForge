@@ -176,6 +176,9 @@ namespace CForge {
 				m_StepCount = (m_StepCount + 1) % m_maxCount; 
 				
 			}
+			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_2, true)){
+				std::cout<<"Hausdorff Distance: "<< hausdorffDistance(m_ScanVertices, m_SMPLXVertices)<<std::endl;
+			}
 
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_LEFT_SHIFT) && m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_1)) {
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_1, Keyboard::KEY_RELEASED);
@@ -231,6 +234,29 @@ namespace CForge {
 			double angle = (2.0 * EIGEN_PI * (double)camIdx) / (double)camTotal;
             return Vector3f(sin(angle), 0.0f, cos(angle));
         }//circleStep
+
+		float hausdorffDistance(const std::vector<Vector3f>& A, const std::vector<Vector3f>& B) {
+			float maxDist = 0.0f;
+			
+			SpacePartition::OctreeNode Root;
+			SpacePartition::buildOctree(&Root, B);
+
+			int32_t targetIndex = 0;
+			for (size_t i = 0; i < A.size(); i++) {
+				float minDist = std::numeric_limits<float>::max();
+				targetIndex = ICP::findClosestPoint(A[i], &Root, &B);
+				
+				// for (size_t j = 0; j < B.size(); j++) {
+				// 	float dist = (A[i] - B[j]).norm();
+				// 	if (dist < minDist) 
+				// 		minDist = dist;
+				// }
+
+				minDist = (A[i] - B[targetIndex]).norm();
+				if (minDist > maxDist) maxDist = minDist;
+			}
+			return maxDist;
+		}//hausdorffDistance
 
 	protected:
 
