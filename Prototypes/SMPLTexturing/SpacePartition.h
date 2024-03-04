@@ -139,7 +139,8 @@ namespace CForge
 
 		static AABB createAABB(const std::vector<Eigen::Vector3f> Points);
 		static void createOctree(OctreeNode* pNode, const std::vector<Eigen::Vector3f> Vertices);
-        static int32_t findClosetsPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pNode, const std::vector<Eigen::Vector3f> *pPointCloud);
+        static int32_t findAcuratlyClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pNode, const std::vector<Eigen::Vector3f> *pPointCloud, float &closestDistance);
+		static int32_t findClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pNode, const std::vector<Eigen::Vector3f> *pPointCloud);
 		static void buildOctree(SpacePartition::OctreeNode* pRoot, const std::vector<Eigen::Vector3f> PointCloud);
 	
 		static bool insideAABB(AABB BoundingBox, Eigen::Vector3f Vertex); 
@@ -149,6 +150,7 @@ namespace CForge
 		static bool insideSphere(BoundingSphere Sphere, Eigen::Vector3f Vertex);
 		static bool intersection(BoundingSphere B1, BoundingSphere B2); 
 		static bool intersection(BoundingSphere BS, AABB Box);
+		static float AABBsdf(const SpacePartition::AABB &AABB, Eigen::Vector3f P);
     };
 
     

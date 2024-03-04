@@ -217,8 +217,7 @@ namespace CForge {
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_1, Keyboard::KEY_RELEASED);
 				
 				int maxItterations = 100; 
-				TotalRT TotalRT; 
-				TotalRT = ICP::icp(m_ScanVertices, m_SMPLXVertices, maxItterations);
+				ICP::icp(m_ScanVertices, m_SMPLXVertices, maxItterations);
 				
 				// write the result back 
 				for (size_t i = 0; i < m_TimonMesh.vertexCount(); i++)
@@ -237,24 +236,41 @@ namespace CForge {
 
 		float hausdorffDistance(const std::vector<Vector3f>& A, const std::vector<Vector3f>& B) {
 			float maxDist = 0.0f;
-			
-			SpacePartition::OctreeNode Root;
-			SpacePartition::buildOctree(&Root, B);
 
-			int32_t targetIndex = 0;
-			for (size_t i = 0; i < A.size(); i++) {
-				float minDist = std::numeric_limits<float>::max();
-				targetIndex = ICP::findClosestPoint(A[i], &Root, &B);
-				
-				// for (size_t j = 0; j < B.size(); j++) {
-				// 	float dist = (A[i] - B[j]).norm();
-				// 	if (dist < minDist) 
-				// 		minDist = dist;
-				// }
+			std::vector<PointLenght> pt; 
+			auto start = CForgeUtility::timestamp();
+			ICP::findClosestPointKDTree(&A, &B, pt);
+			auto end = CForgeUtility::timestamp();
+			std::cout<<"Time for closest point search: "<<(end - start)<<"ms"<<std::endl;
 
-				minDist = (A[i] - B[targetIndex]).norm();
-				if (minDist > maxDist) maxDist = minDist;
+			// find the max distance in pt
+			for (size_t i = 0; i < pt.size(); i++)
+			{
+				if (pt[i].lenght > maxDist)
+				{
+					maxDist = pt[i].lenght; 
+				}
 			}
+
+
+			// // naive implementation for testing
+			// int32_t targetIndex = 0;
+			// for (size_t i = 0; i < A.size(); i++) {
+			// 	float minDist = std::numeric_limits<float>::max();
+
+			// 	for (size_t j = 0; j < B.size(); j++) {
+			// 		float dist = (A[i] - B[j]).norm();
+			// 		if (dist < minDist){
+			// 			minDist = dist;
+			// 			targetIndex = j;
+			// 		} 
+			// 	}
+
+			// 	minDist = (A[i] - B[targetIndex]).norm();
+			// 	if (minDist > maxDist) maxDist = minDist;
+
+			// }
+
 			return maxDist;
 		}//hausdorffDistance
 

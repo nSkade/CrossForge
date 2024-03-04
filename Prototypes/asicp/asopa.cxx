@@ -53,7 +53,7 @@ int asopa(Eigen::MatrixXd X, Eigen::MatrixXd Y,
 	Eigen::Matrix3d V = svd.matrixV().transpose();
 
 	//create D where the last element is the determinant of UV
-     	Eigen::Matrix3d D(3, 3);
+    Eigen::Matrix3d D(3, 3);
 	D = Eigen::Matrix3d::Identity();
 	D(2, 2) = (U*V).determinant();
 

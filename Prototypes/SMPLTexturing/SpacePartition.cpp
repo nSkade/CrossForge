@@ -37,6 +37,21 @@ namespace CForge
 		return Rval;
 	}//createAABB
 
+	float SpacePartition::AABBsdf(const SpacePartition::AABB &AABB, Vector3f P){
+		// does just work if the point is out of the box - otherwise it is 0
+
+		P.maxCoeff();
+		Eigen::Vector3f R = AABB.Max - AABB.center();
+		Eigen::Vector3f p = (P - AABB.center()).cwiseAbs(); 
+		Eigen::Vector3f tmp = p - R; 
+
+		tmp.x() = std::max(tmp.x(), 0.0f); 
+		tmp.y() = std::max(tmp.y(), 0.0f);
+		tmp.z() = std::max(tmp.z(), 0.0f);  
+
+		return tmp.norm(); 
+	}
+
 	void SpacePartition::buildOctree(SpacePartition::OctreeNode* pRoot, const std::vector<Eigen::Vector3f> PointCloud) {
 		if (nullptr == pRoot) throw NullpointerExcept("pRoot");
 		SpacePartition::AABB BBox;
@@ -67,11 +82,11 @@ namespace CForge
 		Vector3f Diag = pNode->BoundingBox.diagonal();
 		Vector3f C = pNode->BoundingBox.Min + 0.5f * Diag;
 		
-		// unten
-		// vorn links
-		// 6 7
-		// 4 5
-		// 2 3
+		// unten              
+		// vorn links 	      
+		// 6 7                
+		// 4 5              
+		// 2 3		        
 		// 0 1 
 
 		Maxs[0] = C; // einfach min und max der einzelnen Boxen eintragen
@@ -95,6 +110,7 @@ namespace CForge
 		
 		Maxs[6] = Vector3f(C.x(), pNode->BoundingBox.Max.y(), pNode->BoundingBox.Max.z());
 		Mins[6] = Vector3f(pNode->BoundingBox.Min.x(), C.y(), C.z());
+
 		//hinten rechst
 		Maxs[7] = pNode->BoundingBox.Max;
 		Mins[7] = C;
@@ -142,7 +158,7 @@ namespace CForge
 		bool Rval = false;
 		AABB BB = BoundingBox;
 
-		if (BB.Min.x() < Vertex.x() && BB.Min.y() < Vertex.y() && BB.Min.z() < Vertex.z() &&
+		if (BB.Min.x() <= Vertex.x() && BB.Min.y() <= Vertex.y() && BB.Min.z() <= Vertex.z() &&
 			Vertex.x() < BB.Max.x() && Vertex.y() < BB.Max.y() && Vertex.z() < BB.Max.z()) Rval = true;
 
 		return Rval;
@@ -169,7 +185,7 @@ namespace CForge
 		return intersection(BS, B2);
 	}//intersection
 
-	int32_t SpacePartition::findClosetsPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pNode, const std::vector<Eigen::Vector3f> *pPointCloud) {
+	int32_t SpacePartition::findClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pNode, const std::vector<Eigen::Vector3f> *pPointCloud) {
 		int32_t Rval = -1;
 		if (nullptr == pNode) return -1;
 
@@ -185,7 +201,7 @@ namespace CForge
 			// descent
 			for (uint8_t i = 0; i < 8; ++i) {
 				if (nullptr != pNode->Children[i] && insideAABB(pNode->Children[i]->BoundingBox, P)) {
-					Rval = findClosetsPoint(P, pNode->Children[i], pPointCloud);
+					Rval = findClosestPoint(P, pNode->Children[i], pPointCloud);
 				}
 			}//for[8 children]
 
@@ -202,11 +218,79 @@ namespace CForge
 						MinDist = Dist;
 					}
 				}//for[octants]
-				if(BestOctant != -1) Rval = findClosetsPoint(P, pNode->Children[BestOctant], pPointCloud);
+				if(BestOctant != -1) Rval = findClosestPoint(P, pNode->Children[BestOctant], pPointCloud);
 			}
 		}
 
 		return Rval;
 	}///findClosetsPoint
+
+	int32_t SpacePartition::findAcuratlyClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pNode, const std::vector<Eigen::Vector3f> *pPointCloud, float &closestDistance) {
+		int32_t Rval = -1;
+		if (nullptr == pNode) return -1;
+
+		// search if leaf node
+		if (pNode->isLeaf() && pNode->VertexIDs.size() > 0) {
+			//float MinDist = std::numeric_limits<float>::max();
+
+			for (auto i : pNode->VertexIDs) {
+				float Dist = (pPointCloud->at(i) - P).norm();
+				if (Dist < closestDistance) {
+					Rval = i;
+					closestDistance = Dist;
+				}
+			}//for[all vertex IDs of node]
+		}
+		else {
+			// descent
+			int8_t mask = -1; 
+
+			for (uint8_t i = 0; i < 8; ++i) {
+				if (nullptr != pNode->Children[i] && insideAABB(pNode->Children[i]->BoundingBox, P)) {
+					Rval = findAcuratlyClosestPoint(P, pNode->Children[i], pPointCloud, closestDistance);
+					mask = i; 
+					break; 
+				}
+			}//for[8 children]
+
+			for (uint8_t i = 0; i < 8; ++i) {
+				if (pNode->Children[i] == nullptr || mask == i) continue; // break out of the loop
+				float sdf = AABBsdf(pNode->Children[i]->BoundingBox, P);
+				if (sdf <= closestDistance) {
+					Rval = findAcuratlyClosestPoint(P, pNode->Children[i], pPointCloud, closestDistance);
+				}
+			}//for[8 children]
+
+			// point to search for is outside of the octree
+			// descent to octant which is closest to P
+			mask = -1; 
+
+			if (Rval == -1) {
+				int32_t BestOctant = -1;
+				float MinDist = std::numeric_limits<float>::max();
+				for (uint8_t i = 0; i < 8; ++i) {
+					if (pNode->Children[i] == nullptr) continue;
+					//float Dist = (P - pNode->Children[i]->BoundingBox.center()).norm();
+					float Dist = AABBsdf(pNode->Children[i]->BoundingBox, P); 
+					if (Dist < MinDist) {
+						BestOctant = i;
+						MinDist = Dist;
+					}
+				}//for[octants]
+				mask = BestOctant;
+				if(BestOctant != -1) Rval = findAcuratlyClosestPoint(P, pNode->Children[BestOctant], pPointCloud, closestDistance);
+
+				for(uint8_t i = 0; i < 8; i++){
+					if(mask == i || pNode->Children[i] == nullptr) continue; // is already checked
+					float Dist = AABBsdf(pNode->Children[i]->BoundingBox, P); 
+					if (Dist < closestDistance) {
+						Rval = findAcuratlyClosestPoint(P, pNode->Children[BestOctant], pPointCloud, closestDistance);
+					}
+				}
+			}
+		}
+
+		return Rval;
+	}///findClosestPoint
 
 } // namespace 

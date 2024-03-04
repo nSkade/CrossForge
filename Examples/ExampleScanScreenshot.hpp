@@ -209,18 +209,20 @@ namespace CForge {
 			}
 			
 			// Vector3f camPos = 4 * circleCameraStep(m_maxCount, m_StepCount) + Vector3f(0.0f, 1.5f, 0.0f); // m_Cam.lookAt(camPos,  Vector3f(0.0f, 1.5f, 0.0f)); 
-			Vector3f camPos = 3.25f * circleCameraStep(m_maxCount, m_StepCount) + Vector3f(0.0f, 2.5f, 0.0f);
+			// Vector3f camPos = 3.25f * circleCameraStep(m_maxCount, m_StepCount) + Vector3f(0.0f, 2.5f, 0.0f);
+			// m_Cam.lookAt(camPos,  Vector3f(0.0f, 1.2f, 0.0f));
+
+			std::vector<float> angles{-30.0f, -15.0f, -10.0f, -2.0f, 2.0f, 10.0f, 20.0f, 30.0f}; 
+			Vector3f camPos = 3.25f * Vector3f(sin(angles[m_StepCount] / (180 * M_PI)), 0.0f, cos(angles[m_StepCount] / (180 * M_PI))) + Vector3f(0.0f, 2.5f, 0.0f);
 			m_Cam.lookAt(camPos,  Vector3f(0.0f, 1.2f, 0.0f));
+
 			// the camera needs a frame (?) to be updated - so we need to wait 
 			if(m_waitFrameBeforeScreenshot > 0){
 				m_waitFrameBeforeScreenshot--;
 				return;
 			}	
 			
-			
-			//std::cout<<"Take Screenshot: "<<m_StepCount<<std::endl;
-			//std::cout<<m_Cam.position().x()<<", "<<m_Cam.position().z()<<std::endl;
-			// From ExampleSceneBase.hpp
+			// take screenshots
 			m_RenderDev.activePass(RenderDevice::RENDERPASS_FORWARD, nullptr, false);
 			std::string ScreenshotURI = "Screenshots/Screenshot_" + std::to_string(m_ScreenshotCount++) + "." + m_ScreenshotExtension;
 			takeScreenshot(ScreenshotURI);

@@ -1,6 +1,8 @@
 #include "ICP.h"
 #include "SpacePartition.h"
 #include <crossforge/Utility/CForgeUtility.h>
+#include <nanoflann.hpp>
+#include "KDTreeVectorOfVectorsAdaptor.h"
 
 
 using namespace Eigen;
@@ -9,7 +11,7 @@ using namespace std;
 
 namespace CForge {
 
-	TotalRT ICP::icp(std::vector<Eigen::Vector3f>& Source, const std::vector<Eigen::Vector3f> Target, int maxItterations) {
+	void ICP::icp(std::vector<Eigen::Vector3f>& Source, const std::vector<Eigen::Vector3f> Target, int maxItterations) {
 
 		uint64_t Start = CForgeUtility::timestamp();
         
@@ -21,16 +23,22 @@ namespace CForge {
 		SpacePartition::OctreeNode Root;
 		SpacePartition::buildOctree(&Root, Target);
 
-		TotalRT TotalRT; 
-
-
 		int32_t targetIndex = 0; 
 		for (int32_t i = 0; i < Source.size(); i++) {
-			targetIndex = findClosestPoint(Source[i], &Root, &Target);
+			float maxDistance = std::numeric_limits<float>::max();
+			targetIndex = findClosestPoint(Source[i], &Root, &Target, maxDistance);
 			X.push_back(Target[targetIndex]);
 			P.push_back(Source[i]);
 		}
 
+		// // for every point in the source point set we will find the closest point in the target point set
+		// std::vector<PointLenght> pointLenght;
+		// findClosestPointKDTree(&Source, &Target, pointLenght);
+		// for(size_t i = 0; i < pointLenght.size(); i++){
+		// 	X.push_back(Target[pointLenght[i].index2]);
+		// 	P.push_back(Source[pointLenght[i].index1]);
+		// }
+		
 		Matrix3f R = Matrix3f::Identity(); // rotation we will obtain from ICP
 		Vector3f T = Vector3f::Zero(); // translation we will obtain from ICP
 		float E = computeResidualError(X, P, R, T);
@@ -70,7 +78,8 @@ namespace CForge {
 
 				int32_t targetIndex = 0; 
 				for (int32_t i = 0; i < Source.size(); i++) {
-					targetIndex = findClosestPoint(Source[i], &Root, &Target); // for one point --> noch eintragen
+					float maxDistance = std::numeric_limits<float>::max();
+					targetIndex = findClosestPoint(Source[i], &Root, &Target, maxDistance); // for one point --> noch eintragen
 					X.push_back(Target[targetIndex]);
 					P.push_back(Source[i]);
 				}
@@ -92,8 +101,6 @@ namespace CForge {
 				}
 				E = ENew;
 				printf("Iteration %d - Residual Error: %.4f | ErrorDelta: %.2f\n", k, ENew, ErrorDelta);
-				TotalRT.R = TotalRT.R * R;
-				TotalRT.T = TotalRT.T + T;
 
 				// apply transformation to Source point set
 				for (int32_t i = 0; i < Source.size(); i++) {
@@ -105,7 +112,6 @@ namespace CForge {
 
 		printf("Alignment finished. Took %d ms\n", uint32_t(CForgeUtility::timestamp() - Start));
 
-		return TotalRT;
 	}//align
 
 	void ICP::computeAlignment(const std::vector<Eigen::Vector3f> X, const std::vector<Eigen::Vector3f> P, Eigen::Matrix3f& R, Eigen::Vector3f& T) {
@@ -159,10 +165,49 @@ namespace CForge {
 		return Rval;
 	}//computeCentroid
 
-	int32_t ICP::findClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pRoot, const std::vector<Eigen::Vector3f> *pPointCloud) {
+	void ICP::findClosestPointKDTree(const std::vector<Eigen::Vector3f> *A, const std::vector<Eigen::Vector3f> *B, std::vector<PointLenght> &pointLenght){
 
+		typedef std::vector<std::vector<float>> PointCloud;
+		const float max_range = 20;
+
+		// convert B to pointCloud
+		PointCloud cloudB;
+		for (size_t i = 0; i < B->size(); i++) {
+			std::vector<float> point;
+			point.push_back(B->at(i).x());
+			point.push_back(B->at(i).y());
+			point.push_back(B->at(i).z());
+			cloudB.push_back(point);
+		}
+
+		// create the KDTree
+		typedef KDTreeVectorOfVectorsAdaptor<PointCloud, float> my_kd_tree_t;
+		my_kd_tree_t  index(3, cloudB, 10 /* max leaf */);
+
+		// do a knn search
+    	const size_t        num_results = 3;
+    	std::vector<size_t> ret_indexes(num_results);
+    	std::vector<float> out_dists_sqr(num_results);
+
+		for (size_t i = 0; i < A->size(); i++) {
+			nanoflann::KNNResultSet<float> resultSet(num_results);
+			resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
+
+			float query[3];
+			query[0] = A->at(i).x();
+			query[1] = A->at(i).y();
+			query[2] = A->at(i).z();
+			index.index->findNeighbors(resultSet, &query[0]); 
+
+			PointLenght pt{i, ret_indexes[0], (A->at(i) - B->at(ret_indexes[0])).norm()};
+			pointLenght.push_back(pt);
+		}
+	} //findClosestPointKDTree
+	
+	int32_t ICP::findClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pRoot, const std::vector<Eigen::Vector3f> *pPointCloud, float &closestDistance) {
 		int32_t ClosestPoint = -1;
-		ClosestPoint = SpacePartition::findClosetsPoint(P, pRoot, pPointCloud);
+
+		ClosestPoint = SpacePartition::findClosestPoint(P, pRoot, pPointCloud);
 
 		// if it did not work we need to use brute force
 		if (ClosestPoint == -1) {
