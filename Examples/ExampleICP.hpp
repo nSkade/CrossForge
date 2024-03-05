@@ -85,20 +85,20 @@ namespace CForge {
 			m_ReconstructionSGN.init(&m_ReconstructionTransformSGN, &m_Reconstruction);
 			
 			// Rotating every point -> also need to do it for the whole model!
-			Quaternionf QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX()));
-			Matrix4f Mat = CForgeMath::rotationMatrix(QM);
-			for (size_t i = 0; i < m_ScanVertices.size(); i++)
-			{
-				// here you can also implement a scaling, if ICP is not capable of 
-				Vector4f M_v = Mat * Vector4f(m_ScanVertices[i].x(), m_ScanVertices[i].y(), m_ScanVertices[i].z(), 1.0f); 
-				m_ScanVertices[i] = Vector3f(M_v.x(), M_v.y(), M_v.z());
-			}
+			// Quaternionf QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX()));
+			// Matrix4f Mat = CForgeMath::rotationMatrix(QM);
+			// for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			// {
+			// 	// here you can also implement a scaling, if ICP is not capable of 
+			// 	Vector4f M_v = Mat * Vector4f(m_ScanVertices[i].x(), m_ScanVertices[i].y(), m_ScanVertices[i].z(), 1.0f); 
+			// 	m_ScanVertices[i] = Vector3f(M_v.x(), M_v.y(), M_v.z());
+			// }
 				
-			for (size_t i = 0; i < m_TimonMesh.vertexCount(); i++)
-			{
-				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
-			}
-			m_Scan.init(&m_TimonMesh);		
+			// for (size_t i = 0; i < m_TimonMesh.vertexCount(); i++)
+			// {
+			// 	m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
+			// }
+			// m_Scan.init(&m_TimonMesh);		
 
 			// create help text
 			LineOfText* pKeybindings = new LineOfText();
@@ -226,6 +226,11 @@ namespace CForge {
 				}
 				m_Scan.init(&m_TimonMesh);		
 			}
+
+			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_3)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_3, Keyboard::KEY_RELEASED);
+				haudsdorffTransformation();
+			}
 		}//mainLoop
 
         // get position of the camera 
@@ -234,7 +239,68 @@ namespace CForge {
             return Vector3f(sin(angle), 0.0f, cos(angle));
         }//circleStep
 
+		/* the idea is that the two point clouds are aligned at least along on axis
+		no we can compute the rotation along one axis of the two point clouds
+		the last step is to compute whether the meshes stand on their feet or head
+		this can be done with hausdorff (if the distance is minimal then they are aligned) */
+		void haudsdorffTransformation(){
+			m_TimonMesh.computeAxisAlignedBoundingBox();
+			m_SMPLXMesh.computeAxisAlignedBoundingBox();
+			CForge::T3DMesh<float>::AABB timonAABB = m_TimonMesh.aabb();
+			CForge::T3DMesh<float>::AABB smplxAABB = m_SMPLXMesh.aabb();
+			
+			// find the max value for the max index
+			Eigen::Matrix3f tmp = timonAABB.Max * smplxAABB.Max.transpose(); 
+			Eigen::Index maxRow, maxCol;
+			tmp.maxCoeff(&maxRow, &maxCol);
+
+			// the two point clouds are already aligned
+			if(maxRow == maxCol){
+				std::cout<<"The two point clouds are already aligned"<<std::endl;
+				return;
+			}
+			
+			// the axis to rotate to is the sum of the maxRow and maxCol 
+			// 1: z; 2: y; 3: x
+			int8_t axis = maxRow + maxCol; 
+			Quaternionf QM; 
+
+			switch (axis)
+			{
+			case 1:
+				QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitZ()));
+				rotateModell(QM);	
+				break;
+			case 2: 
+				QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitY()));
+				rotateModell(QM);
+				break;
+			default:
+				QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX()));
+				rotateModell(QM);
+				break;
+			} 
+
+		}
+
+		void rotateModell(Quaternionf QM){
+			Matrix4f Mat = CForgeMath::rotationMatrix(QM);
+			for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			{
+				// here you can also implement a scaling, if ICP is not capable of 
+				Vector4f M_v = Mat * Vector4f(m_ScanVertices[i].x(), m_ScanVertices[i].y(), m_ScanVertices[i].z(), 1.0f); 
+				m_ScanVertices[i] = Vector3f(M_v.x(), M_v.y(), M_v.z());
+			}
+				
+			for (size_t i = 0; i < m_TimonMesh.vertexCount(); i++)
+			{
+				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
+			}
+			m_Scan.init(&m_TimonMesh);	
+		}
+
 		float hausdorffDistance(const std::vector<Vector3f>& A, const std::vector<Vector3f>& B) {
+			// a kd-tree will be created and the closest point will be searched
 			float maxDist = 0.0f;
 
 			std::vector<PointLenght> pt; 
@@ -252,12 +318,10 @@ namespace CForge {
 				}
 			}
 
-
 			// // naive implementation for testing
 			// int32_t targetIndex = 0;
 			// for (size_t i = 0; i < A.size(); i++) {
 			// 	float minDist = std::numeric_limits<float>::max();
-
 			// 	for (size_t j = 0; j < B.size(); j++) {
 			// 		float dist = (A[i] - B[j]).norm();
 			// 		if (dist < minDist){
@@ -265,10 +329,8 @@ namespace CForge {
 			// 			targetIndex = j;
 			// 		} 
 			// 	}
-
 			// 	minDist = (A[i] - B[targetIndex]).norm();
 			// 	if (minDist > maxDist) maxDist = minDist;
-
 			// }
 
 			return maxDist;
@@ -293,7 +355,7 @@ namespace CForge {
 		bool m_orthographicCam = false;
 		bool m_takeScreenShot = false; 
 
-		// Skybox
+		// Skyboxauto i = 
 		SkyboxActor m_Skybox;
 		vector<string> m_ClearSky;
 
