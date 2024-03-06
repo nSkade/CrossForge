@@ -287,3 +287,8 @@ elseif(UNIX)
 	PRIVATE ${JPEG_LIBRARIES}
 	)
 endif()
+
+target_precompile_headers(crossforge PRIVATE
+	pch.h
+)
+

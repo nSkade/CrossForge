@@ -68,6 +68,7 @@ else()
 FIND_PACKAGE(tinyxml2 CONFIG REQUIRED)	# support for xml loading, storing, and processing
 FIND_PACKAGE(nlohmann_json CONFIG REQUIRED) # support for json loading, storing, and processing
 FIND_PACKAGE(imgui CONFIG REQUIRED) # dear-imgui
+find_package(imguizmo  CONFIG REQUIRED)
 FIND_PACKAGE(JPEG REQUIRED)
 FIND_PACKAGE(libjpeg-turbo)
 FIND_PACKAGE(FFMPEG REQUIRED)
@@ -129,7 +130,7 @@ add_executable(CForgeSandbox
 	Prototypes/InverseKinematics/JointLimits/SwingXTwistYLimits.cpp
 	Prototypes/InverseKinematics/JointLimits/SwingZTwistYLimits.cpp
 	Prototypes/InverseKinematics/JointLimits/SwingXYTwistZLimits.cpp
-	)
+)
 
 if(EMSCRIPTEN)
 	target_link_Libraries(CForgeSandbox
@@ -141,8 +142,8 @@ if(EMSCRIPTEN)
 
 elseif(WIN32)
 	target_include_directories(CForgeSandbox 
-	PRIVATE ${JPEG_INCLUDE_DIR}
-	PRIVATE ${FFMPEG_INCLUDE_DIRS}
+		PRIVATE ${JPEG_INCLUDE_DIR}
+		PRIVATE ${FFMPEG_INCLUDE_DIRS}
 	)
 
 	target_link_directories(CForgeSandbox
@@ -151,16 +152,17 @@ elseif(WIN32)
 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -bigobj") # necessary?
 	target_link_libraries(CForgeSandbox 
-	PRIVATE crossforge
-	PRIVATE Pinocchio
-	PRIVATE glfw 
-	PRIVATE glad::glad
-	ws2_32
-	PRIVATE tinyxml2::tinyxml2
-	PRIVATE nlohmann_json::nlohmann_json
-	PRIVATE imgui::imgui
-	PRIVATE ${FFMPEG_LIBRARIES}
-	${FREETYPE_LIBRARIES}
+		PRIVATE crossforge
+		PRIVATE Pinocchio
+		PRIVATE glfw 
+		PRIVATE glad::glad
+		ws2_32
+		PRIVATE tinyxml2::tinyxml2
+		PRIVATE nlohmann_json::nlohmann_json
+		PRIVATE imgui::imgui
+		PRIVATE imguizmo::imguizmo
+		PRIVATE ${FFMPEG_LIBRARIES}
+		${FREETYPE_LIBRARIES}
 	)
 	
 elseif(__arm__)
@@ -192,7 +194,7 @@ elseif(UNIX)
 		PRIVATE tinyxml2::tinyxml2
 		PRIVATE nlohmann_json::nlohmann_json
 		PRIVATE imgui::imgui
-		PRIVATE dl	
+		PRIVATE dl
 		PRIVATE ${FFMPEG_LIBRARIES}
 		${FREETYPE_LIBRARIES}
 		${OpenCV_LIBS}
@@ -264,5 +266,13 @@ add_compile_definitions(PINOCCHIO_EXPORTS)
 target_link_libraries(Pinocchio
 	PRIVATE Eigen3::Eigen
 	PRIVATE crossforge
+)
+
+# Set global property (all targets are impacted)
+set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+set_property(TARGET CForgeSandbox PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+
+target_precompile_headers(CForgeSandbox PRIVATE
+	pch.h
 )
 
