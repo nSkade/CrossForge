@@ -7,45 +7,35 @@ if [ "$1" == "help" ]
     echo "r - Compile and run Release version of CrossForge"
     echo "md - Compile Debug version of CrossForge"
     echo "mr - Compile Release version of CrossForge"
-fi
-
-# check if an argument is given - "-z" checks if the length of the string is zero
-if [ -z "$1" ]
+elif [ -z "$1" ] # check if an argument is given - "-z" checks if the length of the string is zero
   then
-    echo "No argument supplied - CrossForge started"
+    echo "No argument supplied - CrossForge started in Release mode"
     cd out/build-lin
     ./CForgeSandbox
-fi
-
-if [ "$1" == "d" ]
+elif [ "$1" == "d" ]
   then
     echo "Compile and run Debug version of CrossForge"
     cd out/Debug
-    make -j 12
-    ./CForgeSandbox
-fi
-
-if [ "$1" == "r" ]
+    make -j 12 && ./CForgeSandbox
+elif [ "$1" == "r" ]
   then
     echo "Compile and run Release version of CrossForge"
     cd out/build-lin
-    make -j 12
-    ./CForgeSandbox
-fi
-
-if [ "$1" == "md" ]
+    make -j 12 && ./CForgeSandbox
+elif [ "$1" == "md" ]
   then
     echo "Compile Debug version of CrossForge"
     cd out/Debug
     make -j 12
-fi
-
-if [ "$1" == "mr" ]
+elif [ "$1" == "mr" ]
   then
     echo "Compile Release version of CrossForge"
     cd out/build-lin
     make -j 12
+else
+  echo "Invalid argument - type 'help' for more information"
 fi
+
 
 
 

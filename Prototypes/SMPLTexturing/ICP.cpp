@@ -165,6 +165,8 @@ namespace CForge {
 		return Rval;
 	}//computeCentroid
 
+	
+	// for every point in A, a closest point in B is found (A -> B)
 	void ICP::findClosestPointKDTree(const std::vector<Eigen::Vector3f> *A, const std::vector<Eigen::Vector3f> *B, std::vector<PointLenght> &pointLenght){
 
 		typedef std::vector<std::vector<float>> PointCloud;

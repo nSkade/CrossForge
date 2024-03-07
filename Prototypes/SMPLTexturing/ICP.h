@@ -10,8 +10,8 @@ namespace CForge
 
 
     struct PointLenght{
-        size_t index1;
-        size_t index2;
+        size_t source;
+        size_t target;
         float lenght;
     }; //PointLenght
 

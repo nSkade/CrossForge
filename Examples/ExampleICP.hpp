@@ -1,12 +1,12 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): ExampleScanScreenshot.hpp                                        *
+* File(s): ExampleICP.hpp                                        			*
 *                                                                           *
-* Content: Example scene that shows minimum setup with an OpenGL capable    *
-*          window, lighting setup, and a single moving object.              *
+* Content: Example of two Meshes (Timon and SMPLX) where we want to         *
+*          rotate Timon to SMPLX via ICP and hausdorff as close as possible *
 *                                                                           *
 *                                                                           *
-* Author(s): Tom Uhlmann                                                    *
+* Author(s): Tom Uhlmann, Niclas Meyer                                      *
 *                                                                           *
 *                                                                           *
 * The file(s) mentioned above are provided as is under the terms of the     *
@@ -69,6 +69,7 @@ namespace CForge {
 
 			m_Scan.init(&m_TimonMesh); 			
             m_ScanTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
+			m_ScanTransformSGN.translation(Vector3f(1.5f, 0.0f, 0.0f));
             m_ScanSGN.init(&m_ScanTransformSGN, &m_Scan);
 
 			// load SMPLX model
@@ -84,7 +85,7 @@ namespace CForge {
 			m_ReconstructionTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
 			m_ReconstructionSGN.init(&m_ReconstructionTransformSGN, &m_Reconstruction);
 			
-			// Rotating every point -> also need to do it for the whole model!
+			// //  Rotating every point -> also need to do it for the whole model!
 			// Quaternionf QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX()));
 			// Matrix4f Mat = CForgeMath::rotationMatrix(QM);
 			// for (size_t i = 0; i < m_ScanVertices.size(); i++)
@@ -231,6 +232,11 @@ namespace CForge {
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_3, Keyboard::KEY_RELEASED);
 				haudsdorffTransformation();
 			}
+
+			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_4)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_4, Keyboard::KEY_RELEASED);
+				textureTransferNaive();
+			}
 		}//mainLoop
 
         // get position of the camera 
@@ -239,7 +245,40 @@ namespace CForge {
             return Vector3f(sin(angle), 0.0f, cos(angle));
         }//circleStep
 
-		/* the idea is that the two point clouds are aligned at least along on axis
+		void textureTransferNaive(){
+			// align meshes
+			haudsdorffTransformation();
+			std::vector<PointLenght> pt; 
+			ICP::findClosestPointKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
+
+			if(pt.size() != m_SMPLXMesh.vertexCount()) throw CForgeExcept("Vertex count of SMPLXMesh and pt are not equal!");
+			
+			// uint32_t s = m_SMPLXMesh.textureCoordinatesCount();
+			
+			// get texture of timon
+			
+			// for every vertex in smplx mesh
+			// apply uv coordinates of timon mesh
+			std::vector<Eigen::Vector3f> uv(m_SMPLXMesh.vertexCount(), Eigen::Vector3f::Zero());
+
+			for(uint32_t i = 0; i < uv.size(); i++){
+				uv[i] = m_TimonMesh.textureCoordinate(pt[i].target); 
+			}
+			m_SMPLXMesh.textureCoordinates(&uv); 
+			m_SMPLXMesh.addMaterial(m_TimonMesh.getMaterial(2), true);
+
+			// for every submesh in smplx mesh use new material
+			for(uint32_t i = 0; i < m_SMPLXMesh.submeshCount(); i++){
+				m_SMPLXMesh.getSubmesh(i)->Material = m_SMPLXMesh.materialCount() - 1;
+			}
+			m_TimonMesh.computePerVertexNormals();
+			m_Scan.init(&m_TimonMesh);
+			m_Reconstruction.init(&m_SMPLXMesh);
+
+
+		}
+
+		/* The idea is that the two point clouds are aligned at least along on axis
 		no we can compute the rotation along one axis of the two point clouds
 		the last step is to compute whether the meshes stand on their feet or head
 		this can be done with hausdorff (if the distance is minimal then they are aligned) */
@@ -263,17 +302,17 @@ namespace CForge {
 			// the axis to rotate to is the sum of the maxRow and maxCol 
 			// 1: z; 2: y; 3: x
 			int8_t axis = maxRow + maxCol; 
-			Quaternionf QM; 
+			Quaternionf QM;
 
 			switch (axis)
 			{
 			case 1:
 				QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitZ()));
-				rotateModell(QM);	
+				rotateModell(QM);
 				break;
 			case 2: 
 				QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitY()));
-				rotateModell(QM);
+				rotateModell(QM);	
 				break;
 			default:
 				QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX()));
@@ -281,22 +320,51 @@ namespace CForge {
 				break;
 			} 
 
+			// align the two point clouds and meshes along their height 
+			// before that we need to scale the two point clouds to the same size
+			m_TimonMesh.computeAxisAlignedBoundingBox(); timonAABB = m_TimonMesh.aabb();
+			m_SMPLXMesh.computeAxisAlignedBoundingBox(); smplxAABB = m_SMPLXMesh.aabb();
+			float toScale = smplxAABB.diagonal().norm() / timonAABB.diagonal().norm();
+			
+			if (m_TimonMesh.vertexCount() != m_ScanVertices.size()) throw CForgeExcept("Vertex count of TimonMesh and ScanVertices are not equal!");			
+			for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			{
+				m_ScanVertices[i] *= toScale;
+				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
+			}
+			m_Scan.init(&m_TimonMesh);	
+
+			// align along the y-axis
+			m_TimonMesh.computeAxisAlignedBoundingBox(); timonAABB = m_TimonMesh.aabb();
+			m_SMPLXMesh.computeAxisAlignedBoundingBox(); smplxAABB = m_SMPLXMesh.aabb();
+			Eigen::Vector3f moveY = timonAABB.Min - smplxAABB.Min; 
+
+			for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			{
+				m_ScanVertices[i] = m_ScanVertices[i] - moveY; 
+				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
+			}
+			m_Scan.init(&m_TimonMesh);
+
+			// now we need to check if the two meshes are standing on their feet or head 
+			float distHausdorff = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
+			std::cout << "Hausdorfdistance:" << distHausdorff << std::endl;
 		}
+
 
 		void rotateModell(Quaternionf QM){
 			Matrix4f Mat = CForgeMath::rotationMatrix(QM);
 			for (size_t i = 0; i < m_ScanVertices.size(); i++)
 			{
-				// here you can also implement a scaling, if ICP is not capable of 
 				Vector4f M_v = Mat * Vector4f(m_ScanVertices[i].x(), m_ScanVertices[i].y(), m_ScanVertices[i].z(), 1.0f); 
 				m_ScanVertices[i] = Vector3f(M_v.x(), M_v.y(), M_v.z());
 			}
-				
+	
 			for (size_t i = 0; i < m_TimonMesh.vertexCount(); i++)
 			{
 				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
 			}
-			m_Scan.init(&m_TimonMesh);	
+			m_Scan.init(&m_TimonMesh);
 		}
 
 		float hausdorffDistance(const std::vector<Vector3f>& A, const std::vector<Vector3f>& B) {
