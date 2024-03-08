@@ -237,6 +237,10 @@ namespace CForge {
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_4, Keyboard::KEY_RELEASED);
 				textureTransferNaive();
 			}
+			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_5)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_5, Keyboard::KEY_RELEASED);
+				textureTransferNormals();
+			}
 		}//mainLoop
 
         // get position of the camera 
@@ -245,11 +249,129 @@ namespace CForge {
             return Vector3f(sin(angle), 0.0f, cos(angle));
         }//circleStep
 
+		void textureTransferNormals(){
+			haudsdorffTransformation();
+			std::vector<Eigen::Vector3f> uv(m_SMPLXMesh.vertexCount(), Eigen::Vector3f::Zero());
+
+			vector<uint32_t> indexTriangle(m_SMPLXVertices.size(), 0); 
+			// for every point in the smplx mesh to timon 
+
+			// only for adjecent triangles do sdf -> if no hit, can do it for all triangles
+			std::vector<PointLenght> pt; 
+			ICP::findClosestPointsKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
+			auto start = CForgeUtility::timestamp();
+
+			for(uint32_t i = 0; i < pt.size(); i++){
+				size_t search = pt[i].target;
+
+				std::vector<int32_t> adjTriangles; 
+
+				// get the adjecent triangles of the target point
+				for(uint32_t j = 0; j < m_TimonMesh.getSubmesh(0)->Faces.size(); j++){
+					T3DMesh<float>::Face v =  m_TimonMesh.getSubmesh(0)->Faces[j]; 
+					if(v.Vertices[0] == search || v.Vertices[1] == search || v.Vertices[2] == search){
+						adjTriangles.push_back(j);
+					}
+				}
+				// if empty, just use nearest point
+				if (adjTriangles.size() == 0){
+					adjTriangles.push_back(pt.at(i).target);
+				}
+
+				// for every adjecent triangle do sdf and get the nearest triangle
+				float minDist = std::numeric_limits<float>::max();
+				for(uint32_t j = 0; j < adjTriangles.size(); j++){
+					T3DMesh<float>::Face face = m_TimonMesh.getSubmesh(0)->Faces[adjTriangles[j]];
+					
+					Vector3f a = m_TimonMesh.vertex(face.Vertices[0]); 
+					Vector3f b = m_TimonMesh.vertex(face.Vertices[1]);
+					Vector3f c = m_TimonMesh.vertex(face.Vertices[2]);
+					float dist = SDFTriangle(m_SMPLXVertices[i], a, b, c);
+
+					if(dist < minDist){
+						minDist = dist;
+						indexTriangle.at(i) = adjTriangles[j];
+					}
+				}
+				adjTriangles.clear();
+
+				// calculate normal
+				T3DMesh<float>::Face face = m_TimonMesh.getSubmesh(0)->Faces[indexTriangle.at(i)];
+				Vector3f a = m_TimonMesh.vertex(face.Vertices[0]); 
+				Vector3f b = m_TimonMesh.vertex(face.Vertices[1]);
+				Vector3f c = m_TimonMesh.vertex(face.Vertices[2]);
+
+				float eps = 0.002f; 
+				auto map = [&](Vector3f v) -> float { SDFTriangle(v, a, b, c);};
+				Vector3f normal = {
+					map(m_SMPLXVertices[i] + Vector3f(eps, 0.0f, 0.0f)) - map(m_SMPLXVertices[i] - Vector3f(eps, 0.0f, 0.0f)), 
+					map(m_SMPLXVertices[i] + Vector3f(0.0f, eps, 0.0f)) - map(m_SMPLXVertices[i] - Vector3f(0.0f, eps, 0.0f)), 
+					map(m_SMPLXVertices[i] + Vector3f(0.0f, 0.0f, eps)) - map(m_SMPLXVertices[i] - Vector3f(0.0f, 0.0f, eps))
+					};
+				normal.normalize();
+
+				Vector3f projectedPoint = m_SMPLXVertices[i] + normal * minDist;  
+				Vector3f uvw = Baryzentric(projectedPoint, a, b, c);
+				
+				// transfer the texture coordinates
+				// TODO: sind alle werte zwischen 0 und 1? 
+				uv[i] = m_TimonMesh.textureCoordinate(face.Vertices[0]) * uvw.x() + m_TimonMesh.textureCoordinate(face.Vertices[1]) * uvw.y() + m_TimonMesh.textureCoordinate(face.Vertices[2]) * uvw.z(); 
+			}
+			m_SMPLXMesh.textureCoordinates(&uv); 
+			m_SMPLXMesh.addMaterial(m_TimonMesh.getMaterial(2), true);
+			// write uv back to the model 
+			for(uint32_t i = 0; i < m_SMPLXMesh.submeshCount(); i++){
+				m_SMPLXMesh.getSubmesh(i)->Material = m_SMPLXMesh.materialCount() - 1;
+			}
+			m_TimonMesh.computePerVertexNormals();
+			m_Scan.init(&m_TimonMesh);
+			m_Reconstruction.init(&m_SMPLXMesh);
+		}
+
+		Vector3f Baryzentric(Vector3f p, Vector3f a, Vector3f b, Vector3f c){
+			// https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+			Vector3f v0 = b - a, v1 = c - a, v2 = p - a;
+			float d00 = v0.dot(v0), d01 = v0.dot(v1), d11 = v1.dot(v1);
+			float d20 = v2.dot(v0), d21 = v2.dot(v1), denom = d00 * d11 - d01 * d01; 
+			Vector3f Rval; 
+			Rval.y() = (d11 * d20 - d01 * d21) / denom;
+			Rval.z() = (d00 * d21 - d01 * d20) / denom;
+			Rval.x() = 1.0f - Rval.x() - Rval.y();
+			return Rval;
+		}		
+
+		float SDFTriangle(Vector3f p, Vector3f a, Vector3f b, Vector3f c){
+			// https://iquilezles.org/articles/distfunctions/ 
+			// create the sdf of a Triangle in 3D
+			Vector3f ba = b - a, pa = p - a;
+			Vector3f cb = c - b, pb = p - b;
+			Vector3f ac = a - c, pc = p - c;
+			Vector3f nor = ba.cross(ac);
+
+			// create a lamda sign function for a float
+			auto sign = [](float x) -> float { return (0.0f < x) - (x < 0.0f); };
+			auto dot2 = [](Vector3f v) -> float { return v.dot(v); };
+			auto clamp = [](float x) -> float{ return std::clamp(x, 0.0f, 1.0f); };
+			auto minVec = [](Vector3f a, Vector3f b) -> Vector3f { return Vector3f(std::fmin(a.x(), b.x()), std::min(a.y(), b.y()), std::min(a.z(), b.z())); };
+
+			bool edge = sign(ba.cross(nor).dot(pa)) + sign(cb.cross(nor).dot(pb)) + sign(ac.cross(nor).dot(pc)) < 2.0f;
+			
+			Vector3f vpa = Vector3f(dot2(ba * clamp(ba.dot(pa) / dot2(ba))), 0.0f, 1.0f) - pa; 
+			Vector3f vpb = Vector3f(dot2(cb * clamp(cb.dot(pb) / dot2(cb))), 0.0f, 1.0f) - pb;
+			Vector3f vpc = Vector3f(dot2(ac * clamp(ac.dot(pc) / dot2(ac))), 0.0f, 1.0f) - pc;
+			Vector3f edgeVec = minVec(minVec(vpa, vpb), vpc); 
+
+			float inner = nor.dot(pa) * nor.dot(pa) / dot2(nor);
+
+			return (edge ? edgeVec.norm() : sqrt(inner));
+			
+		}
+
 		void textureTransferNaive(){
 			// align meshes
 			haudsdorffTransformation();
 			std::vector<PointLenght> pt; 
-			ICP::findClosestPointKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
+			ICP::findClosestPointsKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
 
 			if(pt.size() != m_SMPLXMesh.vertexCount()) throw CForgeExcept("Vertex count of SMPLXMesh and pt are not equal!");
 			
@@ -373,7 +495,7 @@ namespace CForge {
 
 			std::vector<PointLenght> pt; 
 			auto start = CForgeUtility::timestamp();
-			ICP::findClosestPointKDTree(&A, &B, pt);
+			ICP::findClosestPointsKDTree(&A, &B, pt);
 			auto end = CForgeUtility::timestamp();
 			std::cout<<"Time for closest point search: "<<(end - start)<<"ms"<<std::endl;
 

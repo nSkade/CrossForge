@@ -25,7 +25,7 @@ namespace CForge
 		static float computeResidualError(const std::vector<Eigen::Vector3f> X, const std::vector<Eigen::Vector3f> P, Eigen::Matrix3f R, Eigen::Vector3f T);
 		static Eigen::Vector3f computeCenterOfMass(const std::vector<Eigen::Vector3f> X);
         static int32_t findClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pRoot, const std::vector<Eigen::Vector3f> *pPointCloud, float &closestDistance);
-        static void findClosestPointKDTree(const std::vector<Eigen::Vector3f> *A, const std::vector<Eigen::Vector3f> *B, std::vector<PointLenght> &closestPoints); 
+        static void findClosestPointsKDTree(const std::vector<Eigen::Vector3f> *A, const std::vector<Eigen::Vector3f> *B, std::vector<PointLenght> &closestPoints); 
     }; //ICP   
 
 } // namespace CForge
