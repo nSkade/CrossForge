@@ -69,6 +69,7 @@ namespace CForge {
 
 			m_Scan.init(&m_TimonMesh); 			
             m_ScanTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
+			// TODO
 			m_ScanTransformSGN.translation(Vector3f(1.5f, 0.0f, 0.0f));
             m_ScanSGN.init(&m_ScanTransformSGN, &m_Scan);
 
@@ -87,6 +88,16 @@ namespace CForge {
 			
 			// //  Rotating every point -> also need to do it for the whole model!
 			// Quaternionf QM = Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX()));
+			// Matrix4f Mat = CForgeMath::rotationMatrix(QM);
+			// for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			// {
+			// 	// here you can also implement a scaling, if ICP is not capable of 
+			// 	Vector4f M_v = Mat * Vector4f(m_ScanVertices[i].x(), m_ScanVertices[i].y(), m_ScanVertices[i].z(), 1.0f); 
+			// 	m_ScanVertices[i] = Vector3f(M_v.x(), M_v.y(), M_v.z());
+			// }
+				
+			// // Rotating every point -> also need to do it for the whole model!
+			// Quaternionf QM = Quaternionf(AngleAxis(CForgeMath::degToRad(90.0f), Vector3f::UnitZ()));
 			// Matrix4f Mat = CForgeMath::rotationMatrix(QM);
 			// for (size_t i = 0; i < m_ScanVertices.size(); i++)
 			// {
@@ -236,10 +247,26 @@ namespace CForge {
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_4)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_4, Keyboard::KEY_RELEASED);
 				textureTransferNaive();
+				
+				// TODO: 
+				// m_TimonMesh.computeAxisAlignedBoundingBox();
+				// m_SMPLXMesh.computeAxisAlignedBoundingBox();
+				// Vector3f lengthTimon = lenghtAxis(m_TimonMesh.aabb().Min, m_TimonMesh.aabb().Max);
+				// Vector3f lengthSMPLX = lenghtAxis(m_SMPLXMesh.aabb().Min, m_SMPLXMesh.aabb().Max);
+				// Vector3f misMatched = getMismatch(lengthSMPLX, lengthTimon);
+				// std::cout<<"Mismatch: "<<misMatched<<std::endl;
+
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_5)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_5, Keyboard::KEY_RELEASED);
 				textureTransferNormals();
+			}
+			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_6)){
+				std::cout<<"Saved the model"<<std::endl;
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED);
+				m_SMPLXMesh.computePerFaceNormals();
+				m_SMPLXMesh.computePerVertexNormals(); 
+				AssetIO::store("MyAssets/Reko_Timo/test.obj", &m_SMPLXMesh);
 			}
 		}//mainLoop
 
@@ -259,23 +286,18 @@ namespace CForge {
 			// only for adjecent triangles do sdf -> if no hit, can do it for all triangles
 			std::vector<PointLenght> pt; 
 			ICP::findClosestPointsKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
-			auto start = CForgeUtility::timestamp();
 
+			auto start = CForgeUtility::timestamp();
 			for(uint32_t i = 0; i < pt.size(); i++){
-				size_t search = pt[i].target;
+				 size_t search = pt[i].source;
 
 				std::vector<int32_t> adjTriangles; 
-
 				// get the adjecent triangles of the target point
 				for(uint32_t j = 0; j < m_TimonMesh.getSubmesh(0)->Faces.size(); j++){
 					T3DMesh<float>::Face v =  m_TimonMesh.getSubmesh(0)->Faces[j]; 
 					if(v.Vertices[0] == search || v.Vertices[1] == search || v.Vertices[2] == search){
 						adjTriangles.push_back(j);
 					}
-				}
-				// if empty, just use nearest point
-				if (adjTriangles.size() == 0){
-					adjTriangles.push_back(pt.at(i).target);
 				}
 
 				// for every adjecent triangle do sdf and get the nearest triangle
@@ -294,6 +316,21 @@ namespace CForge {
 					}
 				}
 				adjTriangles.clear();
+				
+				// // naive implementation
+				// float minDist = std::numeric_limits<float>::max();
+				// for(uint32_t j = 0; j < m_TimonMesh.getSubmesh(0)->Faces.size(); j++){
+				// 	T3DMesh<float>::Face face = m_TimonMesh.getSubmesh(0)->Faces[j];
+				// 	Vector3f a = m_TimonMesh.vertex(face.Vertices[0]); 
+				// 	Vector3f b = m_TimonMesh.vertex(face.Vertices[1]);
+				// 	Vector3f c = m_TimonMesh.vertex(face.Vertices[2]);
+				// 	float dist = SDFTriangle(m_SMPLXVertices[i], a, b, c);
+
+				// 	if(dist < minDist){
+				// 		minDist = dist;
+				// 		indexTriangle.at(i) = j;
+				// 	}
+				// }
 
 				// calculate normal
 				T3DMesh<float>::Face face = m_TimonMesh.getSubmesh(0)->Faces[indexTriangle.at(i)];
@@ -302,7 +339,7 @@ namespace CForge {
 				Vector3f c = m_TimonMesh.vertex(face.Vertices[2]);
 
 				float eps = 0.002f; 
-				auto map = [&](Vector3f v) -> float { SDFTriangle(v, a, b, c);};
+				auto map = [&](Vector3f v) -> float {return SDFTriangle(v, a, b, c);};
 				Vector3f normal = {
 					map(m_SMPLXVertices[i] + Vector3f(eps, 0.0f, 0.0f)) - map(m_SMPLXVertices[i] - Vector3f(eps, 0.0f, 0.0f)), 
 					map(m_SMPLXVertices[i] + Vector3f(0.0f, eps, 0.0f)) - map(m_SMPLXVertices[i] - Vector3f(0.0f, eps, 0.0f)), 
@@ -310,13 +347,23 @@ namespace CForge {
 					};
 				normal.normalize();
 
-				Vector3f projectedPoint = m_SMPLXVertices[i] + normal * minDist;  
+				Vector3f projectedPoint = m_SMPLXVertices[i] - normal * minDist;  
 				Vector3f uvw = Baryzentric(projectedPoint, a, b, c);
+				
+				// nehme an, dass dieser Fall wahr ist
+				// uvw.x() = std::clamp(uvw.x(), 0.0f, 1.0f); 
+				// uvw.y() = std::clamp(uvw.y(), 0.0f, 1.0f);
+				// uvw.z() = std::clamp(uvw.z(), 0.0f, 1.0f);
+				assert(uvw.x() >= 0.0f && uvw.y() >= 0.0f && uvw.z() >= 0.0f);
+				assert(uvw.x() <= 1.0f && uvw.y() <= 1.0f && uvw.z() <= 1.0f);
 				
 				// transfer the texture coordinates
 				// TODO: sind alle werte zwischen 0 und 1? 
 				uv[i] = m_TimonMesh.textureCoordinate(face.Vertices[0]) * uvw.x() + m_TimonMesh.textureCoordinate(face.Vertices[1]) * uvw.y() + m_TimonMesh.textureCoordinate(face.Vertices[2]) * uvw.z(); 
 			}
+			auto end = CForgeUtility::timestamp();
+			std::cout<<"Time for sdf: "<<(end - start)<<"ms"<<std::endl;
+
 			m_SMPLXMesh.textureCoordinates(&uv); 
 			m_SMPLXMesh.addMaterial(m_TimonMesh.getMaterial(2), true);
 			// write uv back to the model 
@@ -341,35 +388,38 @@ namespace CForge {
 		}		
 
 		float SDFTriangle(Vector3f p, Vector3f a, Vector3f b, Vector3f c){
-			// https://iquilezles.org/articles/distfunctions/ 
-			// create the sdf of a Triangle in 3D
-			Vector3f ba = b - a, pa = p - a;
-			Vector3f cb = c - b, pb = p - b;
-			Vector3f ac = a - c, pc = p - c;
-			Vector3f nor = ba.cross(ac);
+            // https://iquilezles.org/articles/distfunctions/ 
+            // create the sdf of a Triangle in 3D
+            Vector3f ba = b - a, pa = p - a;
+            Vector3f cb = c - b, pb = p - b;
+            Vector3f ac = a - c, pc = p - c;
+            Vector3f nor = ba.cross(ac);
 
-			// create a lamda sign function for a float
-			auto sign = [](float x) -> float { return (0.0f < x) - (x < 0.0f); };
-			auto dot2 = [](Vector3f v) -> float { return v.dot(v); };
-			auto clamp = [](float x) -> float{ return std::clamp(x, 0.0f, 1.0f); };
-			auto minVec = [](Vector3f a, Vector3f b) -> Vector3f { return Vector3f(std::fmin(a.x(), b.x()), std::min(a.y(), b.y()), std::min(a.z(), b.z())); };
+            // create a lamda sign function for a float
+            auto sign = [](float x) -> float { return (0.0f < x) - (x < 0.0f); };
+            auto dot2 = [](Vector3f v) -> float { return v.dot(v); };
+            auto clamp = [](float x) -> float{ return std::clamp(x, 0.0f, 1.0f); };
+            auto minVec = [](Vector3f a, Vector3f b) -> Vector3f { return Vector3f(std::fmin(a.x(), b.x()), std::min(a.y(), b.y()), std::min(a.z(), b.z())); };
 
-			bool edge = sign(ba.cross(nor).dot(pa)) + sign(cb.cross(nor).dot(pb)) + sign(ac.cross(nor).dot(pc)) < 2.0f;
-			
-			Vector3f vpa = Vector3f(dot2(ba * clamp(ba.dot(pa) / dot2(ba))), 0.0f, 1.0f) - pa; 
-			Vector3f vpb = Vector3f(dot2(cb * clamp(cb.dot(pb) / dot2(cb))), 0.0f, 1.0f) - pb;
-			Vector3f vpc = Vector3f(dot2(ac * clamp(ac.dot(pc) / dot2(ac))), 0.0f, 1.0f) - pc;
-			Vector3f edgeVec = minVec(minVec(vpa, vpb), vpc); 
+            bool edge = sign(ba.cross(nor).dot(pa)) + sign(cb.cross(nor).dot(pb)) + sign(ac.cross(nor).dot(pc)) < 2.0f;
+            
+     		//dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
+     		//dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
+     		//dot2(ac*clamp(dot(ac,pc)/dot2(ac),0.0,1.0)-pc) )
+            float vpa = dot2(ba * clamp(ba.dot(pa) / dot2(ba)) - pa); 
+            float vpb = dot2(cb * clamp(cb.dot(pb) / dot2(cb)) - pb);
+            float vpc = dot2(ac * clamp(ac.dot(pc) / dot2(ac)) - pc);
+            float edgeDist = std::min(std::min(vpa, vpb), vpc); 
 
-			float inner = nor.dot(pa) * nor.dot(pa) / dot2(nor);
+            float inner = nor.dot(pa) * nor.dot(pa) / dot2(nor);
 
-			return (edge ? edgeVec.norm() : sqrt(inner));
-			
-		}
+            return (edge ? sqrt(edgeDist) : sqrt(inner));
+            
+        }
 
 		void textureTransferNaive(){
 			// align meshes
-			haudsdorffTransformation();
+			// haudsdorffTransformation();
 			std::vector<PointLenght> pt; 
 			ICP::findClosestPointsKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
 
@@ -396,8 +446,6 @@ namespace CForge {
 			m_TimonMesh.computePerVertexNormals();
 			m_Scan.init(&m_TimonMesh);
 			m_Reconstruction.init(&m_SMPLXMesh);
-
-
 		}
 
 		/* The idea is that the two point clouds are aligned at least along on axis
@@ -417,7 +465,7 @@ namespace CForge {
 
 			// the two point clouds are already aligned
 			if(maxRow == maxCol){
-				std::cout<<"The two point clouds are already aligned"<<std::endl;
+				std::cout<<"The two point clouds are already aligned along the main axis"<<std::endl;
 				return;
 			}
 			
@@ -456,21 +504,48 @@ namespace CForge {
 			}
 			m_Scan.init(&m_TimonMesh);	
 
-			// align along the y-axis
+			// align along the axis
 			m_TimonMesh.computeAxisAlignedBoundingBox(); timonAABB = m_TimonMesh.aabb();
 			m_SMPLXMesh.computeAxisAlignedBoundingBox(); smplxAABB = m_SMPLXMesh.aabb();
-			Eigen::Vector3f moveY = timonAABB.Min - smplxAABB.Min; 
+			Eigen::Vector3f move = timonAABB.Min - smplxAABB.Min; 
 
 			for (size_t i = 0; i < m_ScanVertices.size(); i++)
 			{
-				m_ScanVertices[i] = m_ScanVertices[i] - moveY; 
+				m_ScanVertices[i] = m_ScanVertices[i] - move; 
 				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
 			}
 			m_Scan.init(&m_TimonMesh);
 
+			// caculate the length of all the axis of the two point clouds
+			Vector3f lenghtTimon = lenghtAxis(timonAABB.Min, timonAABB.Max);
+			Vector3f lenghtSMPLX = lenghtAxis(smplxAABB.Min, smplxAABB.Max);
+			
+
 			// now we need to check if the two meshes are standing on their feet or head 
 			float distHausdorff = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
 			std::cout << "Hausdorfdistance:" << distHausdorff << std::endl;
+		}
+
+		// get Vector of lenght of x,y and z-axis, Min: Min of the AABB, Max: Max of the AABB
+		Vector3f lenghtAxis(Vector3f Min, Vector3f Max){
+			Vector3f Rval;
+			Rval.x() = std::abs(Max.x() - Min.x());
+			Rval.y() = std::abs(Max.y() - Min.y());
+			Rval.z() = std::abs(Max.z() - Min.z());
+			return Rval;
+		}
+
+		// if the two meshes are misaligned, get the axis
+		Vector3f getMismatch(Vector3f smplx, Vector3f timon){
+			smplx = smplx.normalized(); timon = timon.normalized(); 
+			float angleRad = std::acos(smplx.dot(timon));
+
+			  // Check if the angle is close to 0 or 180 degrees (aligned or anti-aligned)
+  			if (std::abs(angleRad) < 1e-1 || std::abs(angleRad - M_PI) < 1e-1) {
+    			return Eigen::Vector3f::Zero(); // Axes are aligned or anti-aligned, no misalignment
+  			}
+			// If not aligned, return the cross product as the misalignment axis
+  			return smplx.cross(timon);
 		}
 
 
