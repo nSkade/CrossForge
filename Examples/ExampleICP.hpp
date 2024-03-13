@@ -98,6 +98,9 @@ namespace CForge {
 				
 			// // Rotating every point -> also need to do it for the whole model!
 			// Quaternionf QM = Quaternionf(AngleAxis(CForgeMath::degToRad(90.0f), Vector3f::UnitZ()));
+			// // Quaternionf Qy = Quaternionf(AngleAxis(CForgeMath::degToRad(90.0f), Vector3f::UnitY()));
+			// Quaternionf Qx = Quaternionf(AngleAxis(CForgeMath::degToRad(90.0f), Vector3f::UnitX()));
+			// QM = QM * Qx;
 			// Matrix4f Mat = CForgeMath::rotationMatrix(QM);
 			// for (size_t i = 0; i < m_ScanVertices.size(); i++)
 			// {
@@ -237,9 +240,11 @@ namespace CForge {
 					m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
 				}
 				m_Scan.init(&m_TimonMesh);		
+			}if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_LEFT_SHIFT) && m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_3)) {
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_3, Keyboard::KEY_RELEASED);
+				rotateMismatch(); 
 			}
-
-			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_3)){
+			else if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_3)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_3, Keyboard::KEY_RELEASED);
 				haudsdorffTransformation();
 			}
@@ -247,15 +252,6 @@ namespace CForge {
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_4)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_4, Keyboard::KEY_RELEASED);
 				textureTransferNaive();
-				
-				// TODO: 
-				// m_TimonMesh.computeAxisAlignedBoundingBox();
-				// m_SMPLXMesh.computeAxisAlignedBoundingBox();
-				// Vector3f lengthTimon = lenghtAxis(m_TimonMesh.aabb().Min, m_TimonMesh.aabb().Max);
-				// Vector3f lengthSMPLX = lenghtAxis(m_SMPLXMesh.aabb().Min, m_SMPLXMesh.aabb().Max);
-				// Vector3f misMatched = getMismatch(lengthSMPLX, lengthTimon);
-				// std::cout<<"Mismatch: "<<misMatched<<std::endl;
-
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_5)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_5, Keyboard::KEY_RELEASED);
@@ -403,9 +399,6 @@ namespace CForge {
 
             bool edge = sign(ba.cross(nor).dot(pa)) + sign(cb.cross(nor).dot(pb)) + sign(ac.cross(nor).dot(pc)) < 2.0f;
             
-     		//dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
-     		//dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
-     		//dot2(ac*clamp(dot(ac,pc)/dot2(ac),0.0,1.0)-pc) )
             float vpa = dot2(ba * clamp(ba.dot(pa) / dot2(ba)) - pa); 
             float vpb = dot2(cb * clamp(cb.dot(pb) / dot2(cb)) - pb);
             float vpc = dot2(ac * clamp(ac.dot(pc) / dot2(ac)) - pc);
@@ -516,14 +509,89 @@ namespace CForge {
 			}
 			m_Scan.init(&m_TimonMesh);
 
-			// caculate the length of all the axis of the two point clouds
-			Vector3f lenghtTimon = lenghtAxis(timonAABB.Min, timonAABB.Max);
-			Vector3f lenghtSMPLX = lenghtAxis(smplxAABB.Min, smplxAABB.Max);
-			
-
 			// now we need to check if the two meshes are standing on their feet or head 
 			float distHausdorff = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
 			std::cout << "Hausdorfdistance:" << distHausdorff << std::endl;
+		}
+
+		void rotateMismatch(){
+			// caculate the length of all the axis of the two point clouds
+			m_TimonMesh.computeAxisAlignedBoundingBox();
+			m_SMPLXMesh.computeAxisAlignedBoundingBox();
+			CForge::T3DMesh<float>::AABB timonAABB = m_TimonMesh.aabb();
+			CForge::T3DMesh<float>::AABB smplxAABB = m_SMPLXMesh.aabb();
+			Vector3f lenghtTimon = lenghtAxis(timonAABB.Min, timonAABB.Max);
+			Vector3f lenghtSMPLX = lenghtAxis(smplxAABB.Min, smplxAABB.Max);
+			Vector3i misMatched = getMismatch(lenghtSMPLX, lenghtTimon);
+
+			if(misMatched[0] == 1) rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitX())));
+			if(misMatched[1] == 1) rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitY())));
+			if(misMatched[2] == 1) rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(-90.0f), Vector3f::UnitZ())));
+
+			m_TimonMesh.computeAxisAlignedBoundingBox(); timonAABB = m_TimonMesh.aabb();
+			m_SMPLXMesh.computeAxisAlignedBoundingBox(); smplxAABB = m_SMPLXMesh.aabb();
+			float toScale = smplxAABB.diagonal().norm() / timonAABB.diagonal().norm();
+			
+			if (m_TimonMesh.vertexCount() != m_ScanVertices.size()) throw CForgeExcept("Vertex count of TimonMesh and ScanVertices are not equal!");			
+			for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			{
+				m_ScanVertices[i] *= toScale;
+				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
+			}
+			m_Scan.init(&m_TimonMesh);
+
+
+			auto align = [&]() -> void {
+			// align along the axis
+			m_TimonMesh.computeAxisAlignedBoundingBox(); timonAABB = m_TimonMesh.aabb();
+			m_SMPLXMesh.computeAxisAlignedBoundingBox(); smplxAABB = m_SMPLXMesh.aabb();
+			Eigen::Vector3f move = timonAABB.Min - smplxAABB.Min; 
+
+			for (size_t i = 0; i < m_ScanVertices.size(); i++)
+			{
+				m_ScanVertices[i] = m_ScanVertices[i] - move; 
+				m_TimonMesh.vertex(i) = m_ScanVertices[i]; 
+			}
+			m_Scan.init(&m_TimonMesh);};
+
+
+			align();
+			// need to beat this dist 
+			float dist = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
+			if(dist < 0.1f) return;	
+
+			// now we need to check if the two meshes are standing on their feet or head or not face to face
+			// X 
+			rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitX())));
+			align(); 
+			float x = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
+			if(x < 0.1f) return; 
+			if(x < dist){ dist = x;}
+			else{
+				rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitX())));
+				align(); 
+			}
+			// Y
+			rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitY())));
+			align(); 
+			float y = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
+			if(y < 0.1f) return; 
+			if(y < dist) dist = y;
+			else{
+				rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitY())));
+				align(); 
+			}
+			// Z
+			rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitZ())));
+			align();
+			float z = hausdorffDistance(m_ScanVertices, m_SMPLXVertices);
+			if(z < 0.1f) return;
+			if(z < dist) dist = z;
+			else{
+				rotateModell(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitZ())));
+				align(); 
+			}
+
 		}
 
 		// get Vector of lenght of x,y and z-axis, Min: Min of the AABB, Max: Max of the AABB
@@ -535,17 +603,47 @@ namespace CForge {
 			return Rval;
 		}
 
-		// if the two meshes are misaligned, get the axis
-		Vector3f getMismatch(Vector3f smplx, Vector3f timon){
+		// if the two meshes are misaligned, get the axis of misalignment
+		// smplx & timon: lenght of the axis of the aabb
+		Vector3i getMismatch(Vector3f smplx, Vector3f timon){
 			smplx = smplx.normalized(); timon = timon.normalized(); 
-			float angleRad = std::acos(smplx.dot(timon));
+			
+			// get the index of the smallest difference between the two axis
+			// if the axis are the same, the difference is near 0 -> just search for min
+			std::vector<float> diff;
+			Vector3i Rval = Vector3i::Zero();
+			for(int i = 0; i < smplx.size(); i++){
+				for(int j = 0; j < timon.size(); j++){
+					diff.push_back(std::abs(smplx[i] - timon[j]));
+				}
+				// find the index of min value in diff
+				auto min = std::min_element(diff.begin(), diff.end());
+				int index = std::distance(diff.begin(), min);
+				diff.clear();
+				Rval[i] = index;
+			}
+			
+			// get the axis to rotate - if (1,2,3) nothing to rotate
+			int mistakes = 0; 
+			for(int i = 0; i < Rval.size(); i++){
+				if(Rval[i] != i) mistakes++;
+			}
+			// return: 
+			// 012 - ok
+			// 102 - x | 021 - y | 210 - z
+			// 120 - yz | 201 - xz   
+			if(mistakes == 0) return Vector3i::Zero();
+			else if(mistakes == 2){
+				if(Rval[0] == 0) return Vector3i(1, 0, 0);
+				else if(Rval[0] == 2) return Vector3i(0, 1, 0);
+				else if(Rval[0] == 1) return Vector3i(0, 0, 1); 
+			}
+			else if(mistakes == 3){
+				if(Rval[0] == 1) return Vector3i(0, 1, 1);
+				else if(Rval[0] == 2) return Vector3i(1, 0, 1);
+			}
 
-			  // Check if the angle is close to 0 or 180 degrees (aligned or anti-aligned)
-  			if (std::abs(angleRad) < 1e-1 || std::abs(angleRad - M_PI) < 1e-1) {
-    			return Eigen::Vector3f::Zero(); // Axes are aligned or anti-aligned, no misalignment
-  			}
-			// If not aligned, return the cross product as the misalignment axis
-  			return smplx.cross(timon);
+			return Vector3i::Zero();
 		}
 
 
