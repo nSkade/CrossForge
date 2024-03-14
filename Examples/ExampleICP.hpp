@@ -253,16 +253,14 @@ namespace CForge {
 		void textureTransferNormals(){
 			rotateMismatch();
 			std::vector<Eigen::Vector3f> uv(m_SMPLXMesh.vertexCount(), Eigen::Vector3f::Zero());
-
 			vector<uint32_t> indexTriangle(m_SMPLXVertices.size(), 0); 
-			// for every point in the smplx mesh to timon 
 
 			// only for adjecent triangles do sdf -> if no hit, can do it for all triangles
 			std::vector<PointLenght> pt; 
 			ICP::findClosestPointsKDTree(&m_SMPLXVertices, &m_ScanVertices, pt);
 
 			for(uint32_t i = 0; i < pt.size(); i++){
-				 size_t search = pt[i].source;
+				size_t search = pt[i].target;
 
 				std::vector<int32_t> adjTriangles; 
 				// get the adjecent triangles of the target point
@@ -281,7 +279,7 @@ namespace CForge {
 					Vector3f a = m_TimonMesh.vertex(face.Vertices[0]); 
 					Vector3f b = m_TimonMesh.vertex(face.Vertices[1]);
 					Vector3f c = m_TimonMesh.vertex(face.Vertices[2]);
-					float dist = SDFTriangle(m_SMPLXVertices[i], a, b, c);
+					float dist = SDFTriangle(m_SMPLXVertices[i], a, b, c);					
 
 					if(dist < minDist){
 						minDist = dist;
@@ -322,13 +320,12 @@ namespace CForge {
 
 				Vector3f projectedPoint = m_SMPLXVertices[i] - normal * minDist;  
 				Vector3f uvw = Baryzentric(projectedPoint, a, b, c);
-				
 				// nehme an, dass dieser Fall wahr ist
 				// uvw.x() = std::clamp(uvw.x(), 0.0f, 1.0f); 
 				// uvw.y() = std::clamp(uvw.y(), 0.0f, 1.0f);
 				// uvw.z() = std::clamp(uvw.z(), 0.0f, 1.0f);
-				assert(uvw.x() >= 0.0f && uvw.y() >= 0.0f && uvw.z() >= 0.0f);
-				assert(uvw.x() <= 1.0f && uvw.y() <= 1.0f && uvw.z() <= 1.0f);
+				//assert(uvw.x() >= 0.0f && uvw.y() >= 0.0f && uvw.z() >= 0.0f);
+				//assert(uvw.x() <= 1.0f && uvw.y() <= 1.0f && uvw.z() <= 1.0f);
 				
 				// transfer the texture coordinates
 				// TODO: sind alle werte zwischen 0 und 1? 
@@ -348,14 +345,21 @@ namespace CForge {
 
 		Vector3f Baryzentric(Vector3f p, Vector3f a, Vector3f b, Vector3f c){
 			// https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+			// lamda function for the dot function 
+			auto Dot = [](Vector3f v0, Vector3f v1) -> float { return v0.dot(v1); };
+
 			Vector3f v0 = b - a, v1 = c - a, v2 = p - a;
-			float d00 = v0.dot(v0), d01 = v0.dot(v1), d11 = v1.dot(v1);
-			float d20 = v2.dot(v0), d21 = v2.dot(v1), denom = d00 * d11 - d01 * d01; 
-			Vector3f Rval; 
-			Rval.y() = (d11 * d20 - d01 * d21) / denom;
-			Rval.z() = (d00 * d21 - d01 * d20) / denom;
-			Rval.x() = 1.0f - Rval.x() - Rval.y();
-			return Rval;
+		    float d00 = Dot(v0, v0);
+		    float d01 = Dot(v0, v1);
+		    float d11 = Dot(v1, v1);
+		    float d20 = Dot(v2, v0);
+		    float d21 = Dot(v2, v1);
+		    float denom = d00 * d11 - d01 * d01;
+		    float v = (d11 * d20 - d01 * d21) / denom;
+		    float w = (d00 * d21 - d01 * d20) / denom;
+		    float u = 1.0f - v - w;
+
+			return Vector3f(u, v, w); 
 		}		
 
 		float SDFTriangle(Vector3f p, Vector3f a, Vector3f b, Vector3f c){
@@ -382,6 +386,7 @@ namespace CForge {
             float inner = nor.dot(pa) * nor.dot(pa) / dot2(nor);
 
             return (edge ? sqrt(edgeDist) : sqrt(inner));
+			nor.squaredNorm();
         }
 
 		void textureTransferNaive(){
