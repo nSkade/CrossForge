@@ -32,6 +32,13 @@ elif [ "$1" == "mr" ]
     echo "Compile Release version of CrossForge"
     cd out/build-lin
     make -j 12
+elif [ "$1" == "cmake" ]
+  then
+    echo "Running CMake for Release"
+    cmake -B out/build-lin -S . "-DCMAKE_TOOLCHAIN_FILE=/home/niclas/dev/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    echo "Running CMake for Debug"
+    cmake -B out/Debug -S . "-DCMAKE_TOOLCHAIN_FILE=/home/niclas/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Debug
+    echoe "CMake done"
 else
   echo "Invalid argument - type 'help' for more information"
 fi

@@ -20,9 +20,13 @@
 
 
 #include "ExampleSceneBase.hpp"
-#include <iostream>
 #include <Prototypes/SMPLTexturing/ICP.h> 
 #include <Prototypes/asicp/asicp.hxx>
+
+#include "json/json.h"
+
+#include <iostream>
+#include <fstream>
 
 using namespace Eigen;
 using namespace std;
@@ -55,6 +59,13 @@ namespace CForge {
 
 			// load skydome and a textured cube
 			// initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
+
+			//load cube
+			// SAssetIO::load("MyAssets/cube/cube_with_texture.obj", &m_CubeMesh);
+			// m_CubeMesh.computePerVertexNormals();
+			// m_Cube.init(&m_CubeMesh);
+			// m_CubeTransformSGN.init(&m_RootSGN);
+			// m_CubeSGN.init(&m_CubeTransformSGN, &m_Cube);
 			
 			// load the Scan (Timon / Staatstest)
             // SAssetIO::load("MyAssets/Reko/2017_10_11_Staatstest_6tex.obj", &M);
@@ -69,8 +80,8 @@ namespace CForge {
 
 			m_Scan.init(&m_TimonMesh); 			
             m_ScanTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
-			// TODO
-			m_ScanTransformSGN.translation(Vector3f(1.5f, 0.0f, 0.0f));
+			m_ScanTransformSGN.translation(Vector3f(1.f, 1.25f, 0.0f));
+			m_ScanTransformSGN.rotation(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitY())));
             m_ScanSGN.init(&m_ScanTransformSGN, &m_Scan);
 
 			// load SMPLX model
@@ -84,6 +95,8 @@ namespace CForge {
 			}		
 			m_Reconstruction.init(&m_SMPLXMesh);
 			m_ReconstructionTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
+			m_ReconstructionTransformSGN.translation(Vector3f(-1.0f, 1.25f, 0.0f));
+			m_ReconstructionTransformSGN.rotation(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitY())));
 			m_ReconstructionSGN.init(&m_ReconstructionTransformSGN, &m_Reconstruction);
 			
 			// //  Rotating every point -> also need to do it for the whole model!
@@ -141,6 +154,9 @@ namespace CForge {
 			// 	SLogger::log("OpenGL Error" + ErrorMsg, "PrimitiveFactoryTestScene", SLogger::LOGTYPE_ERROR);
 			// }
 
+			readJson();
+			
+			
 		}//initialize
 
 		void clear(void) override{
@@ -235,18 +251,24 @@ namespace CForge {
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_4)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_4, Keyboard::KEY_RELEASED);
+				auto start = CForgeUtility::timestamp();
 				textureTransferNaive();
+				auto end = CForgeUtility::timestamp();
+				std::cout<<"Time for naive transfer: "<<end - start << "ms" <<std::endl;
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_5)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_5, Keyboard::KEY_RELEASED);
+				auto start = CForgeUtility::timestamp();
 				textureTransferNormals();
+				auto end = CForgeUtility::timestamp();
+				std::cout<<"Time for normal transfer: "<<end - start<< "ms" <<std::endl;
 			}
 			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_6)){
 				std::cout<<"Saved the model"<<std::endl;
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED);
 				m_SMPLXMesh.computePerFaceNormals();
 				m_SMPLXMesh.computePerVertexNormals(); 
-				AssetIO::store("MyAssets/Reko_Timo/test.obj", &m_SMPLXMesh);
+				AssetIO::store("MyAssets/Reko_Timo/test.fbx", &m_SMPLXMesh);
 			}
 		}//mainLoop
 
@@ -386,7 +408,6 @@ namespace CForge {
             float inner = nor.dot(pa) * nor.dot(pa) / dot2(nor);
 
             return (edge ? sqrt(edgeDist) : sqrt(inner));
-			nor.squaredNorm();
         }
 
 		void textureTransferNaive(){
@@ -553,6 +574,19 @@ namespace CForge {
 			m_Scan.init(&m_TimonMesh);
 		}
 
+		void readJson(){
+			Json::Value root;
+			Json::Reader reader;
+			std::ifstream file("MyAssets/result.json"); 
+			bool parsingSuccessful = reader.parse(file, root);
+			if (!parsingSuccessful) {
+    			std::cout << "Failed to parse JSON" << std::endl;
+			}
+			std::string encoding = root["not_here"].asString();
+			const Json::Value& pelvis = root["pelvis"];
+			int id = pelvis["id"].asInt(); 
+		}
+
 		float hausdorffDistance(const std::vector<Vector3f>& A, const std::vector<Vector3f>& B, bool displayTime = false) {
 			// a kd-tree will be created and the closest point will be searched
 			float maxDist = 0.0f;
@@ -606,6 +640,11 @@ namespace CForge {
 
 		T3DMesh<float> m_TimonMesh;
 		T3DMesh<float> m_SMPLXMesh;
+
+		StaticActor m_Cube;
+		SGNTransformation m_CubeTransformSGN;
+		SGNGeometry m_CubeSGN;
+		T3DMesh<float> m_CubeMesh;
 	};//ExampleScanScreenshot
 
 }//name space

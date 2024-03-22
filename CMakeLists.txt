@@ -66,6 +66,9 @@ FIND_PACKAGE(imgui CONFIG REQUIRED) # dear-imgui
 FIND_PACKAGE(JPEG REQUIRED)
 FIND_PACKAGE(libjpeg-turbo)
 FIND_PACKAGE(FFMPEG REQUIRED)
+FIND_PACKAGE(nlohmann_json CONFIG REQUIRED) # support for json loading, storing, and processing
+
+FIND_PACKAGE(jsoncpp CONFIG REQUIRED) #TODO: if does not work, remove
 endif()
 
 add_executable(CForgeSandbox 
@@ -177,6 +180,8 @@ elseif(UNIX)
 		PRIVATE ${FFMPEG_LIBRARIES}
 		${FREETYPE_LIBRARIES}
 		${OpenCV_LIBS}
+		PRIVATE nlohmann_json::nlohmann_json
+		PRIVATE JsonCpp::JsonCpp
 		)
 endif()
 

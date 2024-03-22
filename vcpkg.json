@@ -13,6 +13,8 @@
     "tinygltf",
     "libjpeg-turbo",
     "nanoflann", 
+    "nlohmann-json",
+    "jsoncpp", 
     {
       "name": "ffmpeg",
       "default-features": true,
