@@ -38,7 +38,7 @@ elif [ "$1" == "cmake" ]
     cmake -B out/build-lin -S . "-DCMAKE_TOOLCHAIN_FILE=/home/niclas/dev/vcpkg/scripts/buildsystems/vcpkg.cmake"
     echo "Running CMake for Debug"
     cmake -B out/Debug -S . "-DCMAKE_TOOLCHAIN_FILE=/home/niclas/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Debug
-    echoe "CMake done"
+    echo "CMake done"
 else
   echo "Invalid argument - type 'help' for more information"
 fi

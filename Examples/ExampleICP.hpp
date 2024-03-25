@@ -24,6 +24,7 @@
 #include <Prototypes/asicp/asicp.hxx>
 
 #include "json/json.h"
+#include <Prototypes/JsonBone/JsonBoneRead.h>
 
 #include <iostream>
 #include <fstream>
@@ -85,7 +86,7 @@ namespace CForge {
             m_ScanSGN.init(&m_ScanTransformSGN, &m_Scan);
 
 			// load SMPLX model
-			SAssetIO::load("MyAssets/Reko_Timo/010.obj", &m_SMPLXMesh);
+			SAssetIO::load("MyAssets/010.obj", &m_SMPLXMesh);
             m_SMPLXMesh.computePerVertexNormals();
 			m_SMPLXMesh.computeAxisAlignedBoundingBox();
 
@@ -153,9 +154,6 @@ namespace CForge {
 			// if (0 != CForgeUtility::checkGLError(&ErrorMsg)) {
 			// 	SLogger::log("OpenGL Error" + ErrorMsg, "PrimitiveFactoryTestScene", SLogger::LOGTYPE_ERROR);
 			// }
-
-			readJson();
-			
 			
 		}//initialize
 
@@ -164,7 +162,6 @@ namespace CForge {
 			if (nullptr != m_pShaderMan) m_pShaderMan->release();
 			m_pShaderMan = nullptr;
 		}//clear
-
 
 		void mainLoop(void)override {
 			m_RenderWin.update();
@@ -264,11 +261,29 @@ namespace CForge {
 				std::cout<<"Time for normal transfer: "<<end - start<< "ms" <<std::endl;
 			}
 			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_6)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED);
 				std::cout<<"Saved the model"<<std::endl;
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED);
 				m_SMPLXMesh.computePerFaceNormals();
 				m_SMPLXMesh.computePerVertexNormals(); 
-				AssetIO::store("MyAssets/Reko_Timo/test.fbx", &m_SMPLXMesh);
+				AssetIO::store("MyAssets/Reko_Timo/test.obj", &m_SMPLXMesh);
+			}
+			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_7)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_7, Keyboard::KEY_RELEASED);
+				std:cout << "Save Model with Skeleton as fbx" << std::endl;
+				try
+				{
+					insertBones();
+					m_SMPLXMesh.computePerFaceNormals();
+					m_SMPLXMesh.computePerVertexNormals(); 
+					AssetIO::store("MyAssets/Reko_Timo/test.obj", &m_SMPLXMesh);
+				}
+				catch(const std::exception& e)
+				{
+					std::cerr << e.what() << '\n';
+				}
+				std::cout << "Successfully saved the model with skeleton" << std::endl;
+
 			}
 		}//mainLoop
 
@@ -558,7 +573,6 @@ namespace CForge {
 			return Vector3i::Zero();
 		}
 
-
 		void rotateModell(Quaternionf QM){
 			Matrix4f Mat = CForgeMath::rotationMatrix(QM);
 			for (size_t i = 0; i < m_ScanVertices.size(); i++)
@@ -574,19 +588,6 @@ namespace CForge {
 			m_Scan.init(&m_TimonMesh);
 		}
 
-		void readJson(){
-			Json::Value root;
-			Json::Reader reader;
-			std::ifstream file("MyAssets/result.json"); 
-			bool parsingSuccessful = reader.parse(file, root);
-			if (!parsingSuccessful) {
-    			std::cout << "Failed to parse JSON" << std::endl;
-			}
-			std::string encoding = root["not_here"].asString();
-			const Json::Value& pelvis = root["pelvis"];
-			int id = pelvis["id"].asInt(); 
-		}
-
 		float hausdorffDistance(const std::vector<Vector3f>& A, const std::vector<Vector3f>& B, bool displayTime = false) {
 			// a kd-tree will be created and the closest point will be searched
 			float maxDist = 0.0f;
@@ -597,17 +598,25 @@ namespace CForge {
 			auto end = CForgeUtility::timestamp();
 			if(displayTime) std::cout<<"Time for closest point search: "<<(end - start)<<"ms"<<std::endl;
 
+			int minIndex = 0; 
 			// find the max distance in pt
 			for (size_t i = 0; i < pt.size(); i++)
 			{
 				if (pt[i].lenght > maxDist)
 				{
 					maxDist = pt[i].lenght; 
+					minIndex = i;
 				}
 			}
 
 			return maxDist;
 		}//hausdorffDistance
+
+		void insertBones(){
+			const std::string fileName = "MyAssets/result.json";
+			std::vector<T3DMesh<float>::Bone*> bones = BuildBones::getBones(fileName);
+			m_SMPLXMesh.bones(&bones);
+		}
 
 	protected:
 

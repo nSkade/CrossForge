@@ -45,7 +45,7 @@ namespace CForge {
 			initCameraAndLights();
 			initFPSLabel();
 
-            m_Cam.position(Vector3f(0.0f, 1.5f, 4.0f));
+            m_Cam.position(Vector3f(0.0f, 1.2f, 3.25f));
 
 			// build scene graph
 			m_RootSGN.init(nullptr);
@@ -159,7 +159,7 @@ namespace CForge {
 
 			
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_1, true)) {
-				Vector3f camPos = 3.25f * circleCameraStep(m_maxCount, m_StepCount) + Vector3f(0.0f, 2.5f, 0.0f);
+				Vector3f camPos = 3.25f * circleCameraStep(m_maxCount, m_StepCount) + Vector3f(0.0f, 1.2f, 0.0f);
 				m_Cam.lookAt(camPos,  Vector3f(0.0f, 1.2f, 0.0f));
 
 				//camPos = 4.0f * circleCameraStep(m_maxCount, m_StepCount) + Vector3f(0.0f, 1.5f, 0.0f);
@@ -213,7 +213,7 @@ namespace CForge {
 			// m_Cam.lookAt(camPos,  Vector3f(0.0f, 1.2f, 0.0f));
 
 			std::vector<float> angles{-30.0f, -15.0f, -10.0f, -2.0f, 2.0f, 10.0f, 20.0f, 30.0f}; 
-			Vector3f camPos = 3.25f * Vector3f(sin(angles[m_StepCount] / (180 * M_PI)), 0.0f, cos(angles[m_StepCount] / (180 * M_PI))) + Vector3f(0.0f, 2.5f, 0.0f);
+			Vector3f camPos = 3.25f * Vector3f(sin(angles[m_StepCount] / (180 * M_PI)), 0.0f, cos(angles[m_StepCount] / (180 * M_PI))) + Vector3f(0.0f, 1.2f, 0.0f);
 			m_Cam.lookAt(camPos,  Vector3f(0.0f, 1.2f, 0.0f));
 
 			// the camera needs a frame (?) to be updated - so we need to wait 

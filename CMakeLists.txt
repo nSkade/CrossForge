@@ -119,6 +119,9 @@ add_executable(CForgeSandbox
 	"Prototypes/asicp/pca.cxx"
 	"Prototypes/asicp/rotation.cxx"
 
+	# json read
+	"Prototypes/JsonBone/JsonBoneRead.cpp"
+
 	)
 	
 if(EMSCRIPTEN)
