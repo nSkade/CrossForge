@@ -1,8 +1,8 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s):               *
+* File(s): CoreDefinitions.h                                                *
 *                                                                           *
-* Content:             *
+* Content: API definition and important includes.                           *
 *                                                                           *
 *                                                                           *
 *                                                                           *

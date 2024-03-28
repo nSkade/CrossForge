@@ -57,7 +57,7 @@ namespace CForge {
 		m_pAnimationController = pController;
 
 	
-		m_BV.init(pMesh, BoundingVolume::TYPE_AABB);
+		m_BV.init( (*pMesh), BoundingVolume::TYPE_AABB);
 
 	}//initialize
 

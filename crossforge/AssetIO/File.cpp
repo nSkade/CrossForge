@@ -121,7 +121,9 @@ namespace CForge {
 		if (nullptr == m_pFile) throw NotInitializedExcept("No open file to read from!");
 		if (nullptr == pBuffer) throw NullpointerExcept("pBuffer");
 		uint32_t Read = fread(pBuffer, 1, ByteCount, m_pFile);
-		if (Read == 0) throw CForgeExcept("An error occurred reading from file " + m_Path);
+		if (Read == 0 && 0 != ferror(m_pFile)) {
+			throw CForgeExcept("An error occurred reading from file " + m_Path);
+		}
 		return Read;
 	}//read
 

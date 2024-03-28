@@ -387,7 +387,7 @@ namespace CForge {
 				float CenteringOffset = (ImGui::GetWindowWidth() - Offset - 275) / 2.0f;
 
 				ImGui::SetCursorPosX(CenteringOffset + Offset - 10);
-				ImGui::Image((ImTextureID)m_Part1Data.ScaleImg.handle(), ImVec2(275, 50));
+				ImGui::Image((ImTextureID) uint64_t(m_Part1Data.ScaleImg.handle()), ImVec2(275, 50));
 
 				ImGui::SetCursorPosX(CenteringOffset + Offset + 20 - 10);
 				ImGui::Text("artificial"); ImGui::SameLine();
@@ -703,8 +703,7 @@ namespace CForge {
 
 				defaultCameraUpdate(&m_Cam, m_RenderWin.keyboard(), m_RenderWin.mouse());
 
-				if (m_RenderWin.mouse()->movement().norm() > 0.1f) m_LastInteraction = CForgeUtility::timestamp();
-				m_RenderWin.mouse()->movement(Vector2f(0.0f, 0.0f));
+				if (m_RenderWin.mouse()->positionDelta(true).norm() > 0.1f) m_LastInteraction = CForgeUtility::timestamp();
 
 				float IdleTime = (CForgeUtility::timestamp() - m_LastInteraction)/1000.0f;
 
@@ -991,7 +990,7 @@ namespace CForge {
 			pM->FilePath = "MyAssets/Models/B02ARKitRobot.gltf";
 			pM->OriginalMotion = "MyAssets/Models/RigMale.bvh";
 			pM->AlbedoReplacements.push_back(std::pair(0, ""));
-			pM->MaterialReplacements.push_back(std::pair(0, CForgeUtility::PLASTIC_GREY));
+			pM->MaterialReplacements.push_back(std::pair(0, CForgeUtility::PLASTIC_GRAY));
 			m_DisplayModels.push_back(pM);
 
 			//CForgeUtility::defaultMaterial(M.getMaterial(0), CForgeUtility::PLASTIC_GREY);

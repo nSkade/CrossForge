@@ -14,6 +14,10 @@ namespace CForge {
 		return m_pInstance;
 	}//instance
 
+	int32_t SCForgeSimulation::instaceCount() {
+		return m_InstanceCount;
+	}//instaceCount
+
 	int64_t SCForgeSimulation::simulationTime(void) {
 		auto* pInstance = SCForgeSimulation::instance();
 		int64_t Rval = pInstance->timestamp();
@@ -21,7 +25,7 @@ namespace CForge {
 		return Rval;
 	}//timestamp
 
-	int64_t SCForgeSimulation::simulationDelta(void) {
+	int64_t SCForgeSimulation::simulationTimeDelta(void) {
 		auto* pInstance = SCForgeSimulation::instance();
 		int64_t Rval = pInstance->timeDelta();
 		pInstance->release();
@@ -45,9 +49,9 @@ namespace CForge {
 		return m_SimulationDelta;
 	}//timeDelta
 
-	void SCForgeSimulation::timestamp(int64_t Milliseconds) {
+	void SCForgeSimulation::timestamp(int64_t Milliseconds, int64_t TimeDelta) {
 		m_SimulationTimestamp = Milliseconds;
-		m_SimulationDelta = 0;
+		m_SimulationDelta = TimeDelta;
 		m_LastSimulationUpdate = CForgeUtility::timestamp();
 	}//timestamp
 

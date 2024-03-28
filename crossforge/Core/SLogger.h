@@ -3,7 +3,7 @@
 * File(s): SLogger.h and SLogger.cpp                                        *
 *                                                                           *
 * Content: A simple logger class that can write error messages and          *
-*          exceptions to an error log file.                                  *
+*          exceptions to an error log file.                                 *
 *                                                                           *
 *                                                                           *
 * Author(s): Tom Uhlmann                                                    *
@@ -23,22 +23,26 @@ namespace CForge {
 	/**
 	* \brief Logger class to collect exceptions, error messages and general program flow.
 	*
-	* \note The default error log file is "CForgeLog.txt"
-	* 
-	* \todo Do full documentation
 	* \ingroup Core
+	* \note The default error log file is "CForgeLog.txt"
+	*  
+	* \todo Write documentation concept page about logging.
+	* \todo Change output file type to *.md and create a well-arranged log. PrintFullLog or something which prints all messages in a structured way.
+	* \todo Add methods to make log messages accessible (Getter).
 	*/
-
 	class CFORGE_API SLogger: public CForgeObject {
 	public:
 
+		/**
+		* \brief Defines for the available log types.
+		*/
 		enum LogType : int8_t {
-			LOGTYPE_UNKNOWN = -1,
-			LOGTYPE_DEBUG = 0,
-			LOGTYPE_ERROR,
-			LOGTYPE_INFO,
-			LOGTYPE_WARNING,
-			LOGTYPE_COUNT,
+			LOGTYPE_UNKNOWN = -1,	///< Default value.
+			LOGTYPE_DEBUG = 0,		///< Debug log.
+			LOGTYPE_ERROR,			///< Error log.
+			LOGTYPE_INFO,			///< Info log.
+			LOGTYPE_WARNING,		///< Warning log.
+			LOGTYPE_COUNT,			///< Number of log types.
 		};
 
 		/**
@@ -52,6 +56,7 @@ namespace CForge {
 		* \brief Log a message. Message will be written to the error log.
 		*
 		* \param[in] Msg Message to log.
+		* \param[in] Tag Optional tag for the message.
 		*/
 		static void log(const std::string Msg, const std::string Tag = "", LogType Type = LOGTYPE_INFO);
 
@@ -59,21 +64,38 @@ namespace CForge {
 		* \brief Specify a new log file.
 		*
 		* \param[in] URI Address and name of the new log file. Can be relative or absolute.
+		* \param[in] Type Which types of messages should be written to this file.
+		* \param[in] ResetFile Whether or not the existing file should be reset.
+		* \param[in] Whether or not messages of the specified type should be written immediately to the file.
 		*/
 		static void logFile(const std::string URI, LogType Type, bool ResetFile, bool LogImmediately);
 
+		/**
+		* \brief Getter for the assigned log file.
+		* 
+		* \param[in] Type Log type to get the assigned file for.
+		* \return Path to the assigned log file. Empty if no file was assigned.
+		*/
 		static std::string logFile(LogType Type);
 
 		/**
-		*\brief Instantiation method.
+		* \brief Singleton instantiation method.
+		* 
 		* \return Pointer to the unique instance.
 		*/
 		static SLogger* instance(void);
 
 		/**
-		*\brief Release method. Call once for every instance call.
+		* \brief Singleton release method. Call once for every instance call.
 		*/
 		void release(void);
+
+		/**
+		* \brief Getter for number of active instances.
+		* 
+		* \return Number of active instances.
+		*/
+		static int32_t instanceCount(void);
 
 	protected:
 		/**
@@ -85,31 +107,53 @@ namespace CForge {
 		*\brief Destructor
 		*/
 		~SLogger(void);
+		
 	private:
+		
+
 		static SLogger* m_pInstance;	///< Holds the unique instance pointer.
 		static int16_t m_InstanceCount; ///< Number of instance calls. If down to zero the object gets destroyed.
 
+		/**
+		* \brief Structure of a log entry.
+		*/
 		struct LogEntry {
-			std::string Msg;
-			std::string Tag;
-			LogType Type;
+			std::string Msg;	///< The message.
+			std::string Tag;	///< Message tag.
+			LogType Type;		///< Type.
 		};
 
+		/**
+		* \brief Attaches the specified log entries to the specified log file.
+		* 
+		* \param[in] LogFile Log file to write to.
+		* \param[in] pContent Log entries to add.
+		*/
 		void printLog(std::string LogFile, const std::vector<LogEntry> *pContent);
-		void writeToLog(const std::string Msg, const std::string Filename);
+
+		/**
+		* \brief Adds a the specified string to the log file.
+		* 
+		* \param[in] LogFile File to write to.
+		* \param[in] Msg Message to write.
+		*/
+		void writeToLog(const std::string LogFile, const std::string Msg);
 	
-		std::string m_ErrorLogFile; ///< Error log file. 
-		std::string m_DebugLogFile;
-		std::string m_InfoLogFile;
-		std::string m_WarningLogFile;
+		std::string m_ErrorLogFile;		///< Error log file. 
+		std::string m_DebugLogFile;		///< Debug log file.
+		std::string m_InfoLogFile;		///< Info log file.
+		std::string m_WarningLogFile;	///< Warning log file.
 
-		bool m_LogImmediately[LOGTYPE_COUNT];
+		bool m_LogImmediately[LOGTYPE_COUNT];	///< Array specifying whether messages should be logged immediately when received.
 
-		std::vector<LogEntry> m_ErrorLog;
-		std::vector<LogEntry> m_DebugLog;
-		std::vector<LogEntry> m_InfoLog;
-		std::vector<LogEntry> m_WarningLog;
+		std::vector<LogEntry> m_ErrorLog;	///< Entries of the error log.
+		std::vector<LogEntry> m_DebugLog;	///< Entries of the debug log.
+		std::vector<LogEntry> m_InfoLog;	///< Entries of the info log.
+		std::vector<LogEntry> m_WarningLog;	///< Entries of the warning log.
 	};//SLogger
 
-	typedef SLogger Logger;
+	typedef SLogger Logger;	///< Convenience definition.
+	
+
+	
 }//name-space

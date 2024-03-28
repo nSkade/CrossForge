@@ -54,7 +54,7 @@ namespace CForge {
 		m_VertexArray.unbind();
 
 		m_pAnimationController = pController;
-		m_BV.init(pMesh, BoundingVolume::TYPE_AABB);
+		m_BV.init( (*pMesh), BoundingVolume::TYPE_AABB);
 	}//initialize
 
 	void SkeletalActor::prepareCPUSkinning(const T3DMesh<float>* pMesh) {

@@ -10,7 +10,6 @@ namespace CForge {
 		m_pHandle = nullptr;
 
 		m_pInBuffer = nullptr;
-		m_pOutBuffer = nullptr;
 		m_BufferSize = 0;
 	}//Constructor
 
@@ -45,7 +44,6 @@ namespace CForge {
 		// create Buffer
 		m_BufferSize = 2048;
 		m_pInBuffer = new uint8_t[m_BufferSize];
-		m_pOutBuffer = new uint8_t[m_BufferSize];
 
 		// start threads
 		if (Type == TYPE_SERVER) {
@@ -72,11 +70,8 @@ namespace CForge {
 		m_ActiveConnections.clear();
 
 		if (nullptr != m_pInBuffer) delete[] m_pInBuffer;
-		if (nullptr != m_pOutBuffer) delete[] m_pOutBuffer;
 		m_BufferSize = 0;
-
 		m_pInBuffer = nullptr;
-		m_pOutBuffer = nullptr;
 	}//end
 
 	void TCPSocket::sendData(uint8_t* pData, uint32_t DataSize, int32_t ConnectionID) {
@@ -86,11 +81,10 @@ namespace CForge {
 
 		SOCKET pSock = (SOCKET)m_pHandle;
 		Connection* pCon = m_ActiveConnections[ConnectionID];
-		send((SOCKET)pCon->pHandle, (const char*)pData, DataSize, 0);
-
+		send((SOCKET)pCon->pHandle, (const char*)pData, DataSize, 0);	
 	}//send
 
-	bool TCPSocket::recvData(uint8_t* pBuffer, uint32_t* pDataSize, int32_t ConnectionID) {
+	bool TCPSocket::recvData(uint8_t* pBuffer, uint32_t BufferSize, uint32_t* pDataSize, int32_t ConnectionID) {
 		if (ConnectionID >= m_ActiveConnections.size()) throw IndexOutOfBoundsExcept("ConnectionID");
 		if (nullptr == m_ActiveConnections[ConnectionID]) throw CForgeExcept("Invalid connection with id " + std::to_string(ConnectionID));
 
@@ -100,8 +94,10 @@ namespace CForge {
 
 		pCon->Mutex.lock();
 		Package* pRval = pCon->InQueue.front();
-		pCon->InQueue.pop();
+		if(pRval->DataSize <= BufferSize) pCon->InQueue.pop();
 		pCon->Mutex.unlock();
+
+		if (pRval->DataSize > BufferSize) throw CForgeExcept("Specified buffer is too small.");
 		(*pDataSize) = pRval->DataSize;
 		memcpy(pBuffer, pRval->pData, pRval->DataSize);
 		delete pRval;
@@ -109,8 +105,8 @@ namespace CForge {
 	}//getMessage
 
 
-	bool TCPSocket::connectTo(std::string IP, uint16_t Port) {
-		bool Rval = false;
+	int32_t TCPSocket::connectTo(std::string IP, uint16_t Port) {
+		int32_t Rval = -1;
 
 		SOCKET pSock = (SOCKET)m_pHandle;
 
@@ -129,7 +125,7 @@ namespace CForge {
 		pCon->pRecvThread = new std::thread(&TCPSocket::recvThread, this, int32_t(m_ActiveConnections.size()));
 		m_ActiveConnections.push_back(pCon);
 
-		Rval = true;
+		Rval = int32_t(m_ActiveConnections.size());
 
 		return Rval;
 	}//connect

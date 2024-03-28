@@ -6,11 +6,17 @@ namespace CForge {
 
 	uint64_t CForgeMath::m_RndState = 88172645463325252ull;
 
+	// https://en.wikipedia.org/wiki/Xorshift
 	uint64_t CForgeMath::rand(void) {
-		m_RndState ^= m_RndState << 13;
+		/*m_RndState ^= m_RndState << 13;
 		m_RndState ^= m_RndState >> 7;
 		m_RndState ^= m_RndState << 17;
-		return m_RndState / 2ull;
+		return m_RndState;*/
+		m_RndState ^= m_RndState >> 12;
+		m_RndState ^= m_RndState << 25;
+		m_RndState ^= m_RndState >> 27;
+		return m_RndState * 0x2545F4914F6CDD1DULL;
+
 	}//rand
 
 	void CForgeMath::randSeed(uint64_t Seed) {
@@ -53,7 +59,7 @@ namespace CForge {
 		return Rval;
 	}//persepctiveProjection
 
-	void CForgeMath::asymmetricFrusti(uint32_t Width, uint32_t Height, float Near, float Far, float FOV, float FocalLength, float EyeSep, Eigen::Matrix4f* pLeftEye, Eigen::Matrix4f* pRightEye) {
+	void CForgeMath::stereoFrustums(uint32_t Width, uint32_t Height, float Near, float Far, float FOV, float FocalLength, float EyeSep, Eigen::Matrix4f &LeftEye, Eigen::Matrix4f &RightEye) {
 		float Aspect = Width / (float)Height;
 		float YnMax = Near * std::tan(FOV / 2.0f);
 		float Delta = 0.5f * EyeSep * Near / FocalLength;
@@ -63,11 +69,11 @@ namespace CForge {
 		float Left = -(Aspect * YnMax) - Delta;
 		float Right = (Aspect * YnMax) - Delta;
 
-		if (nullptr != pRightEye) (*pRightEye) = perspectiveProjection(Left, Right, Bottom, Top, Near, Far);
+		RightEye = perspectiveProjection(Left, Right, Bottom, Top, Near, Far);
 
 		Left = -(Aspect * YnMax) + Delta;
 		Right = (Aspect * YnMax) + Delta;
-		if (nullptr != pLeftEye) (*pLeftEye) = perspectiveProjection(Left, Right, Bottom, Top, Near, Far);
+		LeftEye = perspectiveProjection(Left, Right, Bottom, Top, Near, Far);
 
 	}//asymmetricFrusti
 

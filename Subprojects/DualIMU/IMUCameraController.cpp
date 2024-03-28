@@ -29,7 +29,7 @@ namespace CForge {
 		//m_SocketLeft.begin(UDPSocket::TYPE_SERVER, PortLeft);
 		//m_SocketRight.begin(UDPSocket::TYPE_SERVER, PortRight);
 
-		m_Socket.begin(UDPSocket::TYPE_SERVER, PortLeft);
+		m_Socket.begin(PortLeft);
 		m_AveragingTime = AveragingTime;
 
 		m_LeftFootPort = 0;
@@ -109,7 +109,7 @@ namespace CForge {
 		std::string SenderIP;
 		uint16_t SenderPort;
 
-		while (pSock->recvData(Buffer, &DataSize, &SenderIP, &SenderPort)) {
+		while (pSock->recvData(Buffer, sizeof(Buffer), &DataSize, &SenderIP, &SenderPort)) {
 			IMUWIP::IMUPackage Package;
 			if (Package.checkMagicTag(Buffer)) {
 				Package.fromStream(Buffer, DataSize);

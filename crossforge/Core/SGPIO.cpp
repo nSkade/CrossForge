@@ -11,8 +11,6 @@
 #include "SGPIO.h"
 #include "CrossForgeException.h"
 
-
-
 namespace CForge {
 
 	SGPIO* SGPIO::m_pInstance = nullptr;
@@ -268,6 +266,10 @@ namespace CForge {
 		m_InstanceCount++;
 		return m_pInstance;
 	}//instance
+
+	int32_t SGPIO::instanceCount() {
+		return m_InstanceCount;
+	}//instanceCount
 
 	void SGPIO::release(void) {
 		if (0 == m_InstanceCount) throw CForgeExcept("Not enough instances for a release call!");

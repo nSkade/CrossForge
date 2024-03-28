@@ -174,9 +174,9 @@ void exportLibrary(void) {
 	IncludeFiles.push_back("Input/SInputManager.h");
 
 	// Internet
-	Directories.push_back("crossforge/include/crossforge/Internet/");
-	IncludeFiles.push_back("Internet/TCPSocket.h");
-	IncludeFiles.push_back("Internet/UDPSocket.h");
+	Directories.push_back("crossforge/include/crossforge/Network/");
+	IncludeFiles.push_back("Network/TCPSocket.h");
+	IncludeFiles.push_back("Network/UDPSocket.h");
 
 	// Math
 	Directories.push_back("crossforge/include/crossforge/Math/");

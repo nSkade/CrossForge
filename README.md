@@ -2,7 +2,7 @@
 CrossForge: Your research and education tool for cross-platform 3D-Apps
 ========================
 
-<!-- {#mainpage} Add this after the first section label to make Doxygen recognize this page as mainpage-->
+<!-- \mainpage <<< Add this after the first section label to make Doxygen recognize this page as mainpage-->
 
 <p align="center">
     <img src="Documentation/Images/CrossForge-Logo-Banner.webp" alt="CrossForge Logo Banner"/>
@@ -106,8 +106,8 @@ To test the created website you will need a local webserver. You can create one 
 
     @misc{CForge,
         title={CrossForge: A Cross-Platform 3D Visualization and Animation Framework for Research and Education in Computer Graphics},
-        author={Tom Uhlmann and Contributors},
-        year = {2020-2023},
+        author={Tom Uhlmann},
+        year = {2020},
         howpublished = {https://github.com/Tachikoma87/CrossForge},
     }
 

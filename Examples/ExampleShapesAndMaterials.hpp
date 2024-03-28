@@ -192,7 +192,7 @@ namespace CForge {
 			case 1: PrimitiveShapeFactory::plane(&M, Vector2f(2.0f, 2.0f), Vector2i(1.0f, 1.0f)); break;
 			case 2: PrimitiveShapeFactory::circle(&M, Vector2f(2.0f, 2.0f), 20, 0.0f); break;
 			case 3: PrimitiveShapeFactory::cuboid(&M, Vector3f(2.0f, 2.0f, 2.0f), Vector3i(1, 1, 1)); break;
-			case 4: PrimitiveShapeFactory::Torus(&M, 1.0f, 0.5f, 15, 15); break;
+			case 4: PrimitiveShapeFactory::torus(&M, 1.0f, 0.5f, 15, 15); break;
 			case 5: PrimitiveShapeFactory::cone(&M, Vector3f(2.0f, 2.0f, 2.0f), 20); break;
 			case 6: PrimitiveShapeFactory::cylinder(&M, Vector2f(2.0f, 2.0f), Vector2f(2.0f, 2.0f), 2.0f, 20, Vector2f(0.0f, 0.0f)); break;
 			default: break;
@@ -201,7 +201,6 @@ namespace CForge {
 			setMeshShader(&M, 0.4f, 0.04f);
 			M.computePerVertexNormals();
 			CForgeUtility::defaultMaterial(M.getMaterial(0), Mat);
-
 
 			// create 10 x 10 objects with variation of roughness along the x axis and metallic along the z axis
 			for (uint32_t x = 0; x < 10; ++x) {

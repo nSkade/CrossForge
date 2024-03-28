@@ -28,22 +28,24 @@ namespace CForge {
 		Entry.Tag = Tag;
 		Entry.Type = Type;
 
+		const std::string Message = (Tag.empty()) ? Msg : Tag + ":" + Msg;
+
 		switch (Type) {
 		case LOGTYPE_ERROR: {
 			m_pInstance->m_ErrorLog.push_back(Entry);
-			if (m_pInstance->m_LogImmediately[LOGTYPE_ERROR]) m_pInstance->writeToLog(Tag + ":" + Msg + "\n", m_pInstance->m_ErrorLogFile);
+			if (m_pInstance->m_LogImmediately[LOGTYPE_ERROR]) m_pInstance->writeToLog(m_pInstance->m_ErrorLogFile, Message + "\n");
 		}break;
 		case LOGTYPE_DEBUG: {
 			m_pInstance->m_DebugLog.push_back(Entry);
-			if (m_pInstance->m_LogImmediately[LOGTYPE_DEBUG]) m_pInstance->writeToLog(Tag + ":" + Msg + "\n", m_pInstance->m_DebugLogFile);
+			if (m_pInstance->m_LogImmediately[LOGTYPE_DEBUG]) m_pInstance->writeToLog(m_pInstance->m_DebugLogFile, Message + "\n");
 		}break;
 		case LOGTYPE_INFO: {
 			m_pInstance->m_InfoLog.push_back(Entry);
-			if (m_pInstance->m_LogImmediately[LOGTYPE_INFO]) m_pInstance->writeToLog(Tag + ":" + Msg + "\n", m_pInstance->m_InfoLogFile);
+			if (m_pInstance->m_LogImmediately[LOGTYPE_INFO]) m_pInstance->writeToLog(m_pInstance->m_InfoLogFile, Message + "\n");
 		}break;
 		case LOGTYPE_WARNING: {
 			m_pInstance->m_WarningLog.push_back(Entry);
-			if (m_pInstance->m_LogImmediately[LOGTYPE_WARNING]) m_pInstance->writeToLog(Tag + ":" + Msg + "\n", m_pInstance->m_WarningLogFile);
+			if (m_pInstance->m_LogImmediately[LOGTYPE_WARNING]) m_pInstance->writeToLog(m_pInstance->m_WarningLogFile, Message + Msg + "\n");
 		}break;
 		default: {
 			throw CForgeExcept("Invalid log type specified!");
@@ -94,9 +96,13 @@ namespace CForge {
 		}
 	}//release
 
-	void SLogger::writeToLog(const std::string Msg, const std::string Filename) {
+	int32_t SLogger::instanceCount() {
+		return m_InstanceCount;
+	}//instanceCount
+
+	void SLogger::writeToLog(const std::string LogFile, const std::string Msg) {
 		File F;
-		F.begin(Filename, "ab");
+		F.begin(LogFile, "ab");
 		if (F.valid()) F.write(Msg.c_str(), Msg.size());
 		F.end();
 	}//writeToLog
@@ -121,8 +127,7 @@ namespace CForge {
 		if (!m_LogImmediately[LOGTYPE_ERROR] && !m_ErrorLogFile.empty()) printLog(m_ErrorLogFile, &m_ErrorLog);
 		if (!m_LogImmediately[LOGTYPE_DEBUG] && !m_DebugLogFile.empty()) printLog(m_DebugLogFile, &m_DebugLog);
 		if (!m_LogImmediately[LOGTYPE_INFO] && !m_InfoLogFile.empty()) printLog(m_InfoLogFile, &m_InfoLog);
-		if (!m_LogImmediately[LOGTYPE_WARNING] && !m_WarningLogFile.empty()) printLog(m_WarningLogFile, &m_WarningLog);
-
+		if (!m_LogImmediately[LOGTYPE_WARNING] && !m_WarningLogFile.empty()) printLog(m_WarningLogFile, &m_WarningLog);;
 	}//Destructor
 
 

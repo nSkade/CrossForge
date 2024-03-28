@@ -8,10 +8,10 @@ namespace CForge {
 
 	Mouse::Mouse(void): CForgeObject("Mouse") {
 		m_Position = Vector2f(0.0f, 0.0f);
-		m_Movement = Vector2f(0.0f, 0.0f);
+		m_Delta = Vector2f(0.0f, 0.0f);
 		m_Wheel = Vector2f(0.0f, 0.0f);
 		m_pWin = nullptr;
-		CForgeUtility::memset(&m_BtnState[0], false, BTN_COUNT);
+		m_BtnState.resize(BTN_COUNT, false);
 	}//Constructor
 
 	Mouse::~Mouse(void) {
@@ -27,18 +27,24 @@ namespace CForge {
 	void Mouse::clear(void) {
 		m_pWin = nullptr;
 		m_Position = Vector2f(0.0f, 0.0f);
-		m_Movement = Vector2f(0.0f, 0.0f);
+		m_Delta = Vector2f(0.0f, 0.0f);
 		m_Wheel = Vector2f(0.0f, 0.0f);
-		CForgeUtility::memset(&m_BtnState[0], false, BTN_COUNT);
+		for (auto& i : m_BtnState) i = false;
 	}//clear
 
 	Eigen::Vector2f Mouse::position(void)const {
 		return m_Position;
 	}//position
 
-	Eigen::Vector2f Mouse::movement(void) const{
-		return m_Movement;
-	}//movement
+	Eigen::Vector2f Mouse::positionDelta(void) const{
+		return m_Delta;
+	}//positionDelta
+
+	Eigen::Vector2f Mouse::positionDelta(bool Reset) {
+		Eigen::Vector2f Rval = m_Delta;
+		if (Reset) m_Delta = Eigen::Vector2f::Zero();
+		return Rval;
+	}//positionDelta
 
 	Eigen::Vector2f Mouse::wheel(void)const {
 		return m_Wheel;
@@ -50,12 +56,12 @@ namespace CForge {
 	}//buttonState
 
 	void Mouse::position(Eigen::Vector2f Pos) {
-		m_Movement += Pos - m_Position;
+		m_Delta += Pos - m_Position;
 		m_Position = Pos;
 	}//position
 
-	void Mouse::movement(Eigen::Vector2f Movement) {
-		m_Movement = Movement;
+	void Mouse::positionDelta(Eigen::Vector2f Movement) {
+		m_Delta = Movement;
 	}//movement
 
 	void Mouse::wheel(Eigen::Vector2f Offset) {

@@ -90,7 +90,7 @@ namespace CForge {
 			SLogger::log("Not handled OpenGL error occurred during initialization of a StaticActor: " + ErrorMsg, "StaticActor", SLogger::LOGTYPE_ERROR);
 		}
 		
-		m_BV.init(pMesh, BoundingVolume::TYPE_SPHERE);
+		m_BV.init( (*pMesh), BoundingVolume::TYPE_SPHERE);
 	}//initialize
 
 	void StaticActor::clear(void) {

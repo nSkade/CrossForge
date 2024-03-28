@@ -2,37 +2,39 @@
 #include "CForgeObject.h"
 
 namespace CForge {
+	uint64_t CForgeObject::m_ObjCounter = 0;
 
 	CForgeObject::CForgeObject(const std::string ClassName) {
-		m_ClassName = ClassName;	
-		SCrossForgeDevice* pMainDevice = SCrossForgeDevice::instance();
-		m_ObjectID = pMainDevice->registerObject(this);
-		pMainDevice->release();
+		m_ClassName = ClassName;		
+		m_ObjectID = 0;
+		m_ObjectID = m_ObjCounter++;
 	}//Constructor
 
 	CForgeObject::CForgeObject(const CForgeObject& other) {
 		m_ClassName = other.className();
-		SCrossForgeDevice* pMainDevice = SCrossForgeDevice::instance();
-		m_ObjectID = pMainDevice->registerObject(this);
-		pMainDevice->release();
+		m_ObjectID = m_ObjCounter++;
 	}//Constructor
 
+	CForgeObject::CForgeObject(CForgeObject& other) {
+		m_ClassName = other.className();
+		m_ObjectID = other.objectID();
+	}//Constructor
 
-	CForgeObject::~CForgeObject(void) {
-		SCrossForgeDevice* pMainDevice = SCrossForgeDevice::instance();
-		pMainDevice->unregisterObject(this);
-		pMainDevice->release();
-		
+	CForgeObject::~CForgeObject() {
 		m_ObjectID = INVALID_ID;
 		m_ClassName = "";
 	}//Destructor
 
-	uint32_t CForgeObject::objectID(void)const {
+	uint64_t CForgeObject::objectID()const {
 		return m_ObjectID;
 	}//objectID
 
-	std::string CForgeObject::className(void)const {
+	std::string CForgeObject::className()const {
 		return m_ClassName;
 	}//className
+
+	void CForgeObject::className(const std::string ClassName) {
+		m_ClassName = ClassName;
+	}
 
 }//name space

@@ -8,9 +8,9 @@ namespace CForge {
 	UDPSocket::UDPSocket(void): CForgeObject("UDPSocket") {
 		m_pRecvThread = nullptr;
 		m_pHandle = nullptr;
+		m_Port = 0;
 
 		m_pInBuffer = nullptr;
-		m_pOutBuffer = nullptr;
 		m_BufferSize = 0;
 	}//Constructor
 
@@ -19,7 +19,7 @@ namespace CForge {
 
 	}//Destructor
 
-	void UDPSocket::begin(SocketType Type, uint16_t Port) {
+	void UDPSocket::begin(uint16_t Port) {
 		end();
 
 		// create a socket
@@ -27,16 +27,18 @@ namespace CForge {
 		if (INVALID_SOCKET == pSock) throw CForgeExcept("Creating socket failed!");
 
 		m_Port = Port;
+		
+		sockaddr_in Addr;
+		Addr.sin_family = AF_INET;
+		Addr.sin_port = htons(m_Port);
+		Addr.sin_addr.s_addr = ADDR_ANY;
+		int32_t rc = bind(pSock, (sockaddr*)&Addr, sizeof(SOCKADDR_IN));
+		if (rc == SOCKET_ERROR) throw CForgeExcept("Binding socket failed. WSA error: " + std::to_string(WSAGetLastError()));
 
-		if (Type == TYPE_SERVER) {
-			// bind server to port
-			sockaddr_in Addr;
-			Addr.sin_family = AF_INET;
-			Addr.sin_port = htons(m_Port);
-			Addr.sin_addr.s_addr = ADDR_ANY;
-			int32_t rc = bind(pSock, (sockaddr*)&Addr, sizeof(SOCKADDR_IN));
-			if (rc == SOCKET_ERROR) throw CForgeExcept("Binding socket failed. WSA error: " + std::to_string(WSAGetLastError()));
-		}
+		int32_t s = sizeof(SOCKADDR_IN);
+		getsockname(pSock, (sockaddr*)&Addr, &s);
+
+		m_Port = Addr.sin_port;
 
 		m_pHandle = (void*)pSock;
 
@@ -46,7 +48,6 @@ namespace CForge {
 		// create Buffer
 		m_BufferSize = 2048;
 		m_pInBuffer = new uint8_t[m_BufferSize];
-		m_pOutBuffer = new uint8_t[m_BufferSize];
 	}//begin
 
 	void UDPSocket::end(void) {
@@ -58,11 +59,9 @@ namespace CForge {
 		m_pHandle = nullptr;
 
 		if (nullptr != m_pInBuffer) delete[] m_pInBuffer;
-		if (nullptr != m_pOutBuffer) delete[] m_pOutBuffer;
 		m_BufferSize = 0;
 
 		m_pInBuffer = nullptr;
-		m_pOutBuffer = nullptr;
 
 		while (!m_InQueue.empty()) {
 			auto* pMsg = m_InQueue.front();
@@ -88,13 +87,15 @@ namespace CForge {
 
 	}//send
 
-	bool UDPSocket::recvData(uint8_t* pBuffer, uint32_t* pDataSize, std::string* pSender, uint16_t* pPort) {
+	bool UDPSocket::recvData(uint8_t* pBuffer, uint32_t BufferSize, uint32_t* pDataSize, std::string* pSender, uint16_t* pPort) {
 		if (m_InQueue.empty()) return false;
 
 		m_Mutex.lock();
 		Package* pRval = m_InQueue.front();
-		m_InQueue.pop();
+		if(BufferSize >= pRval->DataSize) m_InQueue.pop();
 		m_Mutex.unlock();
+
+		if (BufferSize < pRval->DataSize) throw CForgeExcept("Specified buffer is too small!");
 
 		(*pDataSize) = pRval->DataSize;
 		if (nullptr != pSender) (*pSender) = pRval->IP;
@@ -165,7 +166,7 @@ namespace CForge {
 		end();
 	}//Destructor
 
-	void UDPSocket::begin(SocketType Type, uint16_t Port) {
+	void UDPSocket::begin(uint16_t Port) {
 		end();
 
 		// create a socket
@@ -174,16 +175,19 @@ namespace CForge {
 
 		m_Port = Port;
 
-		if (Type == TYPE_SERVER) {
-			// bind server to port
-			sockaddr_in Addr;
-			memset(&Addr, 0, sizeof(Addr));
-			Addr.sin_family = AF_INET;
-			Addr.sin_port = htons(m_Port);
-			Addr.sin_addr.s_addr = INADDR_ANY;
-			int32_t rc = bind(Sock, (sockaddr*)&Addr, sizeof(sockaddr));
-			if (-1 == rc) throw CForgeExcept("Binding socket failed.");
-		}
+		
+		// bind to port
+		sockaddr_in Addr;
+		memset(&Addr, 0, sizeof(Addr));
+		Addr.sin_family = AF_INET;
+		Addr.sin_port = htons(m_Port);
+		Addr.sin_addr.s_addr = INADDR_ANY;
+		int32_t rc = bind(Sock, (sockaddr*)&Addr, sizeof(sockaddr));
+		if (-1 == rc) throw CForgeExcept("Binding socket failed.");
+		
+		int32_t s = sizeof(SOCKADDR_IN);
+		getsockname(pSock, (sockaddr*)&Addr, &s);
+		m_Port = Addr.sin_port;
 
 		m_pHandle = (void*)Sock;
 

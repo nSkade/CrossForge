@@ -7,7 +7,7 @@ namespace CForge {
 
 	Keyboard::Keyboard(void): CForgeObject("Keyboard") {
 		m_pWin = nullptr;
-		CForgeUtility::memset(&m_KeyStates[0], KEY_RELEASED, KEY_COUNT);
+		m_KeyStates.resize(KEY_COUNT, KEY_RELEASED);
 	}//Constructor
 
 	Keyboard::~Keyboard(void) {
@@ -22,7 +22,7 @@ namespace CForge {
 
 	void Keyboard::clear(void) {
 		m_pWin = nullptr;
-		CForgeUtility::memset(&m_KeyStates[0], KEY_RELEASED, KEY_COUNT);
+		CForgeUtility::memset(m_KeyStates.data(), KEY_RELEASED, KEY_COUNT);
 	}//clear
 
 	bool Keyboard::keyPressed(Key K)const {
@@ -47,9 +47,9 @@ namespace CForge {
 	void Keyboard::keyState(Key K, State S) {
 		if (K <= KEY_UNKNOWN || K >= KEY_COUNT) throw IndexOutOfBoundsExcept("K");
 		m_KeyStates[K] = S;
-		KeyboardCallback broadcastObj;
-		broadcastObj.key = K;
-		broadcastObj.state = S;
+		KeyboardMsg broadcastObj;
+		broadcastObj.Key = K;
+		broadcastObj.State = S;
 		broadcastObj.Unicode = 0;
 		broadcast(broadcastObj);
 	}//keyPressed
@@ -61,9 +61,9 @@ namespace CForge {
 
 
 	void Keyboard::textInput(uint32_t Character) {
-		KeyboardCallback broadcastObj;
-		broadcastObj.key = KEY_UNKNOWN;
-		broadcastObj.state = KEY_PRESSED;
+		KeyboardMsg broadcastObj;
+		broadcastObj.Key = KEY_UNKNOWN;
+		broadcastObj.State = KEY_PRESSED;
 		broadcastObj.Unicode = Character;
 		broadcast(broadcastObj);
 	}//textInput

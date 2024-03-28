@@ -25,7 +25,7 @@ namespace CForge {
 	* \brief Basic exception thrown by the CrossForge library.
 	*
 	* \ingroup Core
-	* \todo Do full documentation
+	* \todo Write documentation concept page on exception handling.
 	*/
 	class CFORGE_API CrossForgeException: public CForgeObject {
 	public:
@@ -144,14 +144,14 @@ namespace CForge {
 		void info02(const std::string Info02);
 
 	protected:
-		std::string m_Message;	///< Message of this exception.
-		std::string m_File;	///< File where the exception occurred.
-		std::string m_Function; ///< Function/method in which the exception occurred.
-		int32_t m_Line; ///< Code line where the exception occurred.
-		Type m_Type; ///< Type of the exception. 
+		std::string m_Message;		///< Message of this exception.
+		std::string m_File;			///< File where the exception occurred.
+		std::string m_Function;		///< Function/method in which the exception occurred.
+		int32_t m_Line;				///< Code line where the exception occurred.
+		Type m_Type;				///< Type of the exception. 
 
-		std::string m_Info01;	///< Additional information 1.
-		std::string m_Info02;	///< Additional information 2.
+		std::string m_Info01;		///< Additional information 1.
+		std::string m_Info02;		///< Additional information 2.
 
 	};//CPiForgeException
 

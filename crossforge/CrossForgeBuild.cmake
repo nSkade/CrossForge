@@ -201,8 +201,8 @@ add_library(crossforge SHARED
 	crossforge/Input/SInputManager.cpp
 
 	# Internet related
-	crossforge/Internet/UDPSocket.cpp
-	crossforge/Internet/TCPSocket.cpp
+	crossforge/Network/UDPSocket.cpp
+	crossforge/Network/TCPSocket.cpp
 
 	# Mesh Processing
 	crossforge/MeshProcessing/Builder/MorphTargetModelBuilder.cpp

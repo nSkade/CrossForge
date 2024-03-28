@@ -156,7 +156,7 @@ namespace CForge {
 				Patterns.push_back("*.png");
 				std::vector<std::string> Paths = UserDialog::OpenFiles("Select images", Patterns, "");
 
-				printf("User inputs: %d files\n", Paths.size());
+				printf("User inputs: %d files\n", int32_t(Paths.size()));
 				for (auto i : Paths) {
 					printf("\t%s, \n", i.c_str());
 				}

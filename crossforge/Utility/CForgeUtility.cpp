@@ -121,10 +121,14 @@ namespace CForge {
 
 	uint32_t CForgeUtility::gpuMemoryAvailable(void) {
 		const uint32_t GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX = 0x9048;
+		const uint32_t TEXTURE_FREE_MEMORY_ATI = 0x87FC;
 
-		int32_t TotalMemory = 0;
-		glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &TotalMemory);
-		return TotalMemory;
+		int32_t TotalMemory[4] = { 0,0,0,0 };
+		glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, TotalMemory);
+		if (checkGLError(nullptr) != 0) glGetIntegerv(TEXTURE_FREE_MEMORY_ATI, TotalMemory);
+		checkGLError(nullptr);
+
+		return TotalMemory[0];
 	}//gpuMemoryAvailable
 
 	uint32_t CForgeUtility::gpuFreeMemory(void) {
@@ -186,7 +190,7 @@ namespace CForge {
 
 		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &Rval.MaxTextureImageUnits);
 		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &Rval.MaxFragmentUniformComponents);
-		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &Rval.MaxFragmentUniformBLocks);
+		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &Rval.MaxFragmentUniformBlocks);
 		glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &Rval.MaxUniformBlockSize);
 		glGetIntegerv(GL_MAX_VARYING_VECTORS, &Rval.MaxVaryingVectors);
 		glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &Rval.MaxVertexAttribs);
@@ -286,7 +290,7 @@ namespace CForge {
 			Rval.Roughness = 0.15f;
 			Rval.Metallic = 0.04f;
 		}break;
-		case PLASTIC_GREY: {
+		case PLASTIC_GRAY: {
 			Rval.Color = Vector4f(0x90,0x90,0x90, 0xff) / 255.0f;
 			Rval.Roughness = 0.15f;
 			Rval.Metallic = 0.04f;
@@ -322,7 +326,7 @@ namespace CForge {
 			Rval.Roughness = 0.8f;
 			Rval.Metallic = 0.04f;
 		}break;
-		case STONE_GREY: {
+		case STONE_GRAY: {
 			Rval.Color = Vector4f(0x90, 0x90, 0x90, 0xff) / 255.0f;
 			Rval.Roughness = 0.8f;
 			Rval.Metallic = 0.04f;

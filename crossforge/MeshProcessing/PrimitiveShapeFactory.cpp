@@ -478,7 +478,7 @@ namespace CForge {
 		pMesh->addMaterial(&Mat, true);
 	}//cylinder
 
-	void PrimitiveShapeFactory::Torus(T3DMesh<float>* pMesh, float Radius, float Thickness, uint32_t Slices, uint32_t Stacks) {
+	void PrimitiveShapeFactory::torus(T3DMesh<float>* pMesh, float Radius, float Thickness, uint32_t Slices, uint32_t Stacks) {
 		if (nullptr == pMesh) throw NullpointerExcept("pMesh");
 		pMesh->clear();
 

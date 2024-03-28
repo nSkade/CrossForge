@@ -24,6 +24,10 @@ namespace CForge {
 		}
 	}//release
 
+	int32_t SInputManager::instanceCount() {
+		return m_InstanceCount;
+	}//instanceCount
+
 	SInputManager::SInputManager(void): CForgeObject("SInputManager") {
 
 	}//Constructor
@@ -45,12 +49,13 @@ namespace CForge {
 		if (nullptr == pWin) throw NullpointerExcept("pWin");
 		if (nullptr == pKeyboard) throw NullpointerExcept("pKeyboard");
 
-		for (auto i : m_RegisteredKeyboards) {
+		for (auto &i : m_RegisteredKeyboards) {
 			if (nullptr == i) continue;
 			if (i->pWin == pWin && i->pKeyboard == pKeyboard) return; // we already know this pair
 		}//for[all registered keyboards
 
-		KeyboardEntity* pEntity = new KeyboardEntity();
+		//KeyboardEntity* pEntity = new KeyboardEntity();
+		std::shared_ptr<KeyboardEntity> pEntity = std::make_shared<KeyboardEntity>();
 		pEntity->pKeyboard = pKeyboard;
 		pEntity->pWin = pWin;
 
@@ -78,7 +83,8 @@ namespace CForge {
 			if (i->pWin == pWin && i->pMouse == pMouse) return; // we already know this pair
 		}//for[all registered mice]
 
-		MouseEntity* pEntity = new MouseEntity();
+		//MouseEntity* pEntity = new MouseEntity();
+		std::shared_ptr<MouseEntity> pEntity = std::make_shared<MouseEntity>();
 		pEntity->pMouse = pMouse;
 		pEntity->pWin = pWin;
 
@@ -102,7 +108,6 @@ namespace CForge {
 		for (auto& i : m_RegisteredKeyboards) {
 			if (i != nullptr && i->pKeyboard == pKeyboard) {
 				glfwSetKeyCallback(i->pWin, nullptr);
-				delete i;
 				i = nullptr;
 			}
 		}//for[all devices]
@@ -114,7 +119,6 @@ namespace CForge {
 				glfwSetMouseButtonCallback(i->pWin, nullptr);
 				glfwSetCursorPosCallback(i->pWin, nullptr);
 				glfwSetScrollCallback(i->pWin, nullptr);
-				delete i;
 				i = nullptr;
 			}
 		}//for[registered mice]
