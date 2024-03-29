@@ -30,12 +30,12 @@ namespace CForge {
 		return P.filename().string();
 	}//retrieveFilename
 
-	void File::createDirectory(const std::string Path) {
-		STD_FS::create_directory(Path);
+	bool File::createDirectory(const std::string Path) {
+		return STD_FS::create_directory(Path);
 	}//createDirectory
 
-	void File::createDirectories(const std::string Path) {
-		STD_FS::create_directories(Path);
+	bool File::createDirectories(const std::string Path) {
+		return STD_FS::create_directories(Path);
 	}//createDirectories
 
 	std::string File::parentPath(const std::string Path) {
@@ -63,9 +63,6 @@ namespace CForge {
 		return STD_FS::is_directory(Path);
 	}//isDirectory
 
-	bool File::createDirecotry(const std::string Path) {
-		return STD_FS::create_directory(Path);
-	}//createDirectory
 
 
 	File::File(void): CForgeObject("File") {

@@ -594,16 +594,16 @@ namespace CForge {
 		//3, 1, 5
 		//};
 		
-		T3DMesh<float>::AABB aabb = m_aabb;
+		Box aabb = m_aabb;
 		GLfloat vertices[] = { //Triangle Strip Cube
-			aabb.Min.x(), aabb.Min.y(), aabb.Min.z(),
-			aabb.Max.x(), aabb.Min.y(), aabb.Min.z(),
-			aabb.Min.x(), aabb.Max.y(), aabb.Min.z(),
-			aabb.Max.x(), aabb.Max.y(), aabb.Min.z(),
-			aabb.Min.x(), aabb.Min.y(), aabb.Max.z(),
-			aabb.Max.x(), aabb.Min.y(), aabb.Max.z(),
-			aabb.Max.x(), aabb.Max.y(), aabb.Max.z(),
-			aabb.Min.x(), aabb.Max.y(), aabb.Max.z()
+			aabb.min().x(), aabb.min().y(), aabb.min().z(),
+			aabb.max().x(), aabb.min().y(), aabb.min().z(),
+			aabb.min().x(), aabb.max().y(), aabb.min().z(),
+			aabb.max().x(), aabb.max().y(), aabb.min().z(),
+			aabb.min().x(), aabb.min().y(), aabb.max().z(),
+			aabb.max().x(), aabb.min().y(), aabb.max().z(),
+			aabb.max().x(), aabb.max().y(), aabb.max().z(),
+			aabb.min().x(), aabb.max().y(), aabb.max().z()
 		};
 		GLuint elements[] = {
 			3,2,6,
@@ -632,7 +632,7 @@ namespace CForge {
 		return m_translucent;
 	}
 
-	T3DMesh<float>::AABB LODActor::getAABB() {
+	Box LODActor::getAABB() {
 		return m_aabb;
 	}
 
@@ -682,8 +682,8 @@ namespace CForge {
 		affine.data()[12] = 0.0;
 		affine.data()[13] = 0.0;
 		affine.data()[14] = 0.0;
-		Eigen::Vector3f scaledAABBMax = affine * getAABB().Max;
-		Eigen::Vector3f scaledAABBMin = affine * getAABB().Min;
+		Eigen::Vector3f scaledAABBMax = affine * getAABB().max();
+		Eigen::Vector3f scaledAABBMin = affine * getAABB().min();
 		
 		Eigen::Vector3f center = scaledAABBMin*0.5+scaledAABBMax*0.5;
 		Eigen::Vector3f camPosToObj = Translation+center-pRDev->activeCamera()->position();

@@ -71,8 +71,8 @@ namespace CForge {
 		* \brief Clear method.
 		*/
 		void clear() {
-			m_Position = Vector2f(0.0f, 0.0f);
-			m_Size = Vector2f(0.0f, 0.0f);
+			m_Position = Eigen::Vector2f(0.0f, 0.0f);
+			m_Size = Eigen::Vector2f(0.0f, 0.0f);
 		}
 
 		/**
@@ -98,7 +98,7 @@ namespace CForge {
 		* 
 		* \return Position.
 		*/
-		Eigen::Vector2f position(void)const {
+		const Eigen::Vector2f position(void)const {
 			return m_Position;
 		}//position
 
@@ -108,7 +108,7 @@ namespace CForge {
 		* 
 		* \return Size.
 		*/
-		Eigen::Vector2f size(void)const {
+		const Eigen::Vector2f size(void)const {
 			return m_Size;
 		}//size
 
@@ -117,7 +117,7 @@ namespace CForge {
 		* 
 		* \return Width.
 		*/
-		float width(void)const {
+		const float width(void)const {
 			return m_Size.x();
 		}//width
 
@@ -126,7 +126,7 @@ namespace CForge {
 		* 
 		* \return Height.
 		*/
-		float height(void)const {
+		const float height(void)const {
 			return m_Size.y();
 		}//height
 
@@ -136,7 +136,7 @@ namespace CForge {
 		* \param[in] Point The point to check.
 		* \return True if point is inside or on the boundary, false otherwise.
 		*/
-		bool isPointInside(const Eigen::Vector2f Point) {
+		bool isPointInside(const Eigen::Vector2f Point) const {
 			return (
 				(Point.x() >= m_Position.x()) &&
 				(Point.y() >= m_Position.y()) &&

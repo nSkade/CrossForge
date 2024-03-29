@@ -70,7 +70,7 @@ namespace CForge {
 		}//for[all bones]
 
 		// estimate a good value for the joint and bone sizes
-		Vector3f Diag = (pMesh->aabb().diagonal().norm() < 0.0001f) ? T3DMesh<float>::computeAxisAlignedBoundingBox(pMesh).diagonal() : pMesh->aabb().diagonal();
+		Vector3f Diag = (pMesh->aabb().diagonal().norm() < 0.0001f) ? T3DMesh<float>::computeAxisAlignedBoundingBox( (*pMesh) ).diagonal() : pMesh->aabb().diagonal();
 
 		m_JointSize = Diag.norm() / 75.0f;
 		m_BoneSize = m_JointSize / 3.0f;

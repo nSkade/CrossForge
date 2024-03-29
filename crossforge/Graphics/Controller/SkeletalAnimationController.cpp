@@ -47,7 +47,7 @@ namespace CForge {
 			pJoint->LocalPosition = Vector3f::Zero();
 			pJoint->LocalRotation = Quaternionf::Identity();
 			pJoint->LocalScale = Vector3f::Ones();
-			pJoint->OffsetMatrix = pRef->OffsetMatrix;
+			pJoint->OffsetMatrix = pRef->InvBindPoseMatrix;
 			pJoint->SkinningMatrix = Matrix4f::Identity();
 
 			m_Joints.push_back(pJoint);

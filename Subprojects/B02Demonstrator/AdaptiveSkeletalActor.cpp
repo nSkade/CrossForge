@@ -35,7 +35,7 @@ namespace CForge {
 			if (pMesh->vertex(i).y() < MinY) MinY = pMesh->vertex(i).y();
 		}
 		pMesh->computeAxisAlignedBoundingBox();
-		const float Height = pMesh->aabb().Max.y() - pMesh->aabb().Min.y();
+		const float Height = pMesh->aabb().max().y() - pMesh->aabb().min().y();
 		float Delta = 0.4f; // Height * 0.005f;
 
 		std::vector<int32_t> Candidates;

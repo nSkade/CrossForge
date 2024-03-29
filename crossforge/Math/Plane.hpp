@@ -79,7 +79,7 @@ namespace CForge {
 		* 
 		* \return Normal of the plane..
 		*/
-		Eigen::Vector3f normal(void)const {
+		const Eigen::Vector3f normal(void)const {
 			return m_Normal;
 		}//normal
 
@@ -88,7 +88,7 @@ namespace CForge {
 		* 
 		* \return Distance value.
 		*/
-		float distance(void)const {
+		const float distance(void)const {
 			return m_Distance;
 		}//distance
 
@@ -98,7 +98,7 @@ namespace CForge {
 		* \param[in] Point to check.
 		* \return Signed distance. Negative values for points behind the plane, positive for those in front, and 0 for those on the plane.
 		*/
-		float signedDistance(Eigen::Vector3f Point)const {
+		const float signedDistance(Eigen::Vector3f Point)const {
 			return m_Normal.dot(Point) - m_Distance;
 		}//distance
 

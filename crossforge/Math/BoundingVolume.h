@@ -83,21 +83,21 @@ namespace CForge {
 		* 
 		* \return Axis aligned bounding box.
 		*/
-		Box aabb(void)const;
+		const Box aabb(void)const;
 
 		/**
 		* \brief Getter fro the bounding sphere.
 		* 
 		* \return Bounding sphere.
 		*/
-		Sphere boundingSphere(void)const;
+		const Sphere boundingSphere(void)const;
 
 		/**
 		* \brief Primary type getter.
 		* 
 		* \return Primary type.
 		*/
-		Type type(void)const;
+		const Type type(void)const;
 
 	protected:
 		Sphere m_Sphere;	///< Bounding sphere.

@@ -86,7 +86,7 @@ namespace CForge {
 		uint64_t m_ObjectID;	///< Unique ID of the object.
 		std::string m_ClassName;///< Class name of derived class.
 
-		static uint64_t m_ObjCounter;
+		static uint64_t m_ObjCounter;	///< Static counter to assign unique IDs.
 	};//CForgeObject
 
 	typedef std::shared_ptr<CForgeObject> CForgeObjectPtr;	///< Smart pointer definition.

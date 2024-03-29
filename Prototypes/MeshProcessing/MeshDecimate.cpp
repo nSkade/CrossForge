@@ -149,7 +149,7 @@ namespace CForge {
 		// copy all materials
 		for (uint32_t i = 0; i < inMesh->materialCount(); i++) {
 			T3DMesh<float>::Material* pM = new T3DMesh<float>::Material();
-			pM->init(inMesh->getMaterial(i));
+			pM->init( (*inMesh->getMaterial(i)) );
 			outMesh->addMaterial(pM, false);
 			outMesh->getMaterial(i)->Metallic = inMesh->getMaterial(i)->Metallic;
 			outMesh->getMaterial(i)->Roughness = inMesh->getMaterial(i)->Roughness;
@@ -247,9 +247,9 @@ namespace CForge {
 		return true;
 	} // decimateMesh func
 
-	bool MeshDecimator::insideAABB(T3DMesh<float>::AABB BoundingBox, Eigen::Vector3f Vertex) {
+	bool MeshDecimator::insideAABB(Box BoundingBox, Eigen::Vector3f Vertex) {
 		for (int i = 0; i < 3; i++) {
-			if (Vertex[i] > BoundingBox.Max[i] || Vertex[i] < BoundingBox.Min[i])
+			if (Vertex[i] > BoundingBox.max()[i] || Vertex[i] < BoundingBox.min()[i])
 				return false;
 		}
 		return true;
@@ -270,8 +270,8 @@ namespace CForge {
 		Vector3f Mins[8];
 
 		Vector3f Diag = pNode->BoundingBox.diagonal();
-		Vector3f Min = pNode->BoundingBox.Min;
-		Vector3f Max = pNode->BoundingBox.Max;
+		Vector3f Min = pNode->BoundingBox.min();
+		Vector3f Max = pNode->BoundingBox.max();
 		Vector3f Center = Min + Diag / 2;
 
 		Mins[0] = Min;
@@ -294,9 +294,9 @@ namespace CForge {
 
 		// Step 2: create and initialize the 8 child nodes
 		for (uint8_t i = 0; i < 8; ++i) {
-			T3DMesh<float>::AABB boundingBox;
-			boundingBox.Max = Maxs[i];
-			boundingBox.Min = Mins[i];
+			Box boundingBox;
+			boundingBox.max(Maxs[i]);
+			boundingBox.min(Mins[i]);
 
 			pNode->childs[i] = new octreeNode();
 			pNode->childs[i]->BoundingBox = boundingBox;
@@ -353,19 +353,27 @@ namespace CForge {
 		// construct octree
 		octreeNode* Root = new octreeNode();
 		Root->depth = 0;
+		Vector3f Min, Max;
 		//set BB to first val or else we might have a prob
 		for (uint8_t j = 0; j < 3; j++) {
-			Root->BoundingBox.Min[j] = DV.row(0)[j];
-			Root->BoundingBox.Max[j] = DV.row(0)[j];
+			/*Root->BoundingBox.min()[j] = DV.row(0)[j];
+			Root->BoundingBox.max()[j] = DV.row(0)[j];*/
+
+			Min[j] = DV.row(0)[j];
+			Max[j] = DV.row(0)[j];
 		}
 		for (uint32_t i = 0; i < DV.rows(); i++) {
 			for (uint8_t j = 0; j < 3; j++) {
 				float span = DV.row(i)[j];
-				Root->BoundingBox.Min[j] = std::min(Root->BoundingBox.Min[j], span);
-				Root->BoundingBox.Max[j] = std::max(Root->BoundingBox.Max[j], span);
+				/*Root->BoundingBox.min()[j] = std::min(Root->BoundingBox.min()[j], span);
+				Root->BoundingBox.max()[j] = std::max(Root->BoundingBox.max()[j], span);*/
+
+				Min[j] = std::min(Min[j], span);
+				Max[j] = std::max(Max[j], span);
 			}
 			Root->VertexIDs.push_back(i);
 		}
+		Root->BoundingBox.init(Min, Max);
 		createOctree(Root, &DV, &depthNodes);
 
 		// decimate, find targets

@@ -165,7 +165,7 @@ namespace CForge {
 				T2DImage<uint8_t> Img;
 				m_pCamDevice->retrieveImage(&Img);
 
-				if(Img.width() > 0) m_VideoRecorder.addFrame(&Img, 0);
+				if(Img.width() > 0) m_VideoRecorder.addFrame(&Img);
 			}
 
 			if (m_CaptureActive) {

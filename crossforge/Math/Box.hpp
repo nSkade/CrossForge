@@ -67,7 +67,7 @@ namespace CForge {
 		* 
 		* \return Minimal values of the box.
 		*/
-		Eigen::Vector3f min(void)const {
+		const Eigen::Vector3f min(void)const {
 			return m_Min;
 		}//min
 
@@ -76,7 +76,7 @@ namespace CForge {
 		* 
 		* \return Maximal values of the box.
 		*/
-		Eigen::Vector3f max(void)const {
+		const Eigen::Vector3f max(void)const {
 			return m_Max;
 		}//max
 
@@ -103,7 +103,7 @@ namespace CForge {
 		* 
 		* \return Diagonal vector.
 		*/
-		Eigen::Vector3f diagonal(void)const {
+		const Eigen::Vector3f diagonal(void)const {
 			return (m_Max - m_Min);
 		}//diagonal
 
@@ -112,7 +112,7 @@ namespace CForge {
 		* 
 		* \return Center of mass.
 		*/
-		Eigen::Vector3f center(void)const {
+		const Eigen::Vector3f center(void)const {
 			return m_Min + 0.5f * diagonal();
 		}//center
 

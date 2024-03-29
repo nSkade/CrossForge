@@ -90,12 +90,9 @@ namespace CForge {
 
 
 
-	T3DMesh<float>::AABB IRenderableActor::getAABB()
+	Box IRenderableActor::getAABB()
 	{
-		T3DMesh<float>::AABB aabb;
-		aabb.Min = Eigen::Vector3f(0);
-		aabb.Max = Eigen::Vector3f(0);
-		return aabb;
+		return Box();
 	}
 	
 	void IRenderableActor::testAABBvis(RenderDevice* pRDev, Eigen::Matrix4f sgMat)
@@ -147,8 +144,8 @@ namespace CForge {
 		affine.data()[12] = 0.0;
 		affine.data()[13] = 0.0;
 		affine.data()[14] = 0.0;
-		Eigen::Vector3f scaledAABBMax = affine * getAABB().Max;
-		Eigen::Vector3f scaledAABBMin = affine * getAABB().Min;
+		Eigen::Vector3f scaledAABBMax = affine * getAABB().max();
+		Eigen::Vector3f scaledAABBMin = affine * getAABB().min();
 		Eigen::Vector3f center = scaledAABBMin*0.5+scaledAABBMax*0.5;
 		scaledAABBMax -= center;
 		scaledAABBMin -= center;

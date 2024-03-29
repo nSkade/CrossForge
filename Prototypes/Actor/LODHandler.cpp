@@ -43,7 +43,7 @@ namespace CForge {
 		}*/
 
 		if (!File::isDirectory(lodFolderpath)) {
-			File::createDirecotry(lodFolderpath);
+			File::createDirectory(lodFolderpath);
 		}
 
 		

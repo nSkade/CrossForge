@@ -67,7 +67,7 @@ namespace CForge {
 		* 
 		* \return Center of mass.
 		*/
-		Eigen::Vector3f center(void)const {
+		const Eigen::Vector3f center(void)const {
 			return m_Center;
 		}//center
 
@@ -76,7 +76,7 @@ namespace CForge {
 		* 
 		* \return Radius.
 		*/
-		float radius(void)const {
+		const float radius(void)const {
 			return m_Radius;
 		}//radius
 

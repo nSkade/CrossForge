@@ -70,7 +70,7 @@ namespace CForge {
 
 		void bindLODLevel(uint32_t index);
 
-		T3DMesh<float>::AABB getAABB();
+		Box getAABB();
 		void testAABBvis(class RenderDevice* pRDev, Eigen::Matrix4f sgMat);
 		void renderAABB(class RenderDevice* pRDev);
 		void queryAABB(RenderDevice* pRDev, Eigen::Matrix4f transform);
@@ -126,7 +126,7 @@ namespace CForge {
 		std::vector<uint32_t> m_ElementBufferSizes;
 		
 		// AABB
-		T3DMesh<float>::AABB m_aabb;
+		Box m_aabb;
 		void initAABB();
 		GLVertexArray m_AABBvertArray;
 		GLBuffer m_AABBvertBuffer;

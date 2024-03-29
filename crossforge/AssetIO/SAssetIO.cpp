@@ -19,16 +19,20 @@ namespace CForge {
 		return m_pInstance;
 	}//instance
 
+	int32_t SAssetIO::instaceCount() {
+		return m_InstanceCount;
+	}
+
 	std::string SAssetIO::readTextFile(const std::string Filepath) {
 		std::string Rval = "";
 		if (!File::exists(Filepath)) throw CForgeExcept("File " + Filepath + " does not exist!");
 
 		File F;
 		F.begin(Filepath, "r");
-		uint8_t Buffer[128];
+		uint8_t Buffer[64];
 
 		while (!F.eof()) {
-			uint32_t Length = F.read(Buffer, 128);
+			uint32_t Length = F.read(Buffer, 64);
 			Rval += std::string((const char* const)Buffer, Length);
 		}
 
@@ -118,6 +122,8 @@ namespace CForge {
 		ImgPlug.Name = pWebPImageIO->pluginName();
 		m_ImageIOPlugins.push_back(ImgPlug);
 
+		ImgPlug.pInstance = nullptr;
+		ImgPlug.Name = "";
 	}//initialize
 
 	void SAssetIO::clear(void) {

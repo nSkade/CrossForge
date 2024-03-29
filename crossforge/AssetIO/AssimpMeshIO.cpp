@@ -34,7 +34,6 @@ namespace CForge {
 
 	void AssimpMeshIO::load(const std::string Filepath, T3DMesh<float> *pMesh){
 		const aiScene *pScene = m_Importer.ReadFile(Filepath, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_LimitBoneWeights | aiProcess_OptimizeGraph | aiProcess_ValidateDataStructure);
-		//const aiScene* pScene = m_Importer.ReadFile(Filepath, aiProcess_Triangulate | aiProcess_ValidateDataStructure);
 
 		if (nullptr == pScene) {
 			std::string ErrorMsg = m_Importer.GetErrorString();
@@ -97,7 +96,7 @@ namespace CForge {
 		return Rval;
 	}//accepted
 
-	void AssimpMeshIO::aiSceneTo3DMesh(const aiScene* pScene, T3DMesh<float>* pMesh, std::string Directory) {
+	void AssimpMeshIO::aiSceneTo3DMesh(const aiScene* pScene, T3DMesh<float>* pMesh, const std::string Directory) {
 		if (nullptr == pMesh) throw NullpointerExcept("pMesh");
 		if (nullptr == pScene) throw NullpointerExcept("pScene");
 
@@ -153,7 +152,7 @@ namespace CForge {
 
 				T3DMesh<float>::Bone* pBone = new T3DMesh<float>::Bone();
 				pBone->ID = Bones.size();
-				pBone->OffsetMatrix = toEigenMat(pM->mBones[k]->mOffsetMatrix);
+				pBone->InvBindPoseMatrix = toEigenMat(pM->mBones[k]->mOffsetMatrix);
 				pBone->Name = pM->mBones[k]->mName.C_Str();
 
 				for (uint32_t j = 0; j < pM->mBones[k]->mNumWeights; ++j) {
@@ -427,7 +426,7 @@ namespace CForge {
 				if (InfluenceIDs.size() > 0) {
 					aiBone* pB = new aiBone();
 					pB->mName = pBone->Name.c_str();
-					pB->mOffsetMatrix = toAiMatrix(pBone->OffsetMatrix);
+					pB->mOffsetMatrix = toAiMatrix(pBone->InvBindPoseMatrix);
 					pB->mNumWeights = InfluenceIDs.size();
 					pB->mWeights = new aiVertexWeight[pB->mNumWeights];
 					for (uint32_t j = 0; j < InfluenceIDs.size(); ++j) {

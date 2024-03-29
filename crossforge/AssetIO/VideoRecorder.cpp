@@ -264,11 +264,14 @@ namespace CForge {
 
 	}//initialize
 
+	void VideoRecorder::clear(void) {
+		if (nullptr != m_pData) delete m_pData;
+		m_pData = nullptr;
+	}//clear
+
 	void VideoRecorder::startRecording(const std::string Filename, uint32_t Width, uint32_t Height, const float FPS) {
 		int32_t EncodeVideo;
 		int32_t EncodeAudio;
-		/*muxTest();
-		return;*/
 
 		int32_t Rval = 0;
 
@@ -351,25 +354,13 @@ namespace CForge {
 		m_pData = nullptr;
 	}//stopRecording
 
-	void VideoRecorder::clear(void) {
 
-
-	}//clear
-
-	void VideoRecorder::release(void) {
-		delete this;
-	}//release
-
-	void VideoRecorder::addFrame(const T2DImage<uint8_t>* pImg, uint64_t Timestamp) {
+	void VideoRecorder::addFrame(const T2DImage<uint8_t>* pImg) {
 		if (nullptr == m_pData) throw CForgeExcept("Video recording not running!");
 
 		writeFrame(m_pData->pFmtCtx, m_pData->VideoStream.pEnc, m_pData->VideoStream.pStream, getVideoFrame(&m_pData->VideoStream, pImg), m_pData->VideoStream.pTmpPkt);
 
 	}//addFrame
-
-	void VideoRecorder::finish(void) {
-		clear();
-	}//finish
 
 	float VideoRecorder::fps(void)const {
 		return m_pData->FPS;

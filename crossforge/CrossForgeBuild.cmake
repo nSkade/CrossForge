@@ -24,6 +24,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(stb)
 include_directories(${stb_SOURCE_DIR})
 
+FetchContent_Declare(
+	portable-file-dialogs
+	GIT_REPOSITORY https://github.com/samhocevar/portable-file-dialogs
+	GIT_TAG 0.1.0
+)
+FetchContent_MakeAvailable(portable-file-dialogs)
+include_directories(${portable-file-dialogs_SOURCE_DIR}/)
+
 
 if(EMSCRIPTEN)
 	### Eigen3

@@ -21,7 +21,11 @@
 #include "../Core/CForgeObject.h"
 
 namespace CForge {
-
+	/**
+	* \brief
+	* 
+	* \todo Change from tiny file dialogs to portable file dialogs library
+	*/
 	class CFORGE_API UserDialog {
 	public:
 		enum IconType : int8_t {

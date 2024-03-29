@@ -278,6 +278,28 @@ namespace CForge {
 		static Font* defaultFont(DefaultFontType FontType, uint32_t FontSize, bool Bold = false, bool Italic = false, std::u32string CharSet = U"");
 
 		/**
+		* \brief Converts an RGB color vector to a grayscale value. Values have to be \f$ \in [0,1] \f$.
+		* 
+		* \param[in] C RGB color vector.
+		* \return Grayscale value.
+		*/
+		static float rgbToGrayscale(const Eigen::Vector3f C) {
+			return rgbToGrayscale(C.x(), C.y(), C.z());
+		}
+
+		/**
+		* \brief Converts RGB values into grayscale representation. Values have to be \$f \in [0,1] \$f.
+		* 
+		* \param[in] R Red value.
+		* \param[in] G Green value.
+		* \param[in] B Blue value.
+		* \return Grayscale value.
+		*/
+		static float rgbToGrayscale(float R, float G, float B) {
+			return 0.299 * R + 0.587 * G + 0.114 * B;
+		}
+
+		/**
 		* \brief Constructor
 		*/
 		CForgeUtility(void);

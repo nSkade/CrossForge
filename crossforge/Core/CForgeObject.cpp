@@ -6,7 +6,6 @@ namespace CForge {
 
 	CForgeObject::CForgeObject(const std::string ClassName) {
 		m_ClassName = ClassName;		
-		m_ObjectID = 0;
 		m_ObjectID = m_ObjCounter++;
 	}//Constructor
 
