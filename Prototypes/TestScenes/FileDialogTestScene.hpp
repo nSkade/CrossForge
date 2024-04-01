@@ -120,7 +120,7 @@ namespace CForge {
 				UserDialog::NotifyPopup("Notification", "You have been served!", UserDialog::ICON_WARNING);
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_2, true)) {
-				UserDialog::UserAnswer A = UserDialog::MessagePopup("Message Box", "This is a message maybe it is too short!", UserDialog::DIALOG_YESNO, UserDialog::ICON_QUESTION, false);
+				UserDialog::UserAnswer A = UserDialog::MessagePopup("Message Box", "This is a message maybe it is too short!", UserDialog::DIALOG_YESNOCANCEL, UserDialog::ICON_QUESTION);
 
 				switch (A) {
 				case UserDialog::ANSWER_OK: printf("User: Ok\n"); break;
@@ -131,30 +131,17 @@ namespace CForge {
 				}
 			}
 
-			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_3, true)) {
-				std::string Name = UserDialog::PasswordBox("Give me a name", "Enter your name!");
-				printf("User input: %s\n", Name.c_str());
-			}
 
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_4, true)) {
-				std::vector<std::string> Patterns;
-				Patterns.push_back("*.jpg");
-				Patterns.push_back("*.png");
-				std::string Path = UserDialog::SaveFile("Save image", Patterns, "");
+				std::string Path = UserDialog::SaveFile("Save image", "Image Files", "*.jpg *.png *.webp");
 				printf("User input: %s\n", Path.c_str());
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_5, true)) {
-				std::vector<std::string> Patterns;
-				Patterns.push_back("*.jpg");
-				Patterns.push_back("*.png");
-				std::string Path = UserDialog::OpenFile("Select an image", Patterns, "");
+				std::string Path = UserDialog::OpenFile("Select an image", "Image File", "*.jpg *.png *.webp");
 				printf("User input: %s\n", Path.c_str());
 			}
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_6, true)) {
-				std::vector<std::string> Patterns;
-				Patterns.push_back("*.jpg");
-				Patterns.push_back("*.png");
-				std::vector<std::string> Paths = UserDialog::OpenFiles("Select images", Patterns, "");
+				std::vector<std::string> Paths = UserDialog::OpenFiles("Select some files");
 
 				printf("User inputs: %d files\n", int32_t(Paths.size()));
 				for (auto i : Paths) {
@@ -165,16 +152,6 @@ namespace CForge {
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_7, true)) {
 				std::string Path = UserDialog::SelectFolder("Select a temporary folder");
 				printf("User Input: %s\n", Path.c_str());
-			}
-
-			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_8, true)) {
-				Eigen::Vector3i Col = UserDialog::ColorPicker("Select a color", Eigen::Vector3i(255, 255, 255));
-				printf("User Input: %d %d %d\n", Col[0], Col[1], Col[2]);
-
-				Vector4f NewCol = Vector4f(Col[0], Col[1], Col[2], 255);
-				NewCol /= 255.0f;
-
-				m_Duck.material(0)->color(NewCol);
 			}
 
 			

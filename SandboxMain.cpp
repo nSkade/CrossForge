@@ -50,7 +50,7 @@ using namespace Eigen;
 //#define ActiveScene ExampleSceneGraph
 //#define ActiveScene ExampleSkeletalAnimation
 //#define ActiveScene ExampleMorphTargetAnimation
-#define ActiveScene ExampleMultiViewport
+//#define ActiveScene ExampleMultiViewport
 //#define ActiveScene ExampleSocket
 
 //#define ActiveScene SkelAnimTestScene
@@ -58,7 +58,7 @@ using namespace Eigen;
 //#define ActiveScene AssetGLTFTestScene
 //#define ActiveScene CameraCaptureTestScene
 //#define ActiveScene TransparencyTestScene
-//#define ActiveScene FileDialogTestScene
+#define ActiveScene FileDialogTestScene
 //#define ActiveScene BackgroundRemovalTestScene
 
 //#define ActiveScene ImuInputDeviceTestScene	

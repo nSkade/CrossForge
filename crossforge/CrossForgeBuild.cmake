@@ -104,7 +104,6 @@ else()
 	FIND_PACKAGE(WebP CONFIG REQUIRED)	# WebP to import/export webp
 	find_package(JPEG REQUIRED)			# jpeg loader (required by libjpeg turbo)
 	find_package(libjpeg-turbo CONFIG REQUIRED)			# jpeg-turbo library to compress/decompress jpeg
-	FIND_PACKAGE(tinyfiledialogs CONFIG REQUIRED)		# tiny filedialogs for simple user dialogs
 	FIND_PACKAGE(FFMPEG REQUIRED)
 
 endif()
@@ -260,7 +259,6 @@ target_link_libraries(crossforge
 	PRIVATE Freetype::Freetype
 	libjpeg-turbo::turbojpeg
 	PRIVATE ${JPEG_LIBRARIES}
-	tinyfiledialogs::tinyfiledialogs
 	PRIVATE ${FFMPEG_LIBRARIES}
 	)
 elseif(__arm__)

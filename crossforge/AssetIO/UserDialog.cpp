@@ -1,4 +1,4 @@
-#include <tinyfiledialogs/tinyfiledialogs.h>
+#include <portable-file-dialogs.h>
 #include "UserDialog.h"
 
 using namespace std;
@@ -8,85 +8,73 @@ namespace CForge {
 	string UserDialog::m_DefaultOpenPath = "";
 	string UserDialog::m_DefaultFolderPath = "";
 
+
+	pfd::icon retrieveIconFromIconType(const UserDialog::IconType Icon) {
+		pfd::icon Rval;
+		switch (Icon) {
+		case UserDialog::ICON_INFO: Rval = pfd::icon::info; break;
+		case UserDialog::ICON_QUESTION: Rval = pfd::icon::question;  break;
+		case UserDialog::ICON_WARNING: Rval = pfd::icon::warning; break;
+		case UserDialog::ICON_ERROR: Rval = pfd::icon::error;  break;
+		default: Rval = pfd::icon::info; break;
+		}
+		return Rval;
+	}
+
+	UserDialog::UserAnswer retrieveAnswerFromButton(const pfd::button Button) {
+		UserDialog::UserAnswer Rval = UserDialog::ANSWER_UNKNOWN;;
+		switch (Button) {
+		case pfd::button::ok: Rval = UserDialog::ANSWER_OK; break;
+		case pfd::button::cancel: Rval = UserDialog::ANSWER_CANCEL; break;
+		case pfd::button::yes: Rval = UserDialog::ANSWER_YES; break;
+		case pfd::button::no: Rval = UserDialog::ANSWER_NO; break;
+		default: break;
+		}
+		return Rval;
+	}
+
+	pfd::choice retrieveChoiceFromDialogType(const UserDialog::DialogType Type) {
+		pfd::choice Rval = pfd::choice::ok;
+		switch (Type) {
+		case UserDialog::DIALOG_OK: Rval = pfd::choice::ok; break;
+		case UserDialog::DIALOG_OKCANCEL: Rval = pfd::choice::ok_cancel;  break;
+		case UserDialog::DIALOG_YESNO: Rval = pfd::choice::yes_no; break;
+		case UserDialog::DIALOG_YESNOCANCEL: Rval = pfd::choice::yes_no_cancel; break;
+		default: break;
+		}
+		return Rval;
+	}
+
 	void UserDialog::NotifyPopup(const std::string Title, const std::string Message, const IconType IType) {
-		int32_t Rval = tinyfd_notifyPopup(Title.c_str(), Message.c_str(), getIconString(IType).c_str());
+		pfd::notify(Title, Message, retrieveIconFromIconType(IType));
 	}//NotifyPopup
 
-	UserDialog::UserAnswer UserDialog::MessagePopup(const std::string Title, const std::string Message, const DialogType DType, const IconType IType, const bool DefaultYes) {
-		int32_t DefaultButton = (DefaultYes) ? 1 : 0;
-
-		int32_t Answer = tinyfd_messageBox(Title.c_str(), Message.c_str(), getDialogString(DType).c_str(), getIconString(IType).c_str(), DefaultButton);
-		UserAnswer Rval = UserAnswer::ANSWER_UNKNOWN;
-		switch (DType) {
-		case DIALOG_OK: Rval = ANSWER_OK; break;
-		case DIALOG_OKCANCEL: Rval = (Answer == 0) ? ANSWER_CANCEL : ANSWER_OK; break;
-		case DIALOG_YESNO: Rval = (Answer == 0) ? ANSWER_NO : ANSWER_YES; break;
-		default: Rval = ANSWER_UNKNOWN; break;
-		}
-		return Rval;
+	UserDialog::UserAnswer UserDialog::MessagePopup(const std::string Title, const std::string Message, const DialogType DType, const IconType IType) {
+		pfd::button Answer = pfd::message(Title, Message, retrieveChoiceFromDialogType(DType), retrieveIconFromIconType(IType)).result();
+		return retrieveAnswerFromButton(Answer);
 	}//MessageBox
 
-	std::string UserDialog::InputBox(const std::string Title, const std::string Message) {
-		const char* pStr = tinyfd_inputBox(Title.c_str(), Message.c_str(), "");
-		return (nullptr == pStr) ? string("") : string(pStr);
-	}//InputBox
 
-	std::string UserDialog::PasswordBox(const std::string Title, const std::string Message) {
-		const char* pStr = tinyfd_inputBox(Title.c_str(), Message.c_str(), nullptr);
-		return (nullptr == pStr) ? string("") : string(pStr);
-	}//PasswordBox
-
-	std::string UserDialog::SaveFile(const std::string Title, const std::vector<std::string> FilterPatterns, const std::string FilterDescription) {
-
-		char** ppPatterns = buildFilterPatterns(FilterPatterns);
-		const char* pStr = tinyfd_saveFileDialog(Title.c_str(), m_DefaultSavePath.c_str(), FilterPatterns.size(), ppPatterns, FilterDescription.c_str());
-		deleteFilterPatterns(FilterPatterns, ppPatterns);
-		return (nullptr == pStr) ? string("") : string(pStr);
+	std::string UserDialog::SaveFile(const std::string Title, const std::string FilterDescription, const std::string FilterPatterns) {
+		std::vector<std::string> Filter = { FilterDescription + " (" + FilterPatterns + ")", FilterPatterns};
+		return pfd::save_file::save_file(Title, m_DefaultSavePath, Filter).result();
 	}//SaveFile
 
-	std::string UserDialog::OpenFile(const std::string Title, const std::vector<std::string> FilterPatterns, const std::string FilterDescription) {
-
-		char** ppPatterns = buildFilterPatterns(FilterPatterns);
-		const char* pStr = tinyfd_openFileDialog(Title.c_str(), m_DefaultOpenPath.c_str(), FilterPatterns.size(), ppPatterns, FilterDescription.c_str(), 0);
-		deleteFilterPatterns(FilterPatterns, ppPatterns);
-
-		return (nullptr == pStr) ? std::string("") : std::string(pStr);
+	std::string UserDialog::OpenFile(const std::string Title, const std::string FilterDescription, const std::string FilterPatterns) {
+		std::vector<std::string> Filter = { FilterDescription + " (" + FilterPatterns + ")", FilterPatterns };
+		std::vector<std::string> Result = pfd::open_file::open_file(Title, m_DefaultOpenPath, Filter, false).result();
+		return (Result.size() > 0) ? Result[0] : "";
 	}//OpenFile
 
-	std::vector<std::string> UserDialog::OpenFiles(const std::string Title, const std::vector<std::string> FilterPatterns, const std::string FilterDescription) {
-		char** ppPatterns = buildFilterPatterns(FilterPatterns);
-		const char* pStr = tinyfd_openFileDialog(Title.c_str(), m_DefaultOpenPath.c_str(), FilterPatterns.size(), ppPatterns, FilterDescription.c_str(), 1);
-		deleteFilterPatterns(FilterPatterns, ppPatterns);
-
-		// split string based on token
-		vector<string> Rval;
-		if (pStr != nullptr) {
-			std::string s = "";
-			for (auto i : string(pStr)) {
-				if (i == '|') {
-					Rval.push_back(s);
-					s = "";
-				}
-				else {
-					s += i;
-				}
-			}
-			if (s.size() > 0) Rval.push_back(s);
-		}
-		return Rval;
+	std::vector<std::string> UserDialog::OpenFiles(const std::string Title, const std::string FilterDescription, const std::string FilterPatterns) {
+		std::vector<std::string> Filter = { FilterDescription + " (" + FilterPatterns + ")", FilterPatterns };
+		return pfd::open_file::open_file(Title, m_DefaultOpenPath, Filter, true).result();
 	}//OpenFiles
 
 	std::string UserDialog::SelectFolder(const std::string Title) {
-		char* pStr = tinyfd_selectFolderDialog(Title.c_str(), m_DefaultFolderPath.c_str());
-		return (nullptr == pStr) ? string("") : string(pStr);
+		if (!m_DefaultFolderPath.empty()) return pfd::select_folder::select_folder(Title, m_DefaultFolderPath, pfd::opt::force_path).result();
+		return pfd::select_folder::select_folder(Title).result();
 	}//SelectFolder
-
-	Eigen::Vector3i UserDialog::ColorPicker(const std::string Title, const Eigen::Vector3i DefaultRGB) {
-		unsigned char DefRGB[3] = { uint8_t(DefaultRGB[0]), uint8_t(DefaultRGB[1]), uint8_t(DefaultRGB[2]) };
-		unsigned char ResRGB[3] = { 0,0,0 };
-		char* pStr = tinyfd_colorChooser(Title.c_str(), nullptr, DefRGB, ResRGB);
-		return Eigen::Vector3i(ResRGB[0], ResRGB[1], ResRGB[2]);
-	}//ColorPicker
 
 	void UserDialog::DefaultSavePath(const std::string DefaultPath) {
 		m_DefaultSavePath = DefaultPath;
@@ -114,7 +102,7 @@ namespace CForge {
 
 
 
-	UserDialog::UserDialog() {
+	UserDialog::UserDialog(): CForgeObject("UserDialog") {
 
 	}//UserDialog
 
@@ -122,51 +110,5 @@ namespace CForge {
 
 	}//~UserDialog
 
-	std::string UserDialog::getIconString(const IconType IType) {
-		std::string Rval = "";
-		switch (IType) {
-		case ICON_INFO: Rval = "info"; break;
-		case ICON_WARNING: Rval = "warning"; break;
-		case ICON_ERROR: Rval = "error"; break;
-		case ICON_QUESTION: Rval = "question"; break;
-		default: Rval = "info"; break;
-		}
-		return Rval;
-	}//getIconString
-
-	std::string UserDialog::getDialogString(const DialogType DType) {
-		std::string Rval = "";
-		switch (DType) {
-		case DIALOG_OK: Rval = "ok"; break;
-		case DIALOG_OKCANCEL: Rval = "okcancel"; break;
-		case DIALOG_YESNO: Rval = "yesno"; break;
-		default: Rval = "okcancel"; break;
-		}
-		return Rval;
-	}//getDialogString
-
-	char** UserDialog::buildFilterPatterns(const std::vector<std::string> Patterns) {
-		char** ppPatterns = nullptr;
-		const uint32_t PatternCount = Patterns.size();
-
-		if (Patterns.size() > 0) {
-			ppPatterns = new char* [PatternCount];
-			if (nullptr == ppPatterns) return nullptr;
-			for (uint32_t i = 0; i < PatternCount; ++i) {
-				ppPatterns[i] = new char[Patterns[i].size() + 1];
-				ppPatterns[i][0] = '\0';
-				memcpy(ppPatterns[i], Patterns[i].c_str(), Patterns[i].size());
-				ppPatterns[i][Patterns[i].size()] = '\0';
-			}
-		}
-		return ppPatterns;
-	}//buildFilePatterns
-
-	void UserDialog::deleteFilterPatterns(const std::vector<std::string> Patterns, char** ppPatterns) {
-		for (uint32_t i = 0; i < Patterns.size(); ++i) {
-			if (nullptr != ppPatterns && nullptr != ppPatterns[i]) delete[](ppPatterns[i]);
-		}
-		if (nullptr != ppPatterns) delete[] ppPatterns;
-	}//deleteFilePatterns
 
 }//name-space
