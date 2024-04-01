@@ -22,7 +22,7 @@
 #include <crossforge/Utility/CForgeUtility.h>
 #include <crossforge/AssetIO/SAssetIO.h>
 #include <crossforge/Graphics/Shader/SShaderManager.h>
-#include <crossforge/Graphics/STextureManager.h>
+#include <crossforge/Graphics/Textures/STextureManager.h>
 
 #include <crossforge/Graphics/GLWindow.h>
 #include <crossforge/Graphics/RenderDevice.h>

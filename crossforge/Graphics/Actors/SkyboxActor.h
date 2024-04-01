@@ -19,7 +19,7 @@
 #define __CFORGE_SKYBOXACTOR_H__
 
 #include "IRenderableActor.h"
-#include "../GLCubemap.h"
+#include "../Textures/GLCubemap.h"
 #include "../UniformBufferObjects/UBOColorAdjustment.h"
 
 namespace CForge {

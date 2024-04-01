@@ -24,7 +24,7 @@
 
 #include "GLWindow.h"
 #include "GBuffer.h"
-#include "VirtualCamera.h"
+#include "Camera/VirtualCamera.h"
 #include "RenderMaterial.h"
 
 #include "Actors/ScreenQuad.h"

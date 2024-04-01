@@ -138,17 +138,19 @@ add_library(crossforge SHARED
 	# Graphics related
 	crossforge/Graphics/GBuffer.cpp 
 	crossforge/Graphics/GLBuffer.cpp 
-	crossforge/Graphics/GLCubemap.cpp
-	crossforge/Graphics/GLTexture2D.cpp 
 	crossforge/Graphics/GLVertexArray.cpp 
 	crossforge/Graphics/GLWindow.cpp 
 	crossforge/Graphics/RenderDevice.cpp 
-	crossforge/Graphics/RenderMaterial.cpp 
-	crossforge/Graphics/STextureManager.cpp 
-	crossforge/Graphics/VirtualCamera.cpp
+	crossforge/Graphics/RenderMaterial.cpp  
+
+	# Textures related
+	crossforge/Graphics/Textures/GLCubemap.cpp 
+	crossforge/Graphics/Textures/GLTexture2D.cpp 
+	crossforge/Graphics/Textures/STextureManager.cpp
 
 	# Camera related
 	crossforge/Graphics/Camera/ViewFrustum.cpp
+	crossforge/Graphics/Camera/VirtualCamera.cpp
 
 
 	# Actor related

@@ -20,7 +20,7 @@
 
 #include "../Core/CForgeObject.h"
 #include "../AssetIO/T3DMesh.hpp"
-#include "GLTexture2D.h"
+#include "Textures/GLTexture2D.h"
 
 
 namespace CForge {

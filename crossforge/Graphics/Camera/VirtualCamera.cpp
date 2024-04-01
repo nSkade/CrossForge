@@ -1,5 +1,5 @@
-#include "../Math/CForgeMath.h"
-#include "../Core/SLogger.h"
+#include "../../Math/CForgeMath.h"
+#include "../../Core/SLogger.h"
 #include "VirtualCamera.h"
 
 using namespace Eigen;

@@ -99,15 +99,19 @@ void exportLibrary(void) {
 	Directories.push_back("crossforge/include/crossforge/Graphics/");
 	IncludeFiles.push_back("Graphics/GBuffer.h");
 	IncludeFiles.push_back("Graphics/GLBuffer.h");
-	IncludeFiles.push_back("Graphics/GLCubemap.h");
-	IncludeFiles.push_back("Graphics/GLTexture2D.h");
+	
+	
 	IncludeFiles.push_back("Graphics/GLVertexArray.h");
 	IncludeFiles.push_back("Graphics/GLWindow.h");
 	IncludeFiles.push_back("Graphics/OpenGLHeader.h");
 	IncludeFiles.push_back("Graphics/RenderDevice.h");
 	IncludeFiles.push_back("Graphics/RenderMaterial.h");
-	IncludeFiles.push_back("Graphics/STextureManager.h");
-	IncludeFiles.push_back("Graphics/VirtualCamera.h");
+	
+	// Textures.
+	Directories.push_back("crossforge/include/crossforge/Graphics/Textures/");
+	IncludeFiles.push_back("Graphics/Textures/GLCubemap.h");
+	IncludeFiles.push_back("Graphics/Textures/GLTexture2D.h");
+	IncludeFiles.push_back("Graphics/Textures/STextureManager.h");
 
 	// Graphics/Actors
 	Directories.push_back("crossforge/include/crossforge/Graphics/Actors/");
@@ -124,6 +128,7 @@ void exportLibrary(void) {
 	// Graphics/Camera
 	Directories.push_back("crossforge/include/crossforge/Graphics/Camera/");
 	IncludeFiles.push_back("Graphics/Camera/ViewFrustum.h");
+	IncludeFiles.push_back("Graphics/Camera/VirtualCamera.h");
 
 	// Graphics/Controller
 	Directories.push_back("crossforge/include/crossforge/Graphics/Controller/");

@@ -1,4 +1,4 @@
-#include "../VirtualCamera.h"
+#include "../Camera/VirtualCamera.h"
 #include "ViewFrustum.h"
 
 using namespace Eigen;

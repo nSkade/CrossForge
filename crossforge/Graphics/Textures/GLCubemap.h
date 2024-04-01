@@ -18,8 +18,8 @@
 #ifndef __CFORGE_GLCUBEMAPS_H__
 #define __CFORGE_GLCUBEMAPS_H__
 
-#include "../Core/CForgeObject.h"
-#include "../AssetIO/T2DImage.hpp"
+#include "../../Core/CForgeObject.h"
+#include "../../AssetIO/T2DImage.hpp"
 
 namespace CForge {
 	class CFORGE_API GLCubemap: public CForgeObject {

@@ -8,7 +8,7 @@
 #include "SGPIO.h"
 #include "SCForgeSimulation.h"
 #include "../AssetIO/SAssetIO.h"
-#include "../Graphics/STextureManager.h"
+#include "../Graphics/Textures/STextureManager.h"
 #include "../Graphics/Shader/SShaderManager.h"
 #include "../Graphics/Font/SFontManager.h"
 

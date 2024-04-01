@@ -1,4 +1,4 @@
-#include "OpenGLHeader.h"
+#include "../OpenGLHeader.h"
 #include "GLTexture2D.h"
 
 namespace CForge {

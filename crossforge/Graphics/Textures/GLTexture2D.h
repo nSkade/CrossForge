@@ -18,8 +18,8 @@
 #ifndef __CFORGE_GLTEXTURE2D_H__
 #define __CFORGE_GLTEXTURE2D_H__
 
-#include "../Core/CForgeObject.h"
-#include "../AssetIO/T2DImage.hpp"
+#include "../../Core/CForgeObject.h"
+#include "../../AssetIO/T2DImage.hpp"
 
 namespace CForge {
 	/**
