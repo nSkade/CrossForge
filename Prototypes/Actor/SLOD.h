@@ -29,6 +29,7 @@ namespace CForge {
 		bool storeLOD = true;
 		bool skipMeshLoader = false;
 		bool forceLODregeneration = false;
+		bool useLibigl = false;
 		
 	protected:
 		SLOD(void);

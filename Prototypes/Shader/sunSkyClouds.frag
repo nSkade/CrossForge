@@ -656,6 +656,8 @@ void main(){
 	float focus = Camera.ProjectionMatrix[1][1];
 
 	vec3 rayDir = normalize(camSide*ndc.x + camUp*ndc.y + camDir*focus);
+	float sDot = abs(dot(sunDir,vec3(0.0,1.0,0.0)));
+	SEA_BASE *= sDot;
 	
 	float sDot = abs(dot(sunDir,vec3(0.0,1.0,0.0)));
 	SEA_BASE *= sDot;
@@ -805,5 +807,5 @@ void main(){
 		           : scnCol*(1.0-distDiff)+(distDiff)*(SEA_BASE);
 	}
 
-	FragColor = vec4(oceanCol,0.0);
+	FragColor = vec4(clamp(oceanCol,0.0,1.0),0.0);
 }

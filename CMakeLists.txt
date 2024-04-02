@@ -41,6 +41,13 @@ if(EMSCRIPTEN)
 	)
 	FetchContent_MakeAvailable(tinyxml2)
 
+	# nlohmann-json
+	FetchContent_Declare(
+		nlohmann_json
+		GIT_REPOSITORY https://github.com/nlohmann/json.git
+	)
+	FetchContent_MakeAvailable(nlohmann_json)
+
 	# tinygltf
 	FetchContent_Declare(
 		tinygltf 
@@ -62,7 +69,9 @@ if(EMSCRIPTEN)
 else()
 # Additional packages not alreday included in the core library
 FIND_PACKAGE(tinyxml2 CONFIG REQUIRED)	# support for xml loading, storing, and processing
+FIND_PACKAGE(nlohmann_json CONFIG REQUIRED) # support for json loading, storing, and processing
 FIND_PACKAGE(imgui CONFIG REQUIRED) # dear-imgui
+find_package(imguizmo  CONFIG REQUIRED)
 FIND_PACKAGE(JPEG REQUIRED)
 FIND_PACKAGE(libjpeg-turbo)
 FIND_PACKAGE(FFMPEG REQUIRED)
@@ -91,7 +100,10 @@ add_executable(CForgeSandbox
 	Prototypes/Multimedia/FFMPEG.cpp
 	
 	# Misc
-	Prototypes/Assets/GLTFIO.cpp
+	Prototypes/Assets/GLTFIO/GLTFIOutil.cpp
+	Prototypes/Assets/GLTFIO/GLTFIOread.cpp
+	Prototypes/Assets/GLTFIO/GLTFIOwrite.cpp
+	Prototypes/Assets/GLTFIO/GLTFIO.cpp
 	Prototypes/MeshProcessing/SurfaceSampler.cpp
 	Prototypes/Graphics/GLRenderbuffer.cpp
 	"Prototypes/GUI/ImGuiUtility.cpp"
@@ -122,34 +134,51 @@ add_executable(CForgeSandbox
 	# json read
 	"Prototypes/JsonBone/JsonBoneRead.cpp"
 
-	)
-	
+	Prototypes/SkeletonConvertion.cpp
+
+	#Inverse Kinematics Prototype
+	Prototypes/InverseKinematics/InverseKinematicsController.cpp
+	Prototypes/InverseKinematics/IKSkeletalActor.cpp
+	Prototypes/InverseKinematics/IKStickFigureActor.cpp
+	Prototypes/InverseKinematics/JointLimits/JointLimits.cpp
+	Prototypes/InverseKinematics/JointLimits/HingeLimits.cpp
+	Prototypes/InverseKinematics/JointLimits/SwingXZTwistYLimits.cpp
+	Prototypes/InverseKinematics/JointLimits/SwingXTwistYLimits.cpp
+	Prototypes/InverseKinematics/JointLimits/SwingZTwistYLimits.cpp
+	Prototypes/InverseKinematics/JointLimits/SwingXYTwistZLimits.cpp
+)
+
 if(EMSCRIPTEN)
 	target_link_Libraries(CForgeSandbox
 		tinyxml2
+		nlohmann_json
 		crossforge
 	)
 	set_target_properties(CForgeSandbox PROPERTIES LINK_FLAGS "${LINK_FLAGS} ${Optimization_Flag} -sEXIT_RUNTIME=1 -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sUSE_WEBGL2=1 -fwasm-exceptions -sUSE_GLFW=3 -sUSE_ZLIB=1 -sUSE_LIBPNG=1 -sUSE_LIBJPEG=1 --preload-file Assets --preload-file Shader --preload-file MyAssets")
 
 elseif(WIN32)
 	target_include_directories(CForgeSandbox 
-	PRIVATE ${JPEG_INCLUDE_DIR}
-	PRIVATE ${FFMPEG_INCLUDE_DIRS}
+		PRIVATE ${JPEG_INCLUDE_DIR}
+		PRIVATE ${FFMPEG_INCLUDE_DIRS}
 	)
 
 	target_link_directories(CForgeSandbox
 		PRIVATE ${FFMPEG_LIBRARY_DIRS}
 	)
 
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -bigobj") # necessary?
 	target_link_libraries(CForgeSandbox 
-	PRIVATE crossforge
-	PRIVATE glfw 
-	PRIVATE glad::glad
-	ws2_32
-	PRIVATE tinyxml2::tinyxml2
-	PRIVATE imgui::imgui
-	PRIVATE ${FFMPEG_LIBRARIES}
-	${FREETYPE_LIBRARIES}
+		PRIVATE crossforge
+		PRIVATE Pinocchio
+		PRIVATE glfw 
+		PRIVATE glad::glad
+		ws2_32
+		PRIVATE tinyxml2::tinyxml2
+		PRIVATE nlohmann_json::nlohmann_json
+		PRIVATE imgui::imgui
+		PRIVATE imguizmo::imguizmo
+		PRIVATE ${FFMPEG_LIBRARIES}
+		${FREETYPE_LIBRARIES}
 	)
 	
 elseif(__arm__)
@@ -158,10 +187,11 @@ elseif(__arm__)
 		PRIVATE glfw
 		PRIVATE glad::glad
 		PRIVATE tinyxml2::tinyxml2
+		PRIVATE nlohmann_json::nlohmann_json
 		PRIVATE imgui::imgui
 #		PRIVATE assimp
 		PRIVATE gpiod
-		PRIVATE dl	
+		PRIVATE dl
 		)
 elseif(UNIX)
 	target_include_directories(CForgeSandbox 
@@ -178,8 +208,9 @@ elseif(UNIX)
 		PRIVATE glfw
 		PRIVATE glad::glad
 		PRIVATE tinyxml2::tinyxml2
+		PRIVATE nlohmann_json::nlohmann_json
 		PRIVATE imgui::imgui
-		PRIVATE dl	
+		PRIVATE dl
 		PRIVATE ${FFMPEG_LIBRARIES}
 		${FREETYPE_LIBRARIES}
 		${OpenCV_LIBS}
@@ -229,3 +260,37 @@ add_custom_command(
 )
 endforeach(i)
 endif(EMSCRIPTEN)
+
+add_library(Pinocchio SHARED
+	Thirdparty/Pinocchio/refinement.cpp
+	Thirdparty/Pinocchio/attachment.cpp
+	Thirdparty/Pinocchio/pinocchioApi.cpp
+	Thirdparty/Pinocchio/Pinocchio.cpp
+	Thirdparty/Pinocchio/discretization.cpp
+	Thirdparty/Pinocchio/mesh.cpp
+	Thirdparty/Pinocchio/embedding.cpp
+	Thirdparty/Pinocchio/graphutils.cpp
+	Thirdparty/Pinocchio/matrix.cpp
+	Thirdparty/Pinocchio/lsqSolver.cpp
+	Thirdparty/Pinocchio/indexer.cpp
+	Thirdparty/Pinocchio/intersector.cpp
+	Thirdparty/Pinocchio/skeleton.cpp
+	
+	Thirdparty/Pinocchio/PinocchioTools.cpp
+)
+target_include_directories(Pinocchio PUBLIC "${CMAKE_SOURCE_DIR}/Thirdparty/Pinocchio")
+target_compile_options(Pinocchio PRIVATE -fPIC)
+add_compile_definitions(PINOCCHIO_EXPORTS)
+target_link_libraries(Pinocchio
+	PRIVATE Eigen3::Eigen
+	PRIVATE crossforge
+)
+
+# Set global property (all targets are impacted)
+set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+set_property(TARGET CForgeSandbox PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+
+target_precompile_headers(CForgeSandbox PRIVATE
+	pch.h
+)
+

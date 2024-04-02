@@ -152,10 +152,10 @@ namespace CForge {
 	
 	bool LODHandler::checkLODmodel(const std::string metaFilePath)
 	{
-		bool Rval = false;
+		bool Rval = true;
 		// TODO open  Metafile and check valid object
 		if (!File::exists(metaFilePath)) {
-			return Rval;
+			return false;
 		}
 		else {
 			std::vector<float> values;
@@ -163,8 +163,8 @@ namespace CForge {
 			
 			// check if model files for lod exist
 			for (uint32_t i = 0; i < values.size(); i++) {
-				
-				Rval = Rval && File::exists(metaFilePath);
+				//TODO
+				//Rval = Rval && File::exists(metaFilePath+std::to_string(i));
 			}
 		}
 		return Rval;

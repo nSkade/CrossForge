@@ -1,6 +1,6 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): GLTFIO.h and GLTFIO.cpp                                            *
+* File(s): GLTFIO.hpp and GLTFIO.cpp                                            *
 *                                                                           *
 * Content: Import/Export class for glTF format using tinygltf   *
 *                                                   *
@@ -23,9 +23,17 @@
 #include <algorithm>
 #include <iostream>
 
+#include "GLTFIOutil.hpp"
+
+//TODO documentation
 
 namespace CForge {
-	class GLTFIO {
+
+	/**
+	 * \class GLTFIO
+	 * \brief Export and Import gltf files.
+	*/
+	class GLTFIO : public GLTFIOutil {
 	public:
 		GLTFIO(void);
 		~GLTFIO(void);
@@ -37,84 +45,30 @@ namespace CForge {
 		static bool accepted(const std::string Filepath, I3DMeshIO::Operation Op);
 
 	protected:
-		std::string filePath;
+		std::string m_filePath;
 
-		tinygltf::Model model;
-		T3DMesh<float>* pMesh;
-		const T3DMesh<float>* pCMesh;
+		tinygltf::Model m_model;
+		T3DMesh<float>* m_pMesh;
+		const T3DMesh<float>* m_pCMesh;
 		// Data for every primitive is stored in a separate vector.
 
-		std::vector<Eigen::Matrix<float, 3, 1>> coord;
-		std::vector<Eigen::Matrix<float, 3, 1>> normal;
-		std::vector<Eigen::Matrix<float, 3, 1>> tangent;
-		std::vector<Eigen::Matrix<float, 2, 1>> texCoord;
-		std::vector<Eigen::Matrix<float, 4, 1>> color;
-		std::vector<Eigen::Matrix<float, 4, 1>> joint;
-		std::vector<Eigen::Matrix<float, 4, 1>> weight;
+		std::vector<Eigen::Matrix<float, 3, 1>> m_coord;
+		std::vector<Eigen::Matrix<float, 3, 1>> m_normal;
+		std::vector<Eigen::Matrix<float, 3, 1>> m_tangent;
+		std::vector<Eigen::Matrix<float, 2, 1>> m_texCoord;
+		std::vector<Eigen::Matrix<float, 4, 1>> m_color;
+		std::vector<Eigen::Matrix<float, 4, 1>> m_joint;
+		std::vector<Eigen::Matrix<float, 4, 1>> m_weight;
 
-		std::vector<std::pair<int32_t, int32_t>> primitiveIndexRanges;
+		std::vector<std::pair<int32_t, int32_t>> m_primitiveIndexRanges;
 
-		std::vector<unsigned long> offsets;
-		unsigned long materialIndex;
+		std::vector<unsigned long> m_offsets;
+		unsigned long m_materialIndex;
 
-#pragma region util
-		static int componentCount(const int type);
 
-		static int sizeOfGltfComponentType(const int componentType);
-
-		static bool componentIsMatrix(const int type);
-
-		static void toVec2f(const std::vector<std::vector<float>>* pIn, std::vector<Eigen::Vector2f>* pOut);
-
-		static void toVec3f(const std::vector<std::vector<float>>* pIn, std::vector<Eigen::Vector3f>* pOut);
-
-		static void toVec4f(const std::vector<std::vector<float>>* pIn, std::vector<Eigen::Vector4f>* pOut);
-
-		static void toQuatf(const std::vector<std::vector<float>>* pIn, std::vector<Eigen::Quaternionf>* pOut);
-
-		static void toMat4f(const std::vector<std::vector<float>>* pIn, std::vector<Eigen::Matrix4f>* pOut);
-
-		static Eigen::Matrix4f toSingleMat4(const std::vector<double>* pin);
-
-		static void fromVec2f(const std::vector<Eigen::Vector2f>* pIn, std::vector<std::vector<float>>* pOut);
-
-		static void fromVec3f(const std::vector<Eigen::Vector3f>* pIn, std::vector<std::vector<float>>* pOut);
-
-		static void fromVec4f(const std::vector<Eigen::Vector4f>* pIn, std::vector<std::vector<float>>* pOut);
-
-		static void fromQuatf(const std::vector<Eigen::Quaternionf>* pIn, std::vector<std::vector<float>>* pOut);
-
-		static void fromMat4f(const std::vector<Eigen::Matrix4f>* pIn, std::vector<std::vector<float>>* pOut);
-
-		static void fromUVtoUVW(const std::vector<Eigen::Vector2f>* pIn, std::vector<Eigen::Vector3f>* pOut);
-
-		static void fromUVWtoUV(const std::vector<Eigen::Vector3f>* pIn, std::vector<Eigen::Vector2f>* pOut);
-
-		int getMeshIndexByCrossForgeVertexIndex(int index);
-
-		int getGltfComponentType(const float value) { return TINYGLTF_COMPONENT_TYPE_FLOAT; }
-
-		int getGltfComponentType(const unsigned char value) { return TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE; }
-
-		int getGltfComponentType(const char value) { return TINYGLTF_COMPONENT_TYPE_BYTE; }
-
-		int getGltfComponentType(const unsigned short value) { return TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT; }
-
-		int getGltfComponentType(const short value) { return TINYGLTF_COMPONENT_TYPE_SHORT; }
-
-		int getGltfComponentType(const unsigned int value) { return TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; }
-
-		int getGltfComponentType(const int value) { return TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; }
-
-		Eigen::Vector3f getTranslation(const Eigen::Matrix4f& transformation);
-
-		Eigen::Quaternionf getRotation(const Eigen::Matrix4f& transformation);
-
-		Eigen::Vector3f getScale(const Eigen::Matrix4f& transformation);
+		std::vector<int> getMeshIndexByCrossForgeVertexIndex(int index);
 
 		int getNodeIndexByName(const std::string& name);
-
-#pragma endregion
 
 #pragma region accessor_read
 		template<class T>
@@ -144,9 +98,9 @@ namespace CForge {
 
 		template<class T>
 		void getAccessorDataScalar(const int accessor, std::vector<T>* pData) {
-			tinygltf::Accessor acc = model.accessors[accessor];
-			tinygltf::BufferView buffView = model.bufferViews[acc.bufferView];
-			tinygltf::Buffer buff = model.buffers[buffView.buffer];
+			tinygltf::Accessor acc = m_model.accessors[accessor];
+			tinygltf::BufferView buffView = m_model.bufferViews[acc.bufferView];
+			tinygltf::Buffer buff = m_model.buffers[buffView.buffer];
 
 			if (acc.type != TINYGLTF_TYPE_SCALAR) {
 				//std::cout << "Called getAccessorDataScalar on a non scalar accessor!" << std::endl;
@@ -214,9 +168,9 @@ namespace CForge {
 
 		template<class T>
 		void getAccessorData(const int accessor, std::vector<std::vector<T>>* pData) {
-			tinygltf::Accessor acc = model.accessors[accessor];
-			tinygltf::BufferView buffView = model.bufferViews[acc.bufferView];
-			tinygltf::Buffer buff = model.buffers[buffView.buffer];
+			tinygltf::Accessor acc = m_model.accessors[accessor];
+			tinygltf::BufferView buffView = m_model.bufferViews[acc.bufferView];
+			tinygltf::Buffer buff = m_model.buffers[buffView.buffer];
 
 			if (acc.type == TINYGLTF_TYPE_SCALAR) {
 				//std::cout << "Called getAccessorData on a scalar accessor!" << std::endl;
@@ -249,6 +203,30 @@ namespace CForge {
 		void getAccessorData(const int accessor, std::vector<Eigen::Vector4f>* pData);
 
 		void getAccessorData(const int accessor, std::vector<Eigen::Quaternionf>* pData);
+#pragma endregion
+
+#pragma region read
+		void readMeshes();
+
+		T3DMesh<float>::Submesh* readPrimitive(tinygltf::Primitive* pPrimitive);
+
+		void readAttributes(tinygltf::Primitive* pPrimitive);
+
+		T3DMesh<float>::Submesh* readSubMeshes(tinygltf::Primitive* pPrimitive);
+
+		void readFaces(tinygltf::Primitive* pPrimitive, std::vector<T3DMesh<float>::Face>* faces);
+
+		void readMaterial(const int m_materialIndex, T3DMesh<float>::Material* pMaterial);
+
+		void readNodes();
+
+		std::string getTexturePath(const int textureIndex);
+
+		void readSkeletalAnimations();
+
+		void readSkinningData();
+
+		void readMorphTargets();
 #pragma endregion
 
 #pragma region accessor_write
@@ -286,7 +264,7 @@ namespace CForge {
 		void writeAccessorDataScalar(const int bufferIndex, std::vector<T>* pData) {
 			std::cout << "write accessor size: " << pData->size() << ", scalar" << std::endl;
 
-			tinygltf::Buffer* pBuffer = &model.buffers[bufferIndex];
+			tinygltf::Buffer* pBuffer = &m_model.buffers[bufferIndex];
 
 			tinygltf::Accessor accessor;
 
@@ -304,13 +282,13 @@ namespace CForge {
 
 			T t = 0;
 
-			accessor.bufferView = model.bufferViews.size();
+			accessor.bufferView = m_model.bufferViews.size();
 			accessor.byteOffset = (size_t)0;
 			accessor.componentType = getGltfComponentType(t);
 			accessor.type = TINYGLTF_TYPE_SCALAR;
 			accessor.count = pData->size();
 
-			model.accessors.push_back(accessor);
+			m_model.accessors.push_back(accessor);
 
 			tinygltf::BufferView bufferView;
 
@@ -322,7 +300,7 @@ namespace CForge {
 			bufferView.buffer = bufferIndex;
 			bufferView.byteLength = pData->size() * sizeof(T);
 
-			model.bufferViews.push_back(bufferView);
+			m_model.bufferViews.push_back(bufferView);
 
 			writeBuffer(&pBuffer->data, bufferView.byteOffset + accessor.byteOffset,
 				accessor.count, false, bufferView.byteStride, pData);
@@ -332,7 +310,7 @@ namespace CForge {
 		void writeAccessorData(const int bufferIndex, const int type, std::vector<std::vector<T>>* pData) {
 			std::cout << "write accessor size: " << pData->size() << ", vec " << (*pData)[0].size() << std::endl;
 
-			tinygltf::Buffer* pBuffer = &model.buffers[bufferIndex];
+			tinygltf::Buffer* pBuffer = &m_model.buffers[bufferIndex];
 
 			tinygltf::Accessor accessor;
 
@@ -371,7 +349,7 @@ namespace CForge {
 
 			T t = 0;
 
-			accessor.bufferView = model.bufferViews.size();
+			accessor.bufferView = m_model.bufferViews.size();
 			accessor.byteOffset = (size_t)0;
 			accessor.componentType = getGltfComponentType(t);
 			accessor.type = type;
@@ -379,7 +357,7 @@ namespace CForge {
 
 			// std::cout << "DEBUG Accessor index: " << model.accessors.size() << " count: " << accessor.count << " type: " << accessor.type << std::endl;
 
-			model.accessors.push_back(accessor);
+			m_model.accessors.push_back(accessor);
 
 			tinygltf::BufferView bufferView;
 
@@ -392,7 +370,7 @@ namespace CForge {
 			bufferView.byteLength = pData->size() * sizeof(T) * component_count;
 			bufferView.byteStride = 0;
 
-			model.bufferViews.push_back(bufferView);
+			m_model.bufferViews.push_back(bufferView);
 
 			std::vector<T> simplified;
 			for (auto v : *pData) {
@@ -403,30 +381,6 @@ namespace CForge {
 		}
 
 		int writeSparseAccessorData(const int buffer_index, const int type, const std::vector<int32_t>* pIndices, const std::vector<std::vector<float>>* pData);
-#pragma endregion
-
-#pragma region read
-		void readMeshes();
-
-		T3DMesh<float>::Submesh* readPrimitive(tinygltf::Primitive* pPrimitive);
-
-		void readAttributes(tinygltf::Primitive* pPrimitive);
-
-		T3DMesh<float>::Submesh* readSubMeshes(tinygltf::Primitive* pPrimitive);
-
-		void readFaces(tinygltf::Primitive* pPrimitive, std::vector<T3DMesh<float>::Face>* faces);
-
-		void readMaterial(const int materialIndex, T3DMesh<float>::Material* pMaterial);
-
-		void readNodes();
-
-		std::string getTexturePath(const int textureIndex);
-
-		void readSkeletalAnimations();
-
-		void readSkinningData();
-
-		void readMorphTargets();
 #pragma endregion
 
 #pragma region write
@@ -450,6 +404,6 @@ namespace CForge {
 #pragma endregion
 	};//GLTFIO
 
-}//name space
+}//CForge
 
 #endif 

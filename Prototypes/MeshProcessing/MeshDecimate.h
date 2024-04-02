@@ -8,8 +8,8 @@ namespace CForge {
 	public:
 		static bool decimateMesh(const CForge::T3DMesh<float>* inMesh, CForge::T3DMesh<float>* outMesh, float amount);
 		
-		static const uint32_t m_MaxOctreeDepth = 16;
-		static const uint32_t m_MaxLeafVertexCount = 25;
+		static const uint32_t m_MaxOctreeDepth = 40;
+		static const uint32_t m_MaxLeafVertexCount = 5;
 
 		struct octreeNode {
 			std::vector<uint32_t> VertexIDs;

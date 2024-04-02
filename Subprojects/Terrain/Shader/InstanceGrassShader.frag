@@ -103,7 +103,7 @@ float cnoise(vec3 P){
 
 
 void main(){
-	if (texture(TexDepth, UV).r < 0.5) {
+	if (texture(TexDepth, UV).r < 0.2) {
 	discard;
 	}
 
@@ -112,5 +112,6 @@ void main(){
 	
 	gPosition = vec4(Pos, 0.0);
 	gNormal = vec4(vertPos, 0.0);
-	gAlbedoSpec = vec4(texture(TexAlbedo, UV).rgb, 0) * (1 - noiseValue) + vec4(220 / 255.0, 210 / 255.0, 25 / 255.0, 0) * noiseValue;;
+    vec3 color = max(texture(TexAlbedo, UV).rgb, vec3(38.0/255.0, 81.0/255.0, 22.0/255.0)*0.35);
+    gAlbedoSpec = clamp(vec4(color, 0) * (1 - noiseValue) + vec4(220 / 255.0, 210 / 255.0, 25 / 255.0, 0) * noiseValue,0.0,1.0);
 }

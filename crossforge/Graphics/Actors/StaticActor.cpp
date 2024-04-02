@@ -103,6 +103,7 @@ namespace CForge {
 	}//Clear
 
 
+	//TODO Rotation Translation and Scale do nothing
 	void StaticActor::render(RenderDevice* pRDev, Eigen::Quaternionf Rotation, Eigen::Vector3f Translation, Eigen::Vector3f Scale) {
 		if (nullptr == pRDev) throw NullpointerExcept("pRDev");
 
