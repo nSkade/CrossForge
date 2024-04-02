@@ -39,7 +39,8 @@
 
 //#include "../AutoRig.hpp"
 
-#include "../../thirdparty/Pinocchio/PinocchioTools.hpp"
+// #include "../../thirdparty/Pinocchio/PinocchioTools.hpp
+#include <Thirdparty/Pinocchio/PinocchioTools.hpp>
 #include "../Assets/GLTFIO/GLTFIO.hpp"
 
 #include "Prototypes/SkeletonConvertion.hpp"

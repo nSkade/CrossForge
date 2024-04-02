@@ -33,5 +33,5 @@
 #endif //PINOCCHIO_STATIC
 #endif //PINOCCHIO_EXPORTS
 #else //_WIN32
-#define PINOCCHIO_API
+#define PINOCCHIO_API __attribute__((visibility("default")))
 #endif //_WIN32

@@ -157,7 +157,7 @@ vector<int> SPDMatrix::computePerm() const
 
     //initialize
     set<pair<int, int> > neighborSize;
-    vector<hash_set<int> > neighbors(sz);
+    vector<std::unordered_set<int>> neighbors(sz);
     for(i = 0; i < sz; ++i) {
         for(j = 0; j < (int)m[i].size() - 1; ++j) {
             neighbors[i].insert(m[i][j].first);

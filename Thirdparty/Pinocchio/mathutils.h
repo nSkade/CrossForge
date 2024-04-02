@@ -20,7 +20,9 @@
 #define MATHUTILS_H_INCLUDED
 
 #include <math.h>
-//#include <functional>
+#ifdef UNIX
+#include <functional>
+#endif
 #include <string>
 #include "Pinocchio.h"
 
@@ -45,6 +47,7 @@ template<class T> T QUAD(const T & x) { return SQR(SQR(x)); }
 
 //TODO Needs a proper rewrite to replace unary/binary.
 // Ripped from functional.
+#ifdef WIN32
 template <class _Arg, class _Result>
 struct unary_function { // base class for unary functions
     using argument_type = _Arg;
@@ -87,6 +90,7 @@ _NODISCARD binder2nd<_Fn> bind2nd(const _Fn& _Func, const _Ty& _Right) {
     return binder2nd<_Fn>(_Func, _Val);
 }
 // End Ripped from functional.
+#endif
 
 template <class T> class maximum : public binary_function<T, T, T>
 {

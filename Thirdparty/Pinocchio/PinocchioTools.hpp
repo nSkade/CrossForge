@@ -1,8 +1,7 @@
-
 #ifdef _WIN32
 #define PINOCCHIOTOOLS_API __declspec(dllexport)
 #else //_WIN32
-#define PINOCCHIOTOOLS_API 
+#define PINOCCHIOTOOLS_API __attribute__((visibility("default")))
 #endif //_WIN32
 
 #pragma once

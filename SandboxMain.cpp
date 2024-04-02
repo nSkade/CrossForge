@@ -24,15 +24,15 @@
 #include <Examples/ExampleTextRendering.hpp>
 #include <Examples/ExampleLighting.hpp>
 
-#include "Prototypes/TestScenes/ShadowTestScene.hpp"
-#include "Prototypes/TestScenes/SkelAnimTestScene.hpp"
-#include "Prototypes/TestScenes/SurfaceSamplerTestScene.hpp"
-#include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
-#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
-#include "Prototypes/TestScenes/TransparencyTestScene.hpp"
-#include "Prototypes/TestScenes/InverseKinematicsTestScene.hpp"
+// #include "Prototypes/TestScenes/ShadowTestScene.hpp"
+// #include "Prototypes/TestScenes/SkelAnimTestScene.hpp"
+// #include "Prototypes/TestScenes/SurfaceSamplerTestScene.hpp"
+// #include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
+// #include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
+// #include "Prototypes/TestScenes/TransparencyTestScene.hpp"
+// #include "Prototypes/TestScenes/InverseKinematicsTestScene.hpp"
 
-#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
+//#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
 
 #include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
 #include "Subprojects/B02Demonstrator/B02DemonstratorScene.hpp"
@@ -71,7 +71,7 @@ using namespace Eigen;
 //#define ActiveScene B02DemonstratorScene
 
 //#define ActiveScene AutoRiggingTestScene
-#define ActiveScene InverseKinematicsTestScene
+//#define ActiveScene InverseKinematicsTestScene
 
 ActiveScene* pScene = nullptr;
 

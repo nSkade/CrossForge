@@ -59,6 +59,11 @@ namespace CForge{
             pBones[i]->Position = bonesJson[i].position;
             pBones[i]->OffsetMatrix = offsetMatrix;
 
+            // for(int j = 0; j < bonesJson[i].vertexWeights.size(); j++){
+            //     pBones[i]->VertexInfluences.push_back(j);
+            // }
+            // pBones[i]->VertexWeights = bonesJson[i].vertexWeights;
+
             std::vector<int32_t> influence; 
 			std::vector<float> weights; 
             getVertexInfluenceAndWeight(bonesJson[i], influence, weights);
@@ -96,10 +101,12 @@ namespace CForge{
     // in order to construct the bone hierarchy, we need to calculate the offset matrix
     // this is done by inverting the translation matrix (according to Mick)
     Eigen::Matrix4f BuildBones::getOffsetMatrix(Eigen::Vector3f position){
-        Eigen::Matrix4f offsetMatrix = Eigen::Matrix4f::Identity();
-        offsetMatrix.block<3,1>(0,3) = position; 
-        return offsetMatrix.inverse();
-        // offsetMatrix.inverse().eval()
+        Eigen::Matrix4f offsetMatrix = CForgeMath::translationMatrix(position);
+
+        //Eigen::Matrix4f offsetMatrix = Eigen::Matrix4f::Identity();
+        // offsetMatrix.block<3,1>(0,3) = position; 
+        return offsetMatrix.inverse(); 
+        //offsetMatrix = offsetMatrix.inverse(); 
     }
 
 }// namespace CForge

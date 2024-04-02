@@ -367,7 +367,7 @@ namespace CForge {
 			path.append("image_" + std::to_string(textureIndex) + "." + pImage->mimeType.substr(6));
 		}
 
-		//no buffer view defined or buffer view is out of range
+		//no buffer view defined old_range buffer view is out of range
 		if (pImage->bufferView < 0 || pImage->bufferView >= m_model.bufferViews.size()) return "";
 
 		BufferView* pBufferView = &m_model.bufferViews[pImage->bufferView];
@@ -485,10 +485,10 @@ namespace CForge {
 					for (uint32_t i = 0; i < len; ++i) {
 						// corresponding index on old range
 						float r = (float)i/len;
-						float or = r*kf->Positions.size();
-						int idxf = (int) std::floor(or);
-						int idxc = (int) std::ceil(or);
-						float itp = (or-idxf)/(idxc-idxf); // prog
+						float old_range = r*kf->Positions.size();
+						int idxf = (int) std::floor(old_range);
+						int idxc = (int) std::ceil(old_range);
+						float itp = (old_range-idxf)/(idxc-idxf); // prog
 						if (idxc < kf->Positions.size())
 							nv.push_back(lerp3f(kf->Positions[idxf],kf->Positions[idxc],itp));
 						else
@@ -504,10 +504,10 @@ namespace CForge {
 					for (uint32_t i = 0; i < len; ++i) {
 						// corresponding index on old range
 						float r = (float)i/len;
-						float or = r*kf->Rotations.size();
-						int idxf = (int) std::floor(or);
-						int idxc = (int) std::ceil(or);
-						float itp = (or-idxf)/(idxc-idxf); // prog
+						float old_range = r*kf->Rotations.size();
+						int idxf = (int) std::floor(old_range);
+						int idxc = (int) std::ceil(old_range);
+						float itp = (old_range-idxf)/(idxc-idxf); // prog
 						if (idxc < kf->Rotations.size())
 							nv.push_back((kf->Rotations[idxf].slerp(itp,kf->Rotations[idxc])).normalized());
 						else
@@ -523,10 +523,10 @@ namespace CForge {
 					for (uint32_t i = 0; i < len; ++i) {
 						// corresponding index on old range
 						float r = (float)i/len;
-						float or = r*kf->Scalings.size();
-						int idxf = (int) std::floor(or);
-						int idxc = (int) std::ceil(or);
-						float itp = (or-idxf)/(idxc-idxf); // prog
+						float old_range = r*kf->Scalings.size();
+						int idxf = (int) std::floor(old_range);
+						int idxc = (int) std::ceil(old_range);
+						float itp = (old_range-idxf)/(idxc-idxf); // prog
 						if (idxc < kf->Scalings.size())
 							nv.push_back(lerp3f(kf->Scalings[idxf],kf->Scalings[idxc],itp));
 						else
@@ -542,10 +542,10 @@ namespace CForge {
 					for (uint32_t i = 0; i < len; ++i) {
 						// corresponding index on old range
 						float r = (float)i/len;
-						float or = r*kf->Timestamps.size();
-						int idxf = (int) std::floor(or);
-						int idxc = (int) std::ceil(or);
-						float itp = (or-idxf)/(idxc-idxf); // prog
+						float old_range = r*kf->Timestamps.size();
+						int idxf = (int) std::floor(old_range);
+						int idxc = (int) std::ceil(old_range);
+						float itp = (old_range-idxf)/(idxc-idxf); // prog
 						if (idxc < kf->Timestamps.size())
 							nv.push_back(lerpf(kf->Timestamps[idxf],kf->Timestamps[idxc],itp));
 						else

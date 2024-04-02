@@ -4,6 +4,7 @@
 #include "json/json.h"
 #include <vector>
 #include "crossforge/AssetIO/T3DMesh.hpp"
+#include <crossforge/Math/CForgeMath.h>
 
 namespace CForge
 {

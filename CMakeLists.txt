@@ -134,6 +134,9 @@ add_executable(CForgeSandbox
 	# json read
 	"Prototypes/JsonBone/JsonBoneRead.cpp"
 
+	# read Obj
+	"Prototypes/objImport/objImport.cpp"
+
 	Prototypes/SkeletonConvertion.cpp
 
 	#Inverse Kinematics Prototype
@@ -216,6 +219,7 @@ elseif(UNIX)
 		${OpenCV_LIBS}
 		PRIVATE nlohmann_json::nlohmann_json
 		PRIVATE JsonCpp::JsonCpp
+		PRIVATE Pinocchio
 		)
 endif()
 
@@ -277,6 +281,7 @@ add_library(Pinocchio SHARED
 	Thirdparty/Pinocchio/skeleton.cpp
 	
 	Thirdparty/Pinocchio/PinocchioTools.cpp
+	
 )
 target_include_directories(Pinocchio PUBLIC "${CMAKE_SOURCE_DIR}/Thirdparty/Pinocchio")
 target_compile_options(Pinocchio PRIVATE -fPIC)

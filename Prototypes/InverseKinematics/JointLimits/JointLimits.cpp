@@ -1,5 +1,6 @@
 #include "JointLimits.h"
 #include <crossforge/Math/CForgeMath.h>
+#include <math.h> 
 
 using namespace Eigen;
 
@@ -102,8 +103,14 @@ namespace CForge {
 			V = Q.vec();
 		}
 		else {
+#ifdef WIN32
 			float HalfAngle = std::atan2f(Length, Q.w());
+#else
+			float HalfAngle = atan2(Length, Q.w());
+#endif
+
 			V = HalfAngle * (Q.vec() / Length);
+
 		}
 
 		return V;

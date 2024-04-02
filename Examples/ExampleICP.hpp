@@ -25,9 +25,11 @@
 
 #include "json/json.h"
 #include <Prototypes/JsonBone/JsonBoneRead.h>
+#include <Prototypes/objImport/objImport.h>
 
 #include <iostream>
 #include <fstream>
+#include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
 
 using namespace Eigen;
 using namespace std;
@@ -62,11 +64,11 @@ namespace CForge {
 			// initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
 
 			//load cube
-			// SAssetIO::load("MyAssets/cube/cube_with_texture.obj", &m_CubeMesh);
-			// m_CubeMesh.computePerVertexNormals();
-			// m_Cube.init(&m_CubeMesh);
-			// m_CubeTransformSGN.init(&m_RootSGN);
-			// m_CubeSGN.init(&m_CubeTransformSGN, &m_Cube);
+			SAssetIO::load("MyAssets/standard_smplx_model.fbx", &m_CubeMesh);
+			m_CubeMesh.computePerVertexNormals();
+			m_Cube.init(&m_CubeMesh);
+			m_CubeTransformSGN.init(&m_RootSGN);
+			m_CubeSGN.init(&m_CubeTransformSGN, &m_Cube);
 			
 			// load the Scan (Timon / Staatstest)
             // SAssetIO::load("MyAssets/Reko/2017_10_11_Staatstest_6tex.obj", &M);
@@ -86,7 +88,9 @@ namespace CForge {
             m_ScanSGN.init(&m_ScanTransformSGN, &m_Scan);
 
 			// load SMPLX model
-			SAssetIO::load("MyAssets/010.obj", &m_SMPLXMesh);
+			// SAssetIO::load("MyAssets/010.obj", &m_SMPLXMesh);
+			objImport::storeInMesh("MyAssets/010.obj", &m_SMPLXMesh);
+			
             m_SMPLXMesh.computePerVertexNormals();
 			m_SMPLXMesh.computeAxisAlignedBoundingBox();
 
@@ -276,7 +280,9 @@ namespace CForge {
 					insertBones();
 					m_SMPLXMesh.computePerFaceNormals();
 					m_SMPLXMesh.computePerVertexNormals(); 
-					AssetIO::store("MyAssets/Reko_Timo/test.obj", &m_SMPLXMesh);
+					AssetIO::store("MyAssets/Reko_Timo/test_with_skeleton.fbx", &m_SMPLXMesh);
+					GLTFIO model; 
+					model.store("MyAssets/Reko_Timo/test_with_skeleton.gltf", &m_SMPLXMesh);
 				}
 				catch(const std::exception& e)
 				{

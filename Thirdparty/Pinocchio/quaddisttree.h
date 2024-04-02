@@ -37,7 +37,7 @@ public:
     template<class Eval> void initFunc(const Eval &eval, const MyRect &rect)
     {
         for(int i = 0; i < (1 << Dim); ++i) {
-            setValue(i, eval(rect.getCorner(i)));
+            super::setValue(i, eval(rect.getCorner(i)));
         }
         return;
     }
@@ -261,7 +261,7 @@ private:
         void setRect(const Rect3 &r) const { }
 
     private:
-        mutable hash_map<unsigned int, double> cache;
+        mutable std::unordered_map<unsigned int, double> cache;
         const ObjectProjector<3, Vec3Object> &proj;
         const RootNode *dTree;
     };

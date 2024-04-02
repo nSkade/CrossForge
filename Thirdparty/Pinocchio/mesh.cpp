@@ -526,14 +526,18 @@ public:
     operator size_t() const { return 73856093*(this[0]) ^ 19349663*(this[1]) ^ 83492791*(this[3]);}
 };
 
-#define MAKE_HASH = (StlVtx, return (int)(p[0] * 100000. + p[1] * 200000. + p[2] * 400000.););
+//#define MAKE_HASH = (StlVtx, return (int)(p[0] * 100000. + p[1] * 200000. + p[2] * 400000.););
+struct StlVtxHasher
+{
+    std::size_t operator()(const StlVtx &p) const { return (int)(p[0] * 100000. + p[1] * 200000. + p[2] * 400000.); }
+};
 
 void Mesh::readStl(istream &strm)
 {
     int i;
     int lineNum = 0;
     
-    hash_map<StlVtx, int> vertexIdx;
+    std::unordered_map<StlVtx, int,StlVtxHasher> vertexIdx;
     
     vector<int> lastIdxs;
     
@@ -689,4 +693,5 @@ bool Mesh::integrityCheck() const
     
     return true;
 }
-}
+}//nsPinocchio
+
