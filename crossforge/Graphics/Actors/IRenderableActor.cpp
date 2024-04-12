@@ -95,7 +95,7 @@ namespace CForge {
 		return Box();
 	}
 	
-	void IRenderableActor::testAABBvis(RenderDevice* pRDev, Eigen::Matrix4f sgMat)
+	/*void IRenderableActor::testAABBvis(RenderDevice* pRDev, Eigen::Matrix4f sgMat)
 	{
 	
 	}
@@ -152,5 +152,5 @@ namespace CForge {
 
 		float aabbRadius = std::max(std::abs(scaledAABBMax.norm()), std::abs(scaledAABBMin.norm()));
 		return aabbRadius;
-	}
+	}*/
 }//name space

@@ -30,7 +30,17 @@
 \ingroup Graphics
 \brief Organizes your scene
 
+\defgroup Shaders Shaders
+\ingroup Graphics
+\brief Shader objects
 
+\defgroup Textures
+\ingroup Graphics
+\brief Texture objects.
+
+\defgroup UniformBufferObjects Uniform Buffer Objects
+\ingroup Graphics
+\brief Pre-defined uniform buffer objects used by other graphics objects.
 
 \defgroup Input Input Devices
 \brief Input devices such as keyboard, mouse, gamepad
