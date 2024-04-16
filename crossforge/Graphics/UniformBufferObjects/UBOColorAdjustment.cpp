@@ -25,10 +25,6 @@ namespace CForge {
 		m_Buffer.clear();
 	}//clear
 
-	void UBOColorAdjustment::release(void) {
-		delete this;
-	}//release
-
 	void UBOColorAdjustment::bind(uint32_t BindingPoint) {
 		m_Buffer.bindBufferBase(BindingPoint);
 	}//bind

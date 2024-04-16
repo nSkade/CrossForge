@@ -33,7 +33,7 @@ namespace CForge {
 		uint32_t Rval = 0;
 
 		Rval += 16 * sizeof(float); // Model matrix
-		Rval += 16 * sizeof(float); // Normal Matrix
+		Rval += 12 * sizeof(float); // Normal Matrix
 
 		return Rval;
 	}//size

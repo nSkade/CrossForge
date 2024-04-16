@@ -47,9 +47,6 @@ namespace CForge {
 		m_TexObj = GL_INVALID_INDEX;
 	}//clear
 
-	void GLCubemap::release(void) {
-		delete this;
-	}//release
 
 	void GLCubemap::bind(void) {
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_TexObj);

@@ -27,9 +27,6 @@ namespace CForge {
 		m_Buffer.clear();
 	}//clear
 
-	void UBOMorphTargetData::release(void) {
-		delete this;
-	}//release
 
 	void UBOMorphTargetData::bind(uint32_t BindingPoint) {
 		m_Buffer.bindBufferBase(BindingPoint);
