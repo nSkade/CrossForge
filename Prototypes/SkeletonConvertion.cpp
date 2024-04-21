@@ -15,7 +15,6 @@ std::vector<T3DMesh<float>::Bone*> SkeletonConverter::copyBones(std::vector<T3DM
 			// copy data
 			bones[i]->ID = pBones->at(i)->ID;
 			bones[i]->Name = pBones->at(i)->Name;
-			bones[i]->Position = pBones->at(i)->Position;
 			bones[i]->OffsetMatrix = pBones->at(i)->OffsetMatrix;
 			bones[i]->VertexInfluences = pBones->at(i)->VertexInfluences;
 			bones[i]->VertexWeights = pBones->at(i)->VertexWeights;

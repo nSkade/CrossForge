@@ -17,8 +17,6 @@
 \****************************************************************************/
 
 #include <inttypes.h>
-#include <vector>
-#include <string>
 
 #ifdef CFORGE_EXPORTS
 #define CFORGE_API __declspec(dllexport)

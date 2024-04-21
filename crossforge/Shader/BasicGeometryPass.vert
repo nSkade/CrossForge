@@ -64,10 +64,10 @@ void main(){
 	vec4 Po = vec4(Position, 1.0);
 	vec4 No = vec4(Normal, 0.0);
 
-#ifdef SKELETAL_ANIMATION 
+#ifdef SKELETAL_ANIMATION
 	mat4 T = mat4(0);
 	for(uint i = 0U; i < 4U; ++i){
-		T += BoneWeights[i] * Bones.SkinningMatrix[BoneIndices[i]];	
+		T += BoneWeights[i] * Bones.SkinningMatrix[BoneIndices[i]];
 	}//for[4 weights]
 	Po = T * vec4(Position, 1.0);
 	No = T * vec4(No);

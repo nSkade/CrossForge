@@ -115,7 +115,8 @@ namespace CForge {
 
 			//SAssetIO::load("MyAssets/ExampleScenes/Eric_Anim.fbx", &M);
 			//gltfio.load("MyAssets/ExampleScenes/eric.gltf",&M);
-			gltfio.load("MyAssets/ExampleScenes/CesiumMan/glTF/CesiumMan.gltf",&M);
+			//gltfio.load("MyAssets/ExampleScenes/CesiumMan/glTF/CesiumMan.gltf",&M);
+			gltfio.load("MyAssets/ccd-ik/ces/CesiumMan.gltf", &M);
 			M.computePerVertexNormals();
 			//gltfio.store("MyAssets/AssetOut/out_ces.gltf",&M);
 			//exit(0);
@@ -123,7 +124,7 @@ namespace CForge {
 			setMeshShader(&M, 0.7f, 0.04f);
 			M.computePerVertexNormals();
 			
-#define AUTORIG 0
+#define AUTORIG 1
 #if AUTORIG // autorig
 			T3DMesh<float> MT;
 			std::filesystem::path modelPath;

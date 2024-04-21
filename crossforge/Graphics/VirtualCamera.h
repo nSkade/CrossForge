@@ -65,6 +65,7 @@ namespace CForge {
 		void lookAt(const Eigen::Vector3f Position, const Eigen::Vector3f Target, const Eigen::Vector3f Up = Eigen::Vector3f::UnitY());
 
 		Eigen::Matrix4f cameraMatrix(void)const;
+		void cameraMatrix(const Eigen::Matrix4f& mat);
 		Eigen::Matrix4f projectionMatrix(void)const;
 		void projectionMatrix(uint32_t ViewportWidth, uint32_t ViewportHeight, float FieldOfView, float Near, float Far);
 		void orthographicProjection(float Left, float Right, float Bottom, float Top, float Near, float Far);

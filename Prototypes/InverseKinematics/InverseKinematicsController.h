@@ -1,63 +1,53 @@
-#ifndef __CFORGE_INVERSEKINEMATICSCONTROLLER_H__
-#define __CFORGE_INVERSEKINEMATICSCONTROLLER_H__
+#pragma once
 
 #include "../../crossforge/AssetIO/T3DMesh.hpp"
 #include "../../crossforge/Graphics/UniformBufferObjects/UBOBoneData.h"
 #include "../../crossforge/Graphics/Shader/ShaderCode.h"
 #include "../../crossforge/Graphics/Shader/GLShader.h"
+
 #include "JointLimits/HingeLimits.h"
-#include "JointLimits/SwingXZTwistYLimits.h"
-#include "JointLimits/SwingXTwistYLimits.h"
-#include "JointLimits/SwingZTwistYLimits.h"
-#include "JointLimits/SwingXYTwistZLimits.h"
 
-#define JSON_DIAGNOSTICS 1
-#include <nlohmann/json.hpp>
-
-#include <map>
+#include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
 namespace CForge {
-	class InverseKinematicsController: public CForgeObject {
+	class InverseKinematicsController : public SkeletalAnimationController {
 	public:
-		enum SkeletalSegment {
-			NONE = -1,
-			RIGHT_ARM = 0,
-			LEFT_ARM = 1,
-			RIGHT_LEG = 2,
-			LEFT_LEG = 3,
-			SPINE = 4,
-			HEAD = 5
+		struct EndEffectorData { // X corresponds to entry from end-effector to root
+			Eigen::Matrix3Xf LocalEndEffectorPoints;  // current local joint positions, applied onto Controller
+			Eigen::Matrix3Xf GlobalEndEffectorPoints; // current global joint positions
+			Eigen::Matrix3Xf GlobalTargetPoints;      // target global joint positions
 		};
 
-		struct SkeletalJoint : public CForgeObject {
-			int32_t ID;
-			std::string Name;
-			Eigen::Matrix4f OffsetMatrix;
-			Eigen::Vector3f LocalPosition;
-			Eigen::Quaternionf LocalRotation;
-			Eigen::Vector3f LocalScale;
-			Eigen::Matrix4f SkinningMatrix;
-			
-			int32_t Parent;
-			std::vector<int32_t> Children;
+		struct IKJoint {
+			Eigen::Vector3f GlobalPosition;
+			Eigen::Quaternionf GlobalRotation;
 
-			SkeletalJoint(void) : CForgeObject("InverseKinematicsController::SkeletalJoint") {
-				ID = -1;
-				Parent = -1;
-			}
-
+			EndEffectorData* pEndEffectorData;
+			JointLimits* pLimits;
 		};
 
+		/**
+		 * @brief Segment of Skeleton on which IK is applied to.
+		 */
+		struct IKSegment {
+			std::string name;
+			std::vector<SkeletalJoint*> joints; // front() is end-effector joint
+		};
+
+		//TODO(skade) SPOT, remove struct
+		/**
+		 * @brief EndEffector object for interaction and visualization.
+		 */
 		struct SkeletalEndEffector : public CForgeObject {
 			int32_t JointID;
 			std::string JointName;
-			SkeletalSegment Segment;
+			std::string segmentName;
 			Eigen::Matrix3Xf EndEffectorPoints;
 			Eigen::Matrix3Xf TargetPoints;
 
 			SkeletalEndEffector(void) : CForgeObject("InverseKinematicsController::SkeletalEndEffector") {
 				JointID = -1;
-				Segment = NONE;
+				segmentName = "";
 			}
 		};
 
@@ -65,84 +55,55 @@ namespace CForge {
 		~InverseKinematicsController(void);
 
 		// pMesh has to hold skeletal definition
+		void init(T3DMesh<float>* pMesh);
 		void init(T3DMesh<float>* pMesh, std::string ConfigFilepath);
 		void update(float FPSScale);
 		void clear(void);
 
-		void applyAnimation(bool UpdateUBO = true);
-
-		UBOBoneData* ubo(void);
-
-		GLShader* shadowPassShader(void);
+		//void applyAnimation(bool UpdateUBO = true);
+		void applyAnimation(Animation* pAnim, bool UpdateUBO = true);
 
 		void retrieveSkinningMatrices(std::vector<Eigen::Matrix4f>* pSkinningMats);
 
-		std::vector<SkeletalJoint*> retrieveSkeleton(void) const;
-		void updateSkeletonValues(std::vector<SkeletalJoint*>* pSkeleton);
+		SkeletalAnimationController::SkeletalJoint* getBone(uint32_t idx);
+		uint32_t boneCount();
+		std::vector<SkeletalAnimationController::SkeletalJoint*> retrieveSkeleton(void) const;
+		void updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton);
 
 		std::vector<SkeletalEndEffector*> retrieveEndEffectors(void) const;
 		void updateEndEffectorValues(std::vector<SkeletalEndEffector*>* pEndEffectors);
-		void translateTarget(SkeletalSegment SegmentID, Eigen::Vector3f Translation);
+		void translateTarget(std::string segmentName, Eigen::Vector3f Translation);
+		Eigen::Matrix3Xf getTargetPoints(std::string segmentName);
 
-		Eigen::Vector3f rootPosition(void); //TODO
-		void rootPosition(Eigen::Vector3f Position); //TODO
+		/**
+		 * Update IK Bone values to current animation frame.
+		 */
+		void updateBones(Animation* pAnim);
+		void updateEndEffectorPoints();
 
 	protected:
-		struct EndEffectorData {
-			Eigen::Matrix3Xf LocalEndEffectorPoints;
-			Eigen::Matrix3Xf GlobalEndEffectorPoints;
-			Eigen::Matrix3Xf GlobalTargetPoints;
-			Eigen::Quaternionf GlobalTargetRotation;
-		};
-
-		struct Joint {
-			int32_t ID;
-			std::string Name;
-			Eigen::Matrix4f OffsetMatrix;
-			Eigen::Vector3f LocalPosition;
-			Eigen::Quaternionf LocalRotation;
-			Eigen::Vector3f LocalScale;
-			Eigen::Vector3f GlobalPosition;
-			Eigen::Quaternionf GlobalRotation;
-			Eigen::Matrix4f SkinningMatrix;
-			
-			Joint* pParent;
-			std::vector<Joint*> Children;
-			EndEffectorData* pEndEffectorData;
-			JointLimits* pLimits;
-		};
 		
 		void initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 		void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
-		void buildKinematicChain(SkeletalSegment SegmentID, const nlohmann::json& ChainData);
-		void initEndEffectorPoints(const nlohmann::json& EndEffectorPropertiesData);
+		void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
+		void initEndEffectorPoints();
 		void initTargetPoints(void);
 
 		// end-effector -> root CCD IK
-		void ikCCD(SkeletalSegment SegmentID);
-		void rotateGaze(void);
-		Eigen::Quaternionf computeUnconstrainedGlobalRotation(Joint* pJoint, InverseKinematicsController::EndEffectorData* pEffData);
-		void forwardKinematics(Joint* pJoint);
+		void ikCCD(std::string segmentName);
+		void rotateGaze();
+		Eigen::Quaternionf computeUnconstrainedGlobalRotation(IKJoint* pJoint, EndEffectorData* pEffData);
+		void forwardKinematics(SkeletalJoint* pJoint);
 
-		void updateSkinningMatrices(Joint* pJoint, Eigen::Matrix4f ParentTransform);
-		int32_t jointIDFromName(std::string JointName);
+		std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
 
-		Joint* m_pRoot;
-		std::vector<Joint*> m_Joints;
-		Joint* m_pHead;
-		std::map<SkeletalSegment, std::vector<Joint*>> m_JointChains; // Joints.front() is end-effector joint
+		//TODOf(skade) name included here and in IKSegment, improve SPOT
+		std::map<std::string,IKSegment> m_JointChains;
 
-		int32_t m_MaxIterations;
+		float m_thresholdDist = 1e-6f;
+		float m_thresholdPosChange = 1e-6f;
 
-		UBOBoneData m_UBO;
-		GLShader *m_pShadowPassShader;
-		ShaderCode* m_pShadowPassVSCode;
-		ShaderCode* m_pShadowPassFSCode;
-
-		std::string m_GLSLVersionTag;
-		std::string m_GLSLPrecisionTag;
+		int32_t m_MaxIterations = 50;
 	};//InverseKinematicsController
 
-}//name space
-
-#endif 
+}//CForge

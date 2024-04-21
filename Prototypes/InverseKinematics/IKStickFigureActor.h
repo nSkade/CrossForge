@@ -1,5 +1,4 @@
-#ifndef __CFORGE_IKSTICKFIGUREACTOR_H__
-#define __CFORGE_IKSTICKFIGUREACTOR_H__
+#pragma once
 
 #include "IKSkeletalActor.h"
 #include "../../crossforge/Graphics/Actors/StaticActor.h"
@@ -30,7 +29,6 @@ namespace CForge {
 		float jointSize(void)const;
 		float boneSize(void)const;
 
-
 	protected:
 		void buildMaterial(T3DMesh<float>::Material* pMat);
 		void createBone(T3DMesh<float>::Bone* pBone, SGNTransformation* pParent);
@@ -44,12 +42,10 @@ namespace CForge {
 		std::vector<SGNTransformation*> m_JointTransformSGNs;
 		std::vector<SGNGeometry*> m_BoneSGNs;
 		
-		std::vector<InverseKinematicsController::SkeletalJoint*> m_JointValues;
+		std::vector<SkeletalAnimationController::SkeletalJoint*> m_JointValues;
 
 		float m_JointSize;
 		float m_BoneSize;
 	};//IKStickFigureActor
 
-}//name space
-
-#endif 
+}//CForge

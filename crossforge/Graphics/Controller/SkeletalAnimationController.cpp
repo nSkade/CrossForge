@@ -41,7 +41,7 @@ namespace CForge {
 		for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
 			const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
 		
-			Joint* pJoint = new Joint();
+			SkeletalJoint* pJoint = new SkeletalJoint();
 			pJoint->ID = pRef->ID;
 			pJoint->Name = pRef->Name;
 			pJoint->LocalPosition = Vector3f::Zero();
@@ -56,17 +56,17 @@ namespace CForge {
 		// copy structure
 		for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
 			const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
-			Joint* pJoint = m_Joints[i];
+			SkeletalJoint* pJoint = m_Joints[i];
 
-			if (pRef->pParent != nullptr) pJoint->pParent = m_Joints[pRef->pParent->ID];
-			else pJoint->pParent = nullptr;
+			if (pRef->pParent != nullptr) pJoint->Parent = m_Joints[pRef->pParent->ID]->ID;
+			else pJoint->Parent = -1;
 
-			for (uint32_t k = 0; k < pRef->Children.size(); ++k) pJoint->Children.push_back(m_Joints[pRef->Children[k]->ID]);
+			for (uint32_t k = 0; k < pRef->Children.size(); ++k) pJoint->Children.push_back(m_Joints[pRef->Children[k]->ID]->ID);
 		}
 
 		// find root bone
 		for (uint32_t i = 0; i < m_Joints.size(); ++i) {
-			if (m_Joints[i]->pParent == nullptr) {
+			if (m_Joints[i]->Parent == -1) {
 				m_pRoot = m_Joints[i];
 				break;
 			}
@@ -83,7 +83,7 @@ namespace CForge {
 
 
 		for (uint32_t i = 0; i < m_Joints.size(); ++i) {
-			m_UBO.skinningMatrix(i, Eigen::Matrix4f::Identity());
+			m_UBO.skinningMatrix(i, m_Joints[i]->OffsetMatrix);
 		}//for[bones]
 
 		SShaderManager* pSMan = SShaderManager::instance();
@@ -287,7 +287,7 @@ namespace CForge {
 							m_Joints[i]->LocalPosition = (1.0f - s) * pAnimData->Keyframes[i]->Positions[k] + s * pAnimData->Keyframes[i]->Positions[k + 1];
 							m_Joints[i]->LocalRotation = pAnimData->Keyframes[i]->Rotations[k].slerp(s, pAnimData->Keyframes[i]->Rotations[k + 1]);
 							m_Joints[i]->LocalScale = (1.0f - s) * pAnimData->Keyframes[i]->Scalings[k] + s * pAnimData->Keyframes[i]->Scalings[k + 1];
-						}		
+						}
 						break;
 					}
 				}
@@ -308,17 +308,17 @@ namespace CForge {
 	}//ubo
 
 
-	void SkeletalAnimationController::transformSkeleton(Joint* pJoint, Eigen::Matrix4f ParentTransform) {
+	void SkeletalAnimationController::transformSkeleton(SkeletalJoint* pJoint, Eigen::Matrix4f ParentTransform) {
 		if (nullptr == pJoint) throw NullpointerExcept("pJoint");
 		const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
 		const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
 		const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
 		const Matrix4f JointTransform = T * R * S;
 
-		Matrix4f LocalTransform =  ParentTransform * JointTransform;
+		Matrix4f LocalTransform = ParentTransform * JointTransform;
 		pJoint->SkinningMatrix = LocalTransform * pJoint->OffsetMatrix;
 
-		for (auto i : pJoint->Children) transformSkeleton(i, LocalTransform);
+		for (auto i : pJoint->Children) transformSkeleton(m_Joints[i], LocalTransform);
 	}//transformSkeleton
 
 	T3DMesh<float>::SkeletalAnimation* SkeletalAnimationController::animation(uint32_t ID) {
@@ -353,8 +353,8 @@ namespace CForge {
 			pNewJoint->LocalScale = i->LocalScale;
 			pNewJoint->SkinningMatrix = i->SkinningMatrix;
 
-			pNewJoint->Parent = (i->pParent == nullptr) ? -1 : i->pParent->ID;
-			for (auto k : i->Children) pNewJoint->Children.push_back(k->ID);
+			pNewJoint->Parent = (i->Parent == -1) ? -1 : i->Parent;
+			for (auto k : i->Children) pNewJoint->Children.push_back(k);
 			Rval.push_back(pNewJoint);
 		}
 		return Rval;

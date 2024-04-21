@@ -22,6 +22,8 @@
 #include <crossforge/Graphics/Actors/StickFigureActor.h>
 #include "../../Examples/ExampleSceneBase.hpp"
 
+#include <crossforge/AssetIO/File.h>
+
 using namespace Eigen;
 using namespace std;
 

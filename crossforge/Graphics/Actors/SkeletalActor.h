@@ -38,6 +38,7 @@ namespace CForge {
 
 	protected:
 		virtual void prepareCPUSkinning(const T3DMesh<float>* pMesh);
+		virtual void initBuffer(T3DMesh<float>* pMesh, bool PrepareCPUSkinning);
 
 		/**
 		* \brief Structure that holds data for CPU skinning.

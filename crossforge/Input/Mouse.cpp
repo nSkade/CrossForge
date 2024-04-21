@@ -59,7 +59,7 @@ namespace CForge {
 	}//movement
 
 	void Mouse::wheel(Eigen::Vector2f Offset) {
-		m_Wheel = Offset;
+		m_Wheel += Offset;
 	}//wheel
 
 	void Mouse::buttonState(Button Btn, bool State) {

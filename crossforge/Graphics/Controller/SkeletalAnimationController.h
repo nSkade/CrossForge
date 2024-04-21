@@ -36,7 +36,7 @@ namespace CForge {
 			bool Finished;
 		};
 
-		struct SkeletalJoint: public CForgeObject {
+		struct SkeletalJoint : public CForgeObject {
 			int32_t ID;
 			std::string Name;
 			Eigen::Matrix4f OffsetMatrix;
@@ -52,7 +52,6 @@ namespace CForge {
 				ID = -1;
 				Parent = -1;
 			}
-
 		};
 
 		SkeletalAnimationController(void);
@@ -88,25 +87,12 @@ namespace CForge {
 
 	protected:
 
-		struct Joint {
-			int32_t ID;
-			std::string Name;
-			Eigen::Matrix4f OffsetMatrix;
-			Eigen::Vector3f LocalPosition;
-			Eigen::Quaternionf LocalRotation;
-			Eigen::Vector3f LocalScale;
-			Eigen::Matrix4f SkinningMatrix;
-
-			Joint* pParent;
-			std::vector<Joint*> Children;
-		};
-
-		void transformSkeleton(Joint* pJoint, Eigen::Matrix4f ParentTransform);
+		void transformSkeleton(SkeletalJoint* pJoint, Eigen::Matrix4f ParentTransform);
 		int32_t jointIDFromName(std::string JointName);
 
-		Joint* m_pRoot;
-		std::vector<Joint*> m_Joints;
-			
+		SkeletalJoint* m_pRoot;
+		std::vector<SkeletalJoint*> m_Joints;
+		
 		std::vector<T3DMesh<float>::SkeletalAnimation*> m_SkeletalAnimations; // available animations for this skeleton
 		std::vector<Animation*> m_ActiveAnimations;
 

@@ -16,8 +16,13 @@ namespace CForge {
 
 	void SkeletalActor::init(T3DMesh<float>* pMesh, SkeletalAnimationController *pController, bool PrepareCPUSkinning) {
 		clear();
-		if (nullptr == pMesh) throw NullpointerExcept("pMesh");
+		initBuffer(pMesh, PrepareCPUSkinning);
+		m_pAnimationController = pController;
+		m_BV.init(pMesh, BoundingVolume::TYPE_AABB);
+	}//initialize
 
+	void SkeletalActor::initBuffer(T3DMesh<float>* pMesh, bool PrepareCPUSkinning) {
+		if (nullptr == pMesh) throw NullpointerExcept("pMesh");
 		if (pMesh->vertexCount() == 0) throw CForgeExcept("Mesh contains no vertex data!");
 		if (pMesh->boneCount() == 0) throw CForgeExcept("Mesh contains no bones!");
 
@@ -39,7 +44,6 @@ namespace CForge {
 		pBuffer = nullptr;
 		BufferSize = 0;
 
-		
 		m_RenderGroupUtility.init(pMesh, (void**)&pBuffer, &BufferSize);
 		// build index buffer
 		m_ElementBuffer.init(GLBuffer::BTYPE_INDEX, GLBuffer::BUSAGE_STATIC_DRAW, pBuffer, BufferSize);
@@ -52,10 +56,7 @@ namespace CForge {
 		m_VertexArray.bind();
 		setBufferData();
 		m_VertexArray.unbind();
-
-		m_pAnimationController = pController;
-		m_BV.init(pMesh, BoundingVolume::TYPE_AABB);
-	}//initialize
+	}
 
 	void SkeletalActor::prepareCPUSkinning(const T3DMesh<float>* pMesh) {
 		// clean up old data

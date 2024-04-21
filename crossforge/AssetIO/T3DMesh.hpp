@@ -164,7 +164,6 @@ namespace CForge {
 		struct Bone {
 			int32_t ID;
 			std::string Name;
-			Eigen::Vector3f			Position;
 			Eigen::Matrix4f			OffsetMatrix;
 			std::vector<int32_t>	VertexInfluences;
 			std::vector<float>		VertexWeights;
@@ -183,7 +182,6 @@ namespace CForge {
 				clear();
 				ID = pRef->ID;
 				Name = pRef->Name;
-				Position = pRef->Position;
 				OffsetMatrix = pRef->OffsetMatrix;
 				VertexInfluences = pRef->VertexInfluences;
 				VertexWeights = pRef->VertexWeights;
@@ -196,7 +194,6 @@ namespace CForge {
 			void clear(void) {
 				ID = -1;
 				Name = "";
-				Position = Eigen::Vector3f::Zero();
 				OffsetMatrix = Eigen::Matrix4f::Identity();
 				VertexInfluences.clear();
 				VertexWeights.clear();
@@ -396,6 +393,7 @@ namespace CForge {
 			m_SkeletalAnimations.clear();
 		}//clearSkeletalAnimations
 
+		//TODO rewrite using const c++ ref
 		////// Setter
 		void vertices(std::vector<Eigen::Matrix<T, 3, 1>> *pCoords) {
 			if (nullptr != pCoords) m_Positions = (*pCoords);
@@ -429,7 +427,6 @@ namespace CForge {
 					// copy data
 					m_Bones[i]->ID = i;
 					m_Bones[i]->Name = pBones->at(i)->Name;
-					m_Bones[i]->Position = pBones->at(i)->Position;
 					m_Bones[i]->OffsetMatrix = pBones->at(i)->OffsetMatrix;
 					m_Bones[i]->VertexInfluences = pBones->at(i)->VertexInfluences;
 					m_Bones[i]->VertexWeights = pBones->at(i)->VertexWeights;

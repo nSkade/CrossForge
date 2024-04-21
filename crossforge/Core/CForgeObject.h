@@ -18,10 +18,7 @@
 #ifndef __CFORGE_CFORGEOBJECT_H__
 #define __CFORGE_CFORGEOBJECT_H__
 
-
 #include <Eigen/Eigen>
-#include <vector>
-#include <string>
 #include "CoreDefinitions.h"
 
 namespace CForge {

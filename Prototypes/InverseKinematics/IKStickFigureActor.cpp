@@ -185,7 +185,6 @@ namespace CForge {
 
 		// set current animation data 
 		// if active animation is nullptr bind pose will be set
-		m_pAnimationController->applyAnimation(true);
 		m_pAnimationController->updateSkeletonValues(&m_JointValues);
 
 		for (auto i : m_JointValues) {
@@ -202,25 +201,18 @@ namespace CForge {
 			if (i->Parent == -1) continue; // we don't care about the root node
 
 			Vector3f BoneVec = m_JointValues[i->ID]->LocalPosition;
-			//Matrix3f BoneOrientation = CForgeMath::alignVectors(Vector3f::UnitY(), BoneVec.normalized());
 
-			//Quaternionf R; // = m_JointValues[i->Parent]->LocalRotation;
-			//R = BoneOrientation;
-			Quaternionf R;
-			R.setFromTwoVectors(Vector3f::UnitY(), BoneVec); // produces better orientation of bone than CForgeMath::alignVectors
+			Quaternionf R = Quaternionf::FromTwoVectors(Vector3f::UnitY(), BoneVec);
 
-			if (R.norm() < 1.01f) {
+			if (R.norm() < 1.01f)
 				m_BoneSGNs[i->ID]->rotation(R);
-			}
-			else {
+			else
 				printf("Error occured\n");
-			}
 
 			float Length = BoneVec.norm();
 			Vector3f s = m_BoneSGNs[i->ID]->scale();
 			s.y() = Length;
 			m_BoneSGNs[i->ID]->scale(s);
-
 		}
 
 		m_SG.update(1.0f);

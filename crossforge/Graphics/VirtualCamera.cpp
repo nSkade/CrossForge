@@ -83,6 +83,10 @@ namespace CForge {
 		return Rval;
 	}//cameraMatrix
 
+	void VirtualCamera::cameraMatrix(const Eigen::Matrix4f& mat) {
+		m_Rotation = Quaternionf(mat.block<3,3>(0,0)).normalized().conjugate();
+		m_Position = -(m_Rotation*mat.block<3,1>(0,3));
+	}
 
 	Vector3f VirtualCamera::dir(void)const {
 		Vector3f Rval = -(m_Rotation * Vector3f::UnitZ());

@@ -1,11 +1,11 @@
-#ifndef __CFORGE_IKSKELETALACTOR_H__
-#define __CFORGE_IKSKELETALACTOR_H__
+#pragma once
 
-#include "../../crossforge/Graphics/Actors/IRenderableActor.h"
+#include <crossforge/Graphics/Actors/SkeletalActor.h>
+
 #include "InverseKinematicsController.h"
 
 namespace CForge {
-	class IKSkeletalActor : public IRenderableActor {
+	class IKSkeletalActor : public SkeletalActor {
 	public:
 		IKSkeletalActor(void);
 		~IKSkeletalActor(void);
@@ -16,11 +16,9 @@ namespace CForge {
 
 		void render(class RenderDevice* pRDev, Eigen::Quaternionf Rotation, Eigen::Vector3f Translation, Eigen::Vector3f Scale);
 
+		InverseKinematicsController* getController();
 	protected:
 		InverseKinematicsController* m_pAnimationController;
-
 	};//SkeletalActor
 
-}//name-space
-
-#endif 
+}//CForge

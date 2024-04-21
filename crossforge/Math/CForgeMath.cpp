@@ -152,25 +152,31 @@ namespace CForge {
 		return Rval;
 	}//scaleMatrix
 
-	// thanks to: ChatGPT
 	Eigen::Matrix3f CForgeMath::alignVectors(const Eigen::Vector3f Source, const Eigen::Vector3f Target) {
-		const Vector3f a = Source;
-		const Vector3f b = Target;
-		const float ADotB = a.dot(b);
+		//TODO(skade) remove
+		// thanks to: ChatGPT
+		//const Vector3f a = Source;
+		//const Vector3f b = Target;
+		//const float ADotB = a.dot(b);
 
-		Matrix3f Rval;
-		// if both vectors point in the same direction, they are already aligned
-		if (ADotB > 0.999f && ADotB < 1.0001f) {
-			Rval = Matrix3f::Identity();
-		}
-		// if they point in opposite direction, we rotate 180 degrees about a perpendicular axis
-		else if (ADotB < -0.9999f && ADotB > -1.0001f) {
-			Rval = AngleAxisf(CForgeMath::degToRad(180.0f), Eigen::Vector3f(a.y(), a.z(), a.x()));
-		}
-		else {
-			const Vector3f v = a.cross(b);
-			Rval = AngleAxisf(std::acos(ADotB), v);
-		}
+		//Matrix3f Rval;
+		//// if both vectors point in the same direction, they are already aligned
+		//if (ADotB > 0.999f && ADotB < 1.0001f) {
+		//	Rval = Matrix3f::Identity();
+		//}
+		//// if they point in opposite direction, we rotate 180 degrees about a perpendicular axis
+		//else if (ADotB < -0.9999f && ADotB > -1.0001f) {
+		//	Rval = AngleAxisf(CForgeMath::degToRad(180.0f), Eigen::Vector3f(a.y(), a.z(), a.x()));
+		//}
+		//else {
+		//	const Vector3f v = a.cross(b);
+		//	Rval = AngleAxisf(std::acos(ADotB), v);
+		//}
+
+		Quaternionf R;
+		R.setFromTwoVectors(Source,Target);
+		Eigen::Matrix3f Rval = R.matrix();
+
 		return Rval;
 	}//alignVectors
 

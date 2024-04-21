@@ -8,34 +8,34 @@
 
 #endif
 
-#include "ExportLibrary.hpp"
+//#include "ExportLibrary.hpp"
 
 #include "crossforge/Core/SCrossForgeDevice.h"
 #include "crossforge/Core/SLogger.h"
 
-#include <Examples/ExampleMinimumGraphicsSetup.hpp>
-#include <Examples/ExampleMorphTargetAnimation.hpp>
-#include <Examples/ExampleMultiViewport.hpp>
-#include <Examples/ExampleSceneGraph.hpp>
-#include <Examples/ExampleSkeletalAnimation.hpp>
-#include <Examples/ExampleSkybox.hpp>
-#include <Examples/ExampleSockets.hpp>
-#include <Examples/ExampleShapesAndMaterials.hpp>
-#include <Examples/ExampleTextRendering.hpp>
-#include <Examples/ExampleLighting.hpp>
+//#include <Examples/ExampleMinimumGraphicsSetup.hpp>
+//#include <Examples/ExampleMorphTargetAnimation.hpp>
+//#include <Examples/ExampleMultiViewport.hpp>
+//#include <Examples/ExampleSceneGraph.hpp>
+//#include <Examples/ExampleSkeletalAnimation.hpp>
+//#include <Examples/ExampleSkybox.hpp>
+//#include <Examples/ExampleSockets.hpp>
+//#include <Examples/ExampleShapesAndMaterials.hpp>
+//#include <Examples/ExampleTextRendering.hpp>
+//#include <Examples/ExampleLighting.hpp>
+//
+//#include "Prototypes/TestScenes/ShadowTestScene.hpp"
+//#include "Prototypes/TestScenes/SkelAnimTestScene.hpp"
+//#include "Prototypes/TestScenes/SurfaceSamplerTestScene.hpp"
+//#include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
+//#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
+//#include "Prototypes/TestScenes/TransparencyTestScene.hpp"
 
-#include "Prototypes/TestScenes/ShadowTestScene.hpp"
-#include "Prototypes/TestScenes/SkelAnimTestScene.hpp"
-#include "Prototypes/TestScenes/SurfaceSamplerTestScene.hpp"
-#include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
-#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
-#include "Prototypes/TestScenes/TransparencyTestScene.hpp"
-#include "Prototypes/TestScenes/InverseKinematicsTestScene.hpp"
+#include "Prototypes/TestScenes/MotionRetargetingScene.hpp"
+//#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
 
-#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
-
-#include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
-#include "Subprojects/B02Demonstrator/B02DemonstratorScene.hpp"
+//#include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
+//#include "Subprojects/B02Demonstrator/B02DemonstratorScene.hpp"
 
 using namespace CForge;
 using namespace Eigen;
@@ -63,7 +63,7 @@ using namespace Eigen;
 //#define ActiveScene B02DemonstratorScene
 
 //#define ActiveScene AutoRiggingTestScene
-#define ActiveScene InverseKinematicsTestScene
+#define ActiveScene MotionRetargetingScene
 
 ActiveScene* pScene = nullptr;
 
@@ -91,42 +91,44 @@ void executeScene() {
 		SLogger::logException(e);
 		printf("Exception occurred. See Log. \n %s\n", e.msg().c_str());
 	}
+#ifndef _DEBUG
 	catch (...) {
 		printf("A not handled exception occurred during execution of scene!\n");
 	}
+#endif
 }//executeScene
 
 void testAllExamples(SCrossForgeDevice *pDevice) {
 	SShaderManager* pShaderMan = SShaderManager::instance();
-	executeScene<ExampleMinimumGraphicsSetup>();
-	pShaderMan->reset();
+	//executeScene<ExampleMinimumGraphicsSetup>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleSkybox>();
-	pShaderMan->reset();
+	//executeScene<ExampleSkybox>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleTextRendering>();
-	pShaderMan->reset();
+	//executeScene<ExampleTextRendering>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleShapesAndMaterials>();
-	pShaderMan->reset();
+	//executeScene<ExampleShapesAndMaterials>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleLighting>();
-	pShaderMan->reset();
+	//executeScene<ExampleLighting>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleSceneGraph>();
-	pShaderMan->reset();
+	//executeScene<ExampleSceneGraph>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleSkeletalAnimation>();
-	pShaderMan->reset();
+	//executeScene<ExampleSkeletalAnimation>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleMorphTargetAnimation>();
-	pShaderMan->reset();
+	//executeScene<ExampleMorphTargetAnimation>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleMultiViewport>();
-	pShaderMan->reset();
+	//executeScene<ExampleMultiViewport>();
+	//pShaderMan->reset();
 
-	executeScene<ExampleSocket>();
-	pShaderMan->reset();
+	//executeScene<ExampleSocket>();
+	//pShaderMan->reset();
 
 
 	pShaderMan->release();

@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <fstream>
 
+#include <crossforge/Math/CForgeMath.h>
+
 using namespace tinygltf;
 
 namespace CForge {
@@ -48,6 +50,7 @@ namespace CForge {
 			}
 		}
 
+		//TODO(skade) memory leak?
 		auto pCoord = new std::vector<Eigen::Matrix<float, 3, 1>>;
 		for (auto i : m_coord) pCoord->push_back(i);
 		auto pNormal = new std::vector<Eigen::Matrix<float, 3, 1>>;
@@ -61,6 +64,11 @@ namespace CForge {
 		m_pMesh->normals(pNormal);
 		m_pMesh->tangents(pTangent);
 		m_pMesh->textureCoordinates(pTexCoord);
+
+		delete pCoord;
+		delete pNormal;
+		delete pTangent;
+		delete pTexCoord;
 	}
 
 	T3DMesh<float>::Submesh* GLTFIO::readPrimitive(Primitive* pPrimitive) {
@@ -398,7 +406,6 @@ namespace CForge {
 				int input = animation.samplers[channel.sampler].input;
 
 				//A new BoneKeyFrames object is needed for every BoneID and Timestamps vector.
-
 				for (int i = 0; i < keyframes.size(); i++) {
 					if (keyframes[i]->BoneID == channel.target_node) { // && inputAccessors[i] == input) { //TODO no correlation?
 						pBoneKF = keyframes[i];
@@ -468,9 +475,6 @@ namespace CForge {
 					r[i] = a[i]+(b[i]-a[i])*p;
 				return r;
 			};
-			auto lerpf = [](float a,float b, float p) {
-				return a+(b-a)*p;
-			};
 			for (T3DMesh<float>::BoneKeyframes* kf : keyframes) {
 				int len = 0;
 				len = std::max(len,(int) kf->Positions.size());
@@ -489,7 +493,7 @@ namespace CForge {
 						int idxf = (int) std::floor(or);
 						int idxc = (int) std::ceil(or);
 						float itp = (or-idxf)/(idxc-idxf); // prog
-						if (idxc < kf->Positions.size())
+						if (idxc < kf->Positions.size() && idxc != idxf)
 							nv.push_back(lerp3f(kf->Positions[idxf],kf->Positions[idxc],itp));
 						else
 							nv.push_back(kf->Positions[idxf]);
@@ -508,7 +512,7 @@ namespace CForge {
 						int idxf = (int) std::floor(or);
 						int idxc = (int) std::ceil(or);
 						float itp = (or-idxf)/(idxc-idxf); // prog
-						if (idxc < kf->Rotations.size())
+						if (idxc < kf->Rotations.size() && idxc != idxf)
 							nv.push_back((kf->Rotations[idxf].slerp(itp,kf->Rotations[idxc])).normalized());
 						else
 							nv.push_back(kf->Rotations[idxf]);
@@ -527,7 +531,7 @@ namespace CForge {
 						int idxf = (int) std::floor(or);
 						int idxc = (int) std::ceil(or);
 						float itp = (or-idxf)/(idxc-idxf); // prog
-						if (idxc < kf->Scalings.size())
+						if (idxc < kf->Scalings.size() && idxc != idxf)
 							nv.push_back(lerp3f(kf->Scalings[idxf],kf->Scalings[idxc],itp));
 						else
 							nv.push_back(kf->Scalings[idxf]);
@@ -546,8 +550,8 @@ namespace CForge {
 						int idxf = (int) std::floor(or);
 						int idxc = (int) std::ceil(or);
 						float itp = (or-idxf)/(idxc-idxf); // prog
-						if (idxc < kf->Timestamps.size())
-							nv.push_back(lerpf(kf->Timestamps[idxf],kf->Timestamps[idxc],itp));
+						if (idxc < kf->Timestamps.size() && idxc != idxf)
+							nv.push_back(CForgeMath::lerp(kf->Timestamps[idxf],kf->Timestamps[idxc],itp));
 						else
 							nv.push_back(kf->Timestamps[idxf]);
 					}
