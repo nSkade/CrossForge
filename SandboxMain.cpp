@@ -23,6 +23,7 @@
 #include <Examples/ExampleShapesAndMaterials.hpp>
 #include <Examples/ExampleTextRendering.hpp>
 #include <Examples/ExampleLighting.hpp>
+#include <Examples/ExampleBAMaterial.hpp>
 
 // #include "Prototypes/TestScenes/ShadowTestScene.hpp"
 // #include "Prototypes/TestScenes/SkelAnimTestScene.hpp"
@@ -59,7 +60,8 @@ using namespace Eigen;
 //#define ActiveScene ExampleMultiViewport
 //#define ActiveScene ExampleSocket
 //#define ActiveScene ExampleScanScreenshot
-#define ActiveScene ExampleICP
+//#define ActiveScene ExampleICP
+#define ActiveScene ExampleBAMaterials
 
 //#define ActiveScene SkelAnimTestScene
 //#define ActiveScene SurfaceSamplerTestScene

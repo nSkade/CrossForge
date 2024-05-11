@@ -124,6 +124,7 @@ add_executable(CForgeSandbox
 
 	"Prototypes/SMPLTexturing/SpacePartition.cpp"
 	"Prototypes/SMPLTexturing/ICP.cpp"
+	"Prototypes/HalfEdge/HalfEdge.cpp"
 
 	# taken from: https://github.com/cstew2/asicp
 	"Prototypes/asicp/asicp.cxx"

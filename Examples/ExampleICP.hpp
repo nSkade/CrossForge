@@ -26,6 +26,7 @@
 #include "json/json.h"
 #include <Prototypes/JsonBone/JsonBoneRead.h>
 #include <Prototypes/objImport/objImport.h>
+#include <Prototypes/HalfEdge/HalfEdge.h>
 
 #include <iostream>
 #include <fstream>
@@ -62,13 +63,6 @@ namespace CForge {
 
 			// load skydome and a textured cube
 			// initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
-
-			//load cube
-			SAssetIO::load("MyAssets/standard_smplx_model.fbx", &m_CubeMesh);
-			m_CubeMesh.computePerVertexNormals();
-			m_Cube.init(&m_CubeMesh);
-			m_CubeTransformSGN.init(&m_RootSGN);
-			m_CubeSGN.init(&m_CubeTransformSGN, &m_Cube);
 			
 			// load the Scan (Timon / Staatstest)
             // SAssetIO::load("MyAssets/Reko/2017_10_11_Staatstest_6tex.obj", &M);
@@ -80,7 +74,7 @@ namespace CForge {
             {
                 m_ScanVertices.push_back(m_TimonMesh.vertex(i)); 
             }
-
+			// mergeRedundantVertices(&m_TimonMesh);
 			m_Scan.init(&m_TimonMesh); 			
             m_ScanTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
 			m_ScanTransformSGN.translation(Vector3f(1.f, 1.25f, 0.0f));
@@ -89,8 +83,9 @@ namespace CForge {
 
 			// load SMPLX model
 			// SAssetIO::load("MyAssets/010.obj", &m_SMPLXMesh);
-			objImport::storeInMesh("MyAssets/010.obj", &m_SMPLXMesh);
-			
+			objImportExport::storeInMesh("MyAssets/010.obj", &m_SMPLXMesh);
+			SAssetIO::load("MyAssets/Reko_Timo/test_own_export_from_python.obj", &m_ProxyMesh); 
+
             m_SMPLXMesh.computePerVertexNormals();
 			m_SMPLXMesh.computeAxisAlignedBoundingBox();
 
@@ -154,12 +149,44 @@ namespace CForge {
 			m_SkyboxGeomSGN.init(&m_SkyboxTransSGN, &m_Skybox);
 			m_SkyboxSG.init(&m_SkyboxTransSGN);
 
+			//pHE_SMPLX->initHEDataStructure(&m_SMPLXMesh);
+
 			// std::string ErrorMsg;
 			// if (0 != CForgeUtility::checkGLError(&ErrorMsg)) {
 			// 	SLogger::log("OpenGL Error" + ErrorMsg, "PrimitiveFactoryTestScene", SLogger::LOGTYPE_ERROR);
 			// }
 			
 		}//initialize
+
+		std::vector<std::vector<int>> countDoubleVertices(T3DMesh<float>* pOrigin, T3DMesh<float>* pProxy, float eps = 0.0001f){
+			std::vector<std::vector<int>> correspondingIndex;
+			for(int i = 0; i < pOrigin->vertexCount(); i++){
+				Vector3f originVertex = pOrigin->vertex(i);
+				std::vector<int> vertexList; 
+				
+				for(int j = 0; j < pProxy->vertexCount(); j++){
+					Vector3f proxyVertex = pProxy->vertex(j);
+
+					float dist = (proxyVertex - originVertex).norm();
+					if(dist < eps){
+						vertexList.push_back(j); 
+					}
+				}
+				if(vertexList.empty()){
+					std::cout << "At place " << i << " is empty" << std::endl; 
+					vertexList.push_back(-1); 
+				}
+				correspondingIndex.push_back(vertexList); 
+			}
+			
+			// check whether the corresponding list has as many entrys as the proxy geometry
+			// int counter = 0; 
+			// for (size_t i = 0; i < correspondingIndex.size(); i++){
+			// 	counter += correspondingIndex[i].size();
+			// }
+			
+			return correspondingIndex; 
+		}
 
 		void clear(void) override{
 			m_RenderWin.stopListening(this);
@@ -266,23 +293,29 @@ namespace CForge {
 			}
 			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_6)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED);
-				std::cout<<"Saved the model"<<std::endl;
-				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED);
+		
 				m_SMPLXMesh.computePerFaceNormals();
 				m_SMPLXMesh.computePerVertexNormals(); 
 				AssetIO::store("MyAssets/Reko_Timo/test.obj", &m_SMPLXMesh);
+				objImportExport::exportAsObjFile("test_own_export.obj", &m_SMPLXMesh);
+
+				std::cout<<"Saved the model"<<std::endl;
 			}
 			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_7)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_7, Keyboard::KEY_RELEASED);
 				std:cout << "Save Model with Skeleton as fbx" << std::endl;
 				try
 				{
-					insertBones();
-					m_SMPLXMesh.computePerFaceNormals();
-					m_SMPLXMesh.computePerVertexNormals(); 
-					AssetIO::store("MyAssets/Reko_Timo/test_with_skeleton.fbx", &m_SMPLXMesh);
-					GLTFIO model; 
-					model.store("MyAssets/Reko_Timo/test_with_skeleton.gltf", &m_SMPLXMesh);
+					std::vector<std::vector<int>> correspondingIndex; 
+					correspondingIndex = countDoubleVertices(&m_SMPLXMesh, &m_ProxyMesh); 
+					insertBones(m_ProxyMesh, correspondingIndex);
+					AssetIO::store("MyAssets/Reko_Timo/proxy.fbx", &m_ProxyMesh); 
+
+					// m_SMPLXMesh.computePerFaceNormals();
+					// m_SMPLXMesh.computePerVertexNormals(); 
+					// AssetIO::store("MyAssets/Reko_Timo/test_with_skeleton.obj", &m_SMPLXMesh);
+					// AssetIO::store("MyAssets/Reko_Timo/test_with_skeleton.fbx", &m_SMPLXMesh);
+
 				}
 				catch(const std::exception& e)
 				{
@@ -296,7 +329,8 @@ namespace CForge {
 		void textureTransferNormals(){
 			rotateMismatch();
 			std::vector<Eigen::Vector3f> uv(m_SMPLXMesh.vertexCount(), Eigen::Vector3f::Zero());
-			vector<uint32_t> indexTriangle(m_SMPLXVertices.size(), 0); 
+			std::vector<uint32_t> indexTriangle(m_SMPLXVertices.size(), 0); 
+			std::vector<std::vector<int32_t>> neighboringTriangles; 
 
 			// only for adjecent triangles do sdf -> if no hit, can do it for all triangles
 			std::vector<PointLenght> pt; 
@@ -329,6 +363,7 @@ namespace CForge {
 						indexTriangle.at(i) = adjTriangles[j];
 					}
 				}
+				neighboringTriangles.push_back(adjTriangles);
 				adjTriangles.clear();
 				
 				// // naive implementation
@@ -339,12 +374,6 @@ namespace CForge {
 				// 	Vector3f b = m_TimonMesh.vertex(face.Vertices[1]);
 				// 	Vector3f c = m_TimonMesh.vertex(face.Vertices[2]);
 				// 	float dist = SDFTriangle(m_SMPLXVertices[i], a, b, c);
-
-				// 	if(dist < minDist){
-				// 		minDist = dist;
-				// 		indexTriangle.at(i) = j;
-				// 	}
-				// }
 
 				// calculate normal
 				T3DMesh<float>::Face face = m_TimonMesh.getSubmesh(0)->Faces[indexTriangle.at(i)];
@@ -363,6 +392,7 @@ namespace CForge {
 
 				Vector3f projectedPoint = m_SMPLXVertices[i] - normal * minDist;  
 				Vector3f uvw = Baryzentric(projectedPoint, a, b, c);
+
 				// nehme an, dass dieser Fall wahr ist
 				// uvw.x() = std::clamp(uvw.x(), 0.0f, 1.0f); 
 				// uvw.y() = std::clamp(uvw.y(), 0.0f, 1.0f);
@@ -374,6 +404,27 @@ namespace CForge {
 				// TODO: sind alle werte zwischen 0 und 1? 
 				uv[i] = m_TimonMesh.textureCoordinate(face.Vertices[0]) * uvw.x() + m_TimonMesh.textureCoordinate(face.Vertices[1]) * uvw.y() + m_TimonMesh.textureCoordinate(face.Vertices[2]) * uvw.z(); 
 			}
+
+			// get the points wich are too far apart in the uv space
+			// if they are too far apart we need to clamp them
+			// float eps = 0.5; 
+			// float tmp = 0.0f; 
+			// float tmpMax = 0.0f; 
+			// std::vector<HalfEdgeSetup::Vertex*> neighbors; 
+
+			// // was ist der größte Abstand?
+			// for(int i = 0; i < m_SMPLXVertices.size(); i++){
+			// 	neighbors =  pHE_SMPLX->getAjacentVertices(i);
+			// 	for(int vertexIndex = 0; vertexIndex < neighbors.size(); vertexIndex++){
+			// 		Vector3f neighborPos = m_SMPLXVertices[neighbors[vertexIndex]->ID];
+			// 		tmp += (m_SMPLXVertices[i] - neighborPos).norm() / neighbors.size(); 
+
+			// 		if(tmp > tmpMax){
+			// 			tmpMax = tmp; 
+			// 		}
+			// 		tmp = 0.0f; 
+			// 	}
+			// }
 
 			m_SMPLXMesh.textureCoordinates(&uv); 
 			m_SMPLXMesh.addMaterial(m_TimonMesh.getMaterial(2), true);
@@ -618,10 +669,16 @@ namespace CForge {
 			return maxDist;
 		}//hausdorffDistance
 
-		void insertBones(){
+		void insertBones(T3DMesh<float> &mesh){
 			const std::string fileName = "MyAssets/result.json";
 			std::vector<T3DMesh<float>::Bone*> bones = BuildBones::getBones(fileName);
-			m_SMPLXMesh.bones(&bones);
+			mesh.bones(&bones);
+		}
+
+		void insertBones(T3DMesh<float> &mesh, std::vector<std::vector<int>> &correspondences){
+			const std::string fileName = "MyAssets/result.json";
+			std::vector<T3DMesh<float>::Bone*> bones = BuildBones::getBones(fileName, correspondences);
+			mesh.bones(&bones);
 		}
 
 	protected:
@@ -660,6 +717,10 @@ namespace CForge {
 		SGNTransformation m_CubeTransformSGN;
 		SGNGeometry m_CubeSGN;
 		T3DMesh<float> m_CubeMesh;
+
+		T3DMesh<float> m_ProxyMesh; 
+
+		HalfEdgeSetup *pHE_SMPLX = new HalfEdgeSetup();
 	};//ExampleScanScreenshot
 
 }//name space
