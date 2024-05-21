@@ -12,7 +12,7 @@ namespace CForge {
 		clear();
 	}//Destructor
 
-	void IKSkeletalActor::init(T3DMesh<float>* pMesh, InverseKinematicsController *pController) {
+	void IKSkeletalActor::init(T3DMesh<float>* pMesh, IKController *pController) {
 		clear();
 		initBuffer(pMesh,false);
 
@@ -72,7 +72,7 @@ namespace CForge {
 		}//for[all render groups]
 	}//render
 
-	InverseKinematicsController* IKSkeletalActor::getController() {
+	IKController* IKSkeletalActor::getController() {
 		return m_pAnimationController;
 	}
 }//CForge

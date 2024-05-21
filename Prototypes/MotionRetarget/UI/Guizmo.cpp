@@ -1,4 +1,4 @@
-#include <Prototypes/InverseKinematics/Guizmo.hpp>
+#include "Guizmo.hpp"
 
 namespace CForge {
 	void Guizmo::setMat(Eigen::Matrix4f* mat) {

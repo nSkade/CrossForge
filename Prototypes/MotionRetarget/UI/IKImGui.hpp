@@ -1,9 +1,10 @@
 #pragma once
 #include <Prototypes/GUI/ImGuiUtility.h>
-#include "InverseKinematicsController.h"
+#include <Prototypes/MotionRetarget/IKController.h>
 
 namespace CForge {
 
+//TODO(skade)
 class IKImGui {
 	public:
 		IKImGui();
@@ -12,8 +13,9 @@ class IKImGui {
 		void render();
 	private:
 
-	InverseKinematicsController* m_ikc;
-	friend InverseKinematicsController;
+	IKController* m_ikc;
+	friend IKController;
 };
 
 }//CForge
+

@@ -93,56 +93,10 @@ namespace CForge {
 		//Swing.normalize();
 	}//decomposeSwingXYTwistZ
 
-	Eigen::Vector3f JointLimits::quatLog(Eigen::Quaternionf Q) {
-		Vector3f V;
-
-		float Length = Q.vec().norm();
-
-		if (Length < 1e-8f) {
-			V = Q.vec();
-		}
-		else {
-			float HalfAngle = std::atan2f(Length, Q.w());
-			V = HalfAngle * (Q.vec() / Length);
-		}
-
-		return V;
-	}//quatLog
-
-	Eigen::Quaternionf JointLimits::quatExp(Eigen::Vector3f V) {
-		Quaternionf Q;
-		
-		float HalfAngle = V.stableNorm();
-		
-		if (HalfAngle < 1e-8f) {
-			Q = Quaternionf(1.0f, V.x(), V.y(), V.z());
-			Q.normalize();
-		}
-		else {
-			float Cos = std::cos(HalfAngle);
-			float Sin = std::sin(HalfAngle) / HalfAngle;
-			Q = Quaternionf(Cos, Sin * V.x(), Sin * V.y(), Sin * V.z());
-		}
-
-		return Q;
-	}//quatExp
-
 	Eigen::Quaternionf JointLimits::quatAbs(Eigen::Quaternionf Q) {
 		Quaternionf QAbs = (Q.w() < 0.0f) ? Quaternionf(-Q.w(), -Q.x(), -Q.y(), -Q.z()) : Q;
 		return QAbs;
 	}//quatAbs
-
-	Vector2f JointLimits::intersectionSegmentEllipse(float A, float B, Vector2f Query) {
-		float a = (Query.x() * Query.x()) / (A * A) + (Query.y() * Query.y()) / (B * B);
-		float discr = 4 * a;
-		float t = (std::sqrt(discr)) / (2 * a);
-
-		return Vector2f(Query.x() * t, Query.y() * t);
-	}//intersectionSegmentEllipse
-
-	float JointLimits::squared(float Val) {
-		return Val * Val;
-	}//squared
 
 	float JointLimits::robustLength(float V0, float V1) {
 		float AbsV0 = std::abs(V0);
@@ -165,7 +119,7 @@ namespace CForge {
 			float ratio0 = n0 / (s + r0);
 			float ratio1 = z1 / (s + 1.0f);
 
-			g = squared(ratio0) + squared(ratio1) - 1.0f;
+			g = ratio0*ratio0 + ratio1*ratio1 - 1.0f;
 
 			if (g > 0.0f) {
 				s0 = s;
@@ -187,10 +141,11 @@ namespace CForge {
 			if (y0 > 0.0f) {
 				float z0 = y0 / e0;
 				float z1 = y1 / e1;
-				float g = squared(z0) + squared(z1) - 1.0f;
+				float g = z0*z0 + z1*z1 - 1.0f;
 
 				if (g != 0.0f) {
-					float r0 = squared(e0 / e1);
+					float r0 = e0 / e1;
+					r0 = r0*r0;
 					float sbar = root(r0, z0, z1, g);
 
 					x0 = r0 * y0 / (sbar + r0);
@@ -208,7 +163,7 @@ namespace CForge {
 		}
 		else { // y1 == 0
 			float numer0 = e0 * y0;
-			float denom0 = squared(e0) - squared(e1);
+			float denom0 = e0*e0 - e1*e1;
 
 			if (numer0 < denom0) {
 				float xde0 = numer0 / denom0;

@@ -2,7 +2,7 @@
 
 #include <crossforge/Graphics/Actors/SkeletalActor.h>
 
-#include "InverseKinematicsController.h"
+#include "IKController.h"
 
 namespace CForge {
 	class IKSkeletalActor : public SkeletalActor {
@@ -10,15 +10,15 @@ namespace CForge {
 		IKSkeletalActor(void);
 		~IKSkeletalActor(void);
 
-		void init(T3DMesh<float>* pMesh, InverseKinematicsController* pController);
+		void init(T3DMesh<float>* pMesh, IKController* pController);
 		void clear(void);
 		void release(void);
 
 		void render(class RenderDevice* pRDev, Eigen::Quaternionf Rotation, Eigen::Vector3f Translation, Eigen::Vector3f Scale);
 
-		InverseKinematicsController* getController();
+		IKController* getController();
 	protected:
-		InverseKinematicsController* m_pAnimationController;
+		IKController* m_pAnimationController;
 	};//SkeletalActor
 
 }//CForge

@@ -10,22 +10,33 @@
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
 namespace CForge {
-	class InverseKinematicsController : public SkeletalAnimationController {
+	class IKController : public SkeletalAnimationController {
 	public:
 		struct EndEffectorData { // X corresponds to entry from end-effector to root
-			Eigen::Matrix3Xf LocalEndEffectorPoints;  // current local joint positions, applied onto Controller
-			Eigen::Matrix3Xf GlobalEndEffectorPoints; // current global joint positions
-			Eigen::Matrix3Xf GlobalTargetPoints;      // target global joint positions
+			Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
+			Eigen::Matrix3Xf EEPosGlobal;     // current global joint positions
+			Eigen::Matrix3Xf TargetPosGlobal; // target global joint positions
+		};
+
+		//TODO(skade)
+		struct IKTarget {
+			Eigen::Vector3f pos;
+			float influence = 1.; //TODO(skade)
 		};
 
 		struct IKJoint {
 			Eigen::Vector3f GlobalPosition;
 			Eigen::Quaternionf GlobalRotation;
 
-			EndEffectorData* pEndEffectorData;
+			Eigen::Vector3f LocalPosition; //TODO(skade) requred? corresponded to EEPosLocal
+			std::vector<IKTarget> TargetPosGlobal; // Global target Positions the Joint tries to reach
+			EndEffectorData* pEndEffectorData; //TODO(skade) remove
+			
+
 			JointLimits* pLimits;
 		};
 
+		//TODO(skade) priority of IK Segments?
 		/**
 		 * @brief Segment of Skeleton on which IK is applied to.
 		 */
@@ -34,25 +45,18 @@ namespace CForge {
 			std::vector<SkeletalJoint*> joints; // front() is end-effector joint
 		};
 
-		//TODO(skade) SPOT, remove struct
+		//TODO(skade) improve SPOT
 		/**
-		 * @brief EndEffector object for interaction and visualization.
+		 * @brief EndEffector object for interaction and visualization outside of this class.
 		 */
-		struct SkeletalEndEffector : public CForgeObject {
-			int32_t JointID;
-			std::string JointName;
+		struct SkeletalEndEffector {
+			SkeletalJoint* joint = nullptr;
+			IKJoint* jointIK = nullptr;
 			std::string segmentName;
-			Eigen::Matrix3Xf EndEffectorPoints;
-			Eigen::Matrix3Xf TargetPoints;
-
-			SkeletalEndEffector(void) : CForgeObject("InverseKinematicsController::SkeletalEndEffector") {
-				JointID = -1;
-				segmentName = "";
-			}
 		};
 
-		InverseKinematicsController(void);
-		~InverseKinematicsController(void);
+		IKController(void);
+		~IKController(void);
 
 		// pMesh has to hold skeletal definition
 		void init(T3DMesh<float>* pMesh);
@@ -67,11 +71,12 @@ namespace CForge {
 
 		SkeletalAnimationController::SkeletalJoint* getBone(uint32_t idx);
 		uint32_t boneCount();
-		std::vector<SkeletalAnimationController::SkeletalJoint*> retrieveSkeleton(void) const;
 		void updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton);
 
-		std::vector<SkeletalEndEffector*> retrieveEndEffectors(void) const;
-		void updateEndEffectorValues(std::vector<SkeletalEndEffector*>* pEndEffectors);
+		/**
+		 * \brief Returns reference to m_IKJoints.
+		 */
+		std::vector<SkeletalEndEffector> retrieveEndEffectors(void);
 		void translateTarget(std::string segmentName, Eigen::Vector3f Translation);
 		Eigen::Matrix3Xf getTargetPoints(std::string segmentName);
 
@@ -90,6 +95,7 @@ namespace CForge {
 		void initTargetPoints(void);
 
 		// end-effector -> root CCD IK
+		void ikJacobi(std::string segmentName);
 		void ikCCD(std::string segmentName);
 		void rotateGaze();
 		Eigen::Quaternionf computeUnconstrainedGlobalRotation(IKJoint* pJoint, EndEffectorData* pEffData);
@@ -104,6 +110,6 @@ namespace CForge {
 		float m_thresholdPosChange = 1e-6f;
 
 		int32_t m_MaxIterations = 50;
-	};//InverseKinematicsController
+	};//IKController
 
 }//CForge

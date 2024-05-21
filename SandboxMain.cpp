@@ -31,7 +31,7 @@
 //#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
 //#include "Prototypes/TestScenes/TransparencyTestScene.hpp"
 
-#include "Prototypes/TestScenes/MotionRetargetingScene.hpp"
+#include "Prototypes/MotionRetarget/MotionRetargetingScene.hpp"
 //#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
 
 //#include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"

@@ -19,7 +19,7 @@ namespace CForge {
 		clear();
 	}//Destructor
 
-	void IKStickFigureActor::init(T3DMesh<float>* pMesh, InverseKinematicsController* pController) {
+	void IKStickFigureActor::init(T3DMesh<float>* pMesh, IKController* pController) {
 		clear();
 
 		if (nullptr == pMesh) throw NullpointerExcept("pMesh");

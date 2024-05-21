@@ -121,19 +121,21 @@ add_executable(CForgeSandbox
 	Prototypes/SkeletonConvertion.cpp
 
 	#Inverse Kinematics Prototype
-	Prototypes/InverseKinematics/InverseKinematicsController.cpp
-	Prototypes/InverseKinematics/IKSkeletalActor.cpp
-	Prototypes/InverseKinematics/IKStickFigureActor.cpp
-	Prototypes/InverseKinematics/JointLimits/JointLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/HingeLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingXZTwistYLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingXTwistYLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingZTwistYLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingXYTwistZLimits.cpp
+	Prototypes/MotionRetarget/MotionRetargetingScene.cpp
 
-	Prototypes/InverseKinematics/IKImGui.cpp
-	Prototypes/InverseKinematics/Guizmo.cpp
-	Prototypes/InverseKinematics/Config.cpp
+	Prototypes/MotionRetarget/IKController.cpp
+	Prototypes/MotionRetarget/IKSkeletalActor.cpp
+	Prototypes/MotionRetarget/IKStickFigureActor.cpp
+	Prototypes/MotionRetarget/JointLimits/JointLimits.cpp
+	Prototypes/MotionRetarget/JointLimits/HingeLimits.cpp
+	Prototypes/MotionRetarget/JointLimits/SwingXZTwistYLimits.cpp
+	Prototypes/MotionRetarget/JointLimits/SwingXTwistYLimits.cpp
+	Prototypes/MotionRetarget/JointLimits/SwingZTwistYLimits.cpp
+	Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
+
+	Prototypes/MotionRetarget/UI/IKImGui.cpp
+	Prototypes/MotionRetarget/UI/Guizmo.cpp
+	Prototypes/MotionRetarget/Config/Config.cpp
 
 )
 

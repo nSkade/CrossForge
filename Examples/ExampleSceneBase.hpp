@@ -42,6 +42,8 @@
 
 #include <crossforge/Core/SCForgeSimulation.h>
 
+#include <crossforge/Core/SLogger.h>
+
 #ifdef __EMSCRIPTEN__
 #include <crossforge/Graphics/OpenGLHeader.h>
 #else

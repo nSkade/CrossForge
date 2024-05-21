@@ -51,6 +51,7 @@ namespace CForge {
 			// load skydome and a textured cube
 			T3DMesh<float> M;
 
+			//TODO transparencies are still order dependent
 			initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
 
 			SAssetIO::load("Assets/ExampleScenes/Duck/Duck.gltf", &M);

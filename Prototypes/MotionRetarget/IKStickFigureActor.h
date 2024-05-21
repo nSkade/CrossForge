@@ -12,7 +12,7 @@ namespace CForge {
 		IKStickFigureActor(void);
 		~IKStickFigureActor(void);
 
-		void init(T3DMesh<float>* pMesh, InverseKinematicsController* pController);
+		void init(T3DMesh<float>* pMesh, IKController* pController);
 		void clear(void);
 		void release(void);
 

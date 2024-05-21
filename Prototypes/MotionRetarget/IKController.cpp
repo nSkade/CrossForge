@@ -1,4 +1,4 @@
-#include "InverseKinematicsController.h"
+#include "IKController.h"
 
 #include "JointLimits/SwingXZTwistYLimits.h"
 #include "JointLimits/SwingXTwistYLimits.h"
@@ -13,12 +13,14 @@
 
 #include <iostream>
 
+#include <cmath>
+
 using namespace Eigen;
 
 namespace CForge {
 
 	//TODOf(skade) CForgeObject classname wrong
-	InverseKinematicsController::InverseKinematicsController(void) : SkeletalAnimationController() {
+	IKController::IKController(void) : SkeletalAnimationController() {
 		m_pRoot = nullptr;
 		//m_pHead = nullptr;
 
@@ -36,16 +38,17 @@ namespace CForge {
 
 	}//constructor
 
-	InverseKinematicsController::~InverseKinematicsController(void) {
+	IKController::~IKController(void) {
 		clear();
 	}//Destructor
 
-	void InverseKinematicsController::init(T3DMesh<float>* pMesh) {
+	//TODO(skade) implement
+	void IKController::init(T3DMesh<float>* pMesh) {
 		
 	}
 
 	// pMesh has to hold skeletal definition
-	void InverseKinematicsController::init(T3DMesh<float>* pMesh, std::string ConfigFilepath) {
+	void IKController::init(T3DMesh<float>* pMesh, std::string ConfigFilepath) {
 		clear();
 
 		if (nullptr == pMesh) throw NullpointerExcept("pMesh");
@@ -95,7 +98,7 @@ namespace CForge {
 
 	}//initialize
 
-	void InverseKinematicsController::clear(void) {
+	void IKController::clear(void) {
 		m_pRoot = nullptr;
 		for (auto& i : m_IKJoints) {
 			if (i.second) {
@@ -119,7 +122,7 @@ namespace CForge {
 
 	}//clear
 	
-	void InverseKinematicsController::initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData) {
+	void IKController::initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData) {
 		T3DMesh<float>::SkeletalAnimation* pAnimation = pMesh->getSkeletalAnimation(0); // used as initial pose of skeleton
 
 		for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
@@ -236,7 +239,7 @@ namespace CForge {
 		}//for[bones]
 	}//initJointProperties
 
-	void InverseKinematicsController::initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData) {
+	void IKController::initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData) {
 		// copy structure
 		for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
 			const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
@@ -263,7 +266,7 @@ namespace CForge {
 		}
 	}//initSkeletonStructure
 
-	void InverseKinematicsController::buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName) {
+	void IKController::buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName) {
 		m_JointChains.try_emplace(name,IKSegment());
 		m_JointChains.at(name).name = name;
 		std::vector<SkeletalJoint*>& Chain = m_JointChains.at(name).joints;
@@ -301,7 +304,7 @@ namespace CForge {
 			throw CForgeExcept("Initialization of chain failed, Chain size < 2");
 	}//buildKinematicChain
 
-	void InverseKinematicsController::initEndEffectorPoints() {
+	void IKController::initEndEffectorPoints() {
 		transformSkeleton(m_pRoot,Eigen::Matrix4f::Identity());
 
 		for (auto c : m_JointChains) {
@@ -311,43 +314,44 @@ namespace CForge {
 			EndEffectorData* pEffData = new EndEffectorData();
 
 			int32_t PointIdx = 0;
-			pEffData->LocalEndEffectorPoints.resize(3, c.second.joints.size());
-			pEffData->GlobalEndEffectorPoints.resize(3, c.second.joints.size());
+			pEffData->EEPosLocal.resize(3, c.second.joints.size());
+			pEffData->EEPosGlobal.resize(3, c.second.joints.size());
 			
 			// initialize joint points from offset matrices
 			for (int32_t j=0;j<c.second.joints.size();j++) {
 				SkeletalJoint* pJC = c.second.joints[j];
 				Eigen::Matrix4f om = pJC->SkinningMatrix * pJC->OffsetMatrix.inverse();
-				pEffData->GlobalEndEffectorPoints(0, PointIdx) = om.data()[12];
-				pEffData->GlobalEndEffectorPoints(1, PointIdx) = om.data()[13];
-				pEffData->GlobalEndEffectorPoints(2, PointIdx) = om.data()[14];
+				pEffData->EEPosGlobal(0, PointIdx) = om.data()[12];
+				pEffData->EEPosGlobal(1, PointIdx) = om.data()[13];
+				pEffData->EEPosGlobal(2, PointIdx) = om.data()[14];
 				PointIdx++;
 			}
 
-			for (int32_t i = 0; i < pEffData->LocalEndEffectorPoints.cols(); ++i) {
-				pEffData->LocalEndEffectorPoints.col(i) = effIK->GlobalRotation.conjugate()
-				                                          * (pEffData->GlobalEndEffectorPoints.col(i)
-				                                          - effIK->GlobalPosition);
+			for (int32_t i = 0; i < pEffData->EEPosLocal.cols(); ++i) {
+				pEffData->EEPosLocal.col(i) = effIK->GlobalRotation.conjugate()
+				       * (pEffData->EEPosGlobal.col(i) - effIK->GlobalPosition);
 			}
 
 			effIK->pEndEffectorData = pEffData;
 		}
 	}//initEndEffectorPoints
 
-	void InverseKinematicsController::initTargetPoints(void) {
+	void IKController::initTargetPoints(void) {
 		for (auto& c : m_JointChains) {
 			IKJoint* eff = m_IKJoints[c.second.joints.front()];
-			eff->pEndEffectorData->GlobalTargetPoints = eff->pEndEffectorData->GlobalEndEffectorPoints;
+			eff->pEndEffectorData->TargetPosGlobal = eff->pEndEffectorData->EEPosGlobal;
 		}
 	}//initTargetPoints
 
-	void InverseKinematicsController::update(float FPSScale) {
+	void IKController::update(float FPSScale) {
 		forwardKinematics(m_pRoot);
-		for (auto c : m_JointChains)
-			ikCCD(c.first);
+		for (auto c : m_JointChains) {
+			//ikJacobi(c.first);
+			ikCCD(c.first); //TODO(skade) different methods
+		}
 	}//update
 
-	void InverseKinematicsController::applyAnimation(Animation* pAnim, bool UpdateUBO) {
+	void IKController::applyAnimation(Animation* pAnim, bool UpdateUBO) {
 		if (pAnim) {
 			SkeletalAnimationController::applyAnimation(pAnim,UpdateUBO);
 		} else {
@@ -359,13 +363,15 @@ namespace CForge {
 		}
 	}//applyAnimation
 
-	void InverseKinematicsController::ikCCD(const std::string segmentName) {
+
+	//TODO(skade) OMR impl doesnt use multiple iterations
+	void IKController::ikJacobi(const std::string segmentName) {
 		std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
 		EndEffectorData* pEffData = m_IKJoints[Chain.front()]->pEndEffectorData;
 		Matrix3Xf LastEndEffectorPoints;
 
 		for (int32_t i = 0; i < m_MaxIterations; ++i) {
-			LastEndEffectorPoints = pEffData->GlobalEndEffectorPoints;
+			LastEndEffectorPoints = pEffData->EEPosGlobal;
 
 			for (int32_t k = 0; k < Chain.size(); ++k) {
 				SkeletalJoint* pCurrent = Chain[k];
@@ -396,12 +402,80 @@ namespace CForge {
 			}//for[each joint in chain]
 
 			// check for termination -> condition: end-effector has reached the targets position and orientation
-			Matrix3Xf EffectorTargetDiff = pEffData->GlobalTargetPoints - pEffData->GlobalEndEffectorPoints;
+			Matrix3Xf EffectorTargetDiff = pEffData->TargetPosGlobal - pEffData->EEPosGlobal;
 			float DistError = EffectorTargetDiff.cwiseProduct(EffectorTargetDiff).sum() / float(EffectorTargetDiff.cols());
 			if (DistError < m_thresholdDist)
 				return;
 
-			Matrix3Xf EffectorPosDiff = pEffData->GlobalEndEffectorPoints - LastEndEffectorPoints;
+			Matrix3Xf EffectorPosDiff = pEffData->EEPosGlobal - LastEndEffectorPoints;
+			float PosChangeError = EffectorPosDiff.cwiseProduct(EffectorPosDiff).sum() / float(EffectorPosDiff.cols());
+			if (PosChangeError < m_thresholdPosChange)
+				return;
+		}//for[m_MaxIterations]
+	}//ikJacobi
+
+	void IKController::ikCCD(const std::string segmentName) {
+		std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
+		EndEffectorData* pEffData = m_IKJoints[Chain.front()]->pEndEffectorData;
+		Matrix3Xf LastEndEffectorPoints;
+
+		for (int32_t i = 0; i < m_MaxIterations; ++i) {
+			LastEndEffectorPoints = pEffData->EEPosGlobal;
+
+			// check for termination -> condition: end-effector has reached the targets position and orientation
+			Matrix3Xf EffectorTargetDiff = pEffData->TargetPosGlobal - pEffData->EEPosGlobal;
+			float DistError = EffectorTargetDiff.cwiseProduct(EffectorTargetDiff).sum() / float(EffectorTargetDiff.cols());
+			if (DistError < m_thresholdDist)
+				return;
+
+			//TODO(skade) implement Forward CCD
+			// Backward CCD
+			//for (int32_t k = Chain.size()-1; k >= 0; --k) {
+			for (int32_t k = 0; k < Chain.size(); ++k) {
+				// start at base joint
+				SkeletalJoint* pCurrent = Chain[k];
+				IKJoint* pCurrentIK = m_IKJoints[pCurrent];
+
+				// calculate rotation axis
+				// joint position to end effector
+				Eigen::Vector3f jpToEE = pEffData->EEPosGlobal.col(0)-pCurrentIK->GlobalPosition;
+				// joint position to target position
+				Eigen::Vector3f jpToTar = pEffData->TargetPosGlobal.col(0)-pCurrentIK->GlobalPosition;
+
+				// rotation angle
+				float theta = std::acos(jpToEE.dot(jpToTar));
+				if (std::abs(theta) < FLT_EPSILON)
+					continue;
+
+				// vector we rotate around
+				Eigen::Vector3f rotVec = jpToEE.cross(jpToTar);
+				rotVec.normalize();
+
+				Quaternionf GlobalIncrement = Quaternionf(Eigen::AngleAxis(theta,rotVec));
+
+				Quaternionf NewGlobalRotation = GlobalIncrement * pCurrentIK->GlobalRotation;
+				
+				// transform new global rotation to new local rotation
+				Quaternionf NewLocalRotation;
+				if (pCurrent == m_pRoot)
+					NewLocalRotation = NewGlobalRotation;
+				else
+					NewLocalRotation = m_IKJoints[m_Joints[pCurrent->Parent]]->GlobalRotation.conjugate() * NewGlobalRotation;
+
+				NewLocalRotation.normalize();
+
+				// constrain new local rotation if joint is not unconstrained
+				if (pCurrentIK->pLimits != nullptr)
+					NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
+
+				// apply new local rotation to joint
+				pCurrent->LocalRotation = NewLocalRotation;
+
+				// update kinematic chain
+				forwardKinematics(pCurrent);
+			}//for[each joint in chain]
+
+			Matrix3Xf EffectorPosDiff = pEffData->EEPosGlobal - LastEndEffectorPoints;
 			float PosChangeError = EffectorPosDiff.cwiseProduct(EffectorPosDiff).sum() / float(EffectorPosDiff.cols());
 			if (PosChangeError < m_thresholdPosChange)
 				return;
@@ -409,9 +483,9 @@ namespace CForge {
 	}//ikCCD
 
 	//TODO(skade) rewrite?
-	void InverseKinematicsController::rotateGaze(void) {
-		//Vector3f EPos = m_pHead->pEndEffectorData->GlobalEndEffectorPoints.col(0);
-		//Vector3f TPos = m_pHead->pEndEffectorData->GlobalTargetPoints.col(0);
+	void IKController::rotateGaze(void) {
+		//Vector3f EPos = m_pHead->pEndEffectorData->EEPosGlobal.col(0);
+		//Vector3f TPos = m_pHead->pEndEffectorData->TargetPosGlobal.col(0);
 		//Vector3f CurrentDir = (EPos - m_pHead->GlobalPosition).normalized();
 		//Vector3f TargetDir = (TPos - m_pHead->GlobalPosition).normalized();
 
@@ -436,13 +510,14 @@ namespace CForge {
 		//}
 	}//rotateGaze
 
-	Quaternionf InverseKinematicsController::computeUnconstrainedGlobalRotation(IKJoint* pJoint, InverseKinematicsController::EndEffectorData* pEffData) {
+	Quaternionf IKController::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
+
+		//TODO(skade) this is not CCD but not Jacobi either
 
 		//TODO: combine points of multiple end effectors and targets into 2 point clouds to compute CCD rotation for multiple end effectors?
-		Matrix3Xf EndEffectorPoints = pEffData->GlobalEndEffectorPoints.colwise() - pJoint->GlobalPosition;
-		Matrix3Xf TargetPoints = pEffData->GlobalTargetPoints.colwise() - pJoint->GlobalPosition;
+		Matrix3Xf EndEffectorPoints = pEffData->EEPosGlobal.colwise() - pJoint->GlobalPosition; // current local joint position
+		Matrix3Xf TargetPoints = pEffData->TargetPosGlobal.colwise() - pJoint->GlobalPosition;  // target local joint position
 
-		//TODO(skade)
 #if 0
 
 		// compute matrix W
@@ -511,7 +586,7 @@ namespace CForge {
 		return GlobalRotation;
 	}//computeUnconstrainedGlobalRotation
 
-	void InverseKinematicsController::forwardKinematics(SkeletalJoint* pJoint) {
+	void IKController::forwardKinematics(SkeletalJoint* pJoint) {
 		if (nullptr == pJoint) throw NullpointerExcept("pJoint");
 
 		IKJoint* pJointIK = m_IKJoints[pJoint];
@@ -529,55 +604,34 @@ namespace CForge {
 		pJointIK->GlobalRotation.normalize();
 
 		if (pJointIK->pEndEffectorData != nullptr) {
-			auto& GlobalEndEffectorPoints = pJointIK->pEndEffectorData->GlobalEndEffectorPoints;
-			auto& LocalEndEffectorPoints = pJointIK->pEndEffectorData->LocalEndEffectorPoints;
+			auto& EEPosGlobal = pJointIK->pEndEffectorData->EEPosGlobal;
+			auto& EEPosLocal = pJointIK->pEndEffectorData->EEPosLocal;
 
-			for (int32_t i = 0; i < GlobalEndEffectorPoints.cols(); ++i) {
-				GlobalEndEffectorPoints.col(i) = (pJointIK->GlobalRotation * LocalEndEffectorPoints.col(i)) + pJointIK->GlobalPosition;
-			}
+			for (int32_t i = 0; i < EEPosGlobal.cols(); ++i)
+				EEPosGlobal.col(i) = (pJointIK->GlobalRotation * EEPosLocal.col(i)) + pJointIK->GlobalPosition;
 		}
 
 		for (auto i : pJoint->Children)
 			forwardKinematics(m_Joints[i]);
 	}//forwardKinematics
 
-	void InverseKinematicsController::retrieveSkinningMatrices(std::vector<Matrix4f>* pSkinningMats) {
+	void IKController::retrieveSkinningMatrices(std::vector<Matrix4f>* pSkinningMats) {
 		if (nullptr == pSkinningMats) throw NullpointerExcept("pSkinningMats");
 		pSkinningMats->clear();
 		for (auto i : m_Joints)
 			pSkinningMats->push_back(i->SkinningMatrix);
 	}//retrieveSkinningMatrices
 
-	SkeletalAnimationController::SkeletalJoint* InverseKinematicsController::getBone(uint32_t idx) {
+	SkeletalAnimationController::SkeletalJoint* IKController::getBone(uint32_t idx) {
 		return m_Joints[idx];
 	}
 
-	uint32_t InverseKinematicsController::boneCount() {
+	uint32_t IKController::boneCount() {
 		return m_Joints.size();
 	}
 
-	std::vector<SkeletalAnimationController::SkeletalJoint*> InverseKinematicsController::retrieveSkeleton(void) const {
-		std::vector<SkeletalAnimationController::SkeletalJoint*> Rval;
-
-		for (auto i : m_Joints) {
-			SkeletalAnimationController::SkeletalJoint* pNewJoint = new SkeletalAnimationController::SkeletalJoint();
-			pNewJoint->ID = i->ID;
-			pNewJoint->Name = i->Name;
-			pNewJoint->OffsetMatrix = i->OffsetMatrix;
-			pNewJoint->LocalPosition = i->LocalPosition;
-			pNewJoint->LocalRotation = i->LocalRotation;
-			pNewJoint->LocalScale = i->LocalScale;
-			pNewJoint->SkinningMatrix = i->SkinningMatrix;
-
-			pNewJoint->Parent = i->Parent;
-			for (auto k : i->Children) pNewJoint->Children.push_back(k);
-			Rval.push_back(pNewJoint);
-		}
-		return Rval;
-	}//retrieveSkeleton
-
 	//TODO(skade) used for IKStickFigureActor // remove?
-	void InverseKinematicsController::updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton) {
+	void IKController::updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton) {
 		if (nullptr == pSkeleton) throw NullpointerExcept("pSkeleton");
 
 		for (auto i : (*pSkeleton)) {
@@ -589,47 +643,34 @@ namespace CForge {
 		}
 	}//updateSkeletonValues
 
-	std::vector<InverseKinematicsController::SkeletalEndEffector*> InverseKinematicsController::retrieveEndEffectors(void) const {
-		std::vector<SkeletalEndEffector*> Rval;
-		
-		for (const auto& c : m_JointChains) {
-			SkeletalEndEffector* pEff = new SkeletalEndEffector();
-			IKJoint* eff = m_IKJoints.at(c.second.joints.front());
+	std::vector<IKController::SkeletalEndEffector> IKController::retrieveEndEffectors(void) {
+		std::vector<SkeletalEndEffector> Rval;
 
-			pEff->JointID = c.second.joints.front()->ID;
-			pEff->JointName = c.second.joints.front()->Name;
-			pEff->segmentName= c.first;
-			pEff->EndEffectorPoints = eff->pEndEffectorData->GlobalEndEffectorPoints;
-			pEff->TargetPoints = eff->pEndEffectorData->GlobalTargetPoints;
+		for (const auto& c : m_JointChains) {
+			SkeletalEndEffector pEff;
+			IKJoint* eff = m_IKJoints.at(c.second.joints.front());
+			pEff.joint = c.second.joints.front();
+			pEff.jointIK = eff;
+			pEff.segmentName = c.first;
 
 			Rval.push_back(pEff);
 		}
+
 		return Rval;
 	}//retrieveEndEffectors
 
-	//TODO(skade) remove, breaks SPOT principle
-	void InverseKinematicsController::updateEndEffectorValues(std::vector<SkeletalEndEffector*>* pEndEffectors) {
-		if (nullptr == pEndEffectors) throw NullpointerExcept("pEndEffectors");
-
-		for (auto i : (*pEndEffectors)) {
-			SkeletalJoint* pEff = m_JointChains.at(i->segmentName).joints.front();
-			i->EndEffectorPoints = m_IKJoints[pEff]->pEndEffectorData->GlobalEndEffectorPoints;
-			i->TargetPoints = m_IKJoints[pEff]->pEndEffectorData->GlobalTargetPoints;
-		}
-	}//updateEndEffectorValues
-
-	void InverseKinematicsController::translateTarget(std::string segmentName, Vector3f Translation) {
+	void IKController::translateTarget(std::string segmentName, Vector3f Translation) {
 		EndEffectorData* pEffData = pEffData = m_IKJoints[m_JointChains.at(segmentName).joints.front()]->pEndEffectorData;
-		pEffData->GlobalTargetPoints.col(0) = Translation;
+		pEffData->TargetPosGlobal.col(0) = Translation;
 	}//endEffectorTarget
 
-	Eigen::Matrix3Xf InverseKinematicsController::getTargetPoints(std::string segmentName) {
+	Eigen::Matrix3Xf IKController::getTargetPoints(std::string segmentName) {
 		EndEffectorData* pEffData = pEffData = m_IKJoints[m_JointChains.at(segmentName).joints.front()]->pEndEffectorData;
-		return pEffData->GlobalTargetPoints;
+		return pEffData->TargetPosGlobal;
 	}
 
 	//TODO(skade) use?
-	void InverseKinematicsController::updateBones(Animation* pAnim) {
+	void IKController::updateBones(Animation* pAnim) {
 		for (uint32_t i = 0; i < m_Joints.size(); ++i) {
 			T3DMesh<float>::SkeletalAnimation* pAnimData = m_SkeletalAnimations[pAnim->AnimationID];
 			SkeletalJoint* pJoint = m_Joints[i];
@@ -657,8 +698,7 @@ namespace CForge {
 		}
 	}
 
-	//TODO(skade) use?
-	void InverseKinematicsController::updateEndEffectorPoints() {
+	void IKController::updateEndEffectorPoints() {
 		for (auto c : m_JointChains) {
 			//IKSegment Seg = (IKSegment) i;
 			SkeletalJoint* eff = c.second.joints.front();
@@ -671,16 +711,16 @@ namespace CForge {
 			for (int32_t j=0;j<c.second.joints.size();j++) {
 				SkeletalJoint* pJC = c.second.joints[j];
 				Eigen::Matrix4f om = pJC->SkinningMatrix * pJC->OffsetMatrix.inverse();
-				pEffData->GlobalEndEffectorPoints(0, PointIdx) = om.data()[12];
-				pEffData->GlobalEndEffectorPoints(1, PointIdx) = om.data()[13];
-				pEffData->GlobalEndEffectorPoints(2, PointIdx) = om.data()[14];
+				pEffData->EEPosGlobal(0, PointIdx) = om.data()[12];
+				pEffData->EEPosGlobal(1, PointIdx) = om.data()[13];
+				pEffData->EEPosGlobal(2, PointIdx) = om.data()[14];
 				//pJC = m_Joints[pJC->Parent];
 				PointIdx++;
 			}
 
-			for (int32_t i = 0; i < pEffData->LocalEndEffectorPoints.cols(); ++i) {
-				pEffData->LocalEndEffectorPoints.col(i) = effIK->GlobalRotation.conjugate()
-				                                          * (pEffData->GlobalEndEffectorPoints.col(i)
+			for (int32_t i = 0; i < pEffData->EEPosLocal.cols(); ++i) {
+				pEffData->EEPosLocal.col(i) = effIK->GlobalRotation.conjugate()
+				                                          * (pEffData->EEPosGlobal.col(i)
 				                                          - effIK->GlobalPosition);
 			}
 		}

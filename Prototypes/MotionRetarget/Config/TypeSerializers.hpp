@@ -1,23 +1,6 @@
 #include "Config.hpp"
-
 #include <typeinfo>
 #include <fstream>
-
-//TODO(skade) abstract
-
-namespace CForge {
-
-void Config::store(const VirtualCamera& object) {
-	m_ConfigData["VirtualCamera"] = object.cameraMatrix();
-}
-void Config::load(VirtualCamera* object) {
-	if (m_ConfigData.contains("VirtualCamera")) {
-		Eigen::Matrix4f m = m_ConfigData["VirtualCamera"];
-		object->cameraMatrix(m);
-	}
-}
-
-}//CForge
 
 namespace nlohmann {
 
@@ -54,3 +37,4 @@ void Config::baseLoad() {
 }
 
 }//CForge
+

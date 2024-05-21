@@ -9,6 +9,7 @@
 
 #include <igl/unproject_ray.h>
 #include <igl/ray_box_intersect.h>
+#include <igl/ray_mesh_intersect.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
