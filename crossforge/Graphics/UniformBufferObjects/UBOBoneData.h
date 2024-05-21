@@ -1,9 +1,9 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): UBOBoneData.h and UBOBoneData.cpp                                   *
+* File(s): UBOBoneData.h and UBOBoneData.cpp                                *
 *                                                                           *
-* Content:    *
-*          .                                         *
+* Content: Uniform buffer object for skeletal animated data.                *
+*                                                                           *
 *                                                                           *
 *                                                                           *
 * Author(s): Tom Uhlmann                                                    *
@@ -23,28 +23,61 @@
 namespace CForge {
 	/**
 	* \brief Uniform buffer object skeletal animation (Bones) related data.
-	*
-	* \todo Do full documentation.
+	* \ingroup UniformBufferObjects
+	* 
+	* \todo Rename everything bone to joint
 	*/
 	class CFORGE_API UBOBoneData : public CForgeObject {
 	public:
+		/**
+		* \brief Constructor.
+		*/
 		UBOBoneData(void);
+
+		/**
+		* \brief Destructor.
+		*/
 		~UBOBoneData(void);
 
+		/**
+		* \brief Initialization method.
+		* 
+		* \param[in] BoneCount Number of bones.
+		*/
 		void init(uint32_t BoneCount);
+
+		/**
+		* \brief Clear method.
+		*/
 		void clear(void);
 
+		/**
+		* \brief Binds the uniform buffer.
+		* 
+		* \param[in] BindingPoint The binding point obtained from the shader.
+		*/
 		void bind(uint32_t BindingPoint);
 
+		/*
+		* \brief Set skinning matrix data.
+		* 
+		* \param[in] Index Joint index.
+		* \param[in] SkinningMat The new skinning matrix.
+		*/
 		void skinningMatrix(uint32_t Index, Eigen::Matrix4f SkinningMat);
 
+		/**
+		* \brief Returns the size of the buffer in bytes.
+		* 
+		* \return Size of the buffer in bytes.
+		*/
 		uint32_t size(void)const;
 
 	protected:
 
 	private:
-		GLBuffer m_Buffer;
-		uint32_t m_BoneCount;
+		GLBuffer m_Buffer;		///< OpenGL object.
+		uint32_t m_BoneCount;	///< Number of joints.
 	};//UBOBoneData
 
 }//name space

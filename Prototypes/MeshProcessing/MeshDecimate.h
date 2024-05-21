@@ -16,7 +16,7 @@ namespace CForge {
 			octreeNode* parent;
 			octreeNode* childs[8];
 			uint32_t depth;
-			T3DMesh<float>::AABB BoundingBox;
+			Box BoundingBox;
 
 			octreeNode(void) {
 				VertexIDs.clear();
@@ -26,7 +26,7 @@ namespace CForge {
 			}
 		};
 		
-		static bool insideAABB(T3DMesh<float>::AABB BoundingBox, Eigen::Vector3f Vertex);
+		static bool insideAABB(Box BoundingBox, Eigen::Vector3f Vertex);
 		static void releaseOctree(octreeNode* root);
 		static void createOctree(octreeNode* pNode, Eigen::MatrixXd* DV, std::vector<std::unordered_map<octreeNode*,bool>>* depthNodes);
 		static bool decimateOctree(Eigen::MatrixXd& DV, Eigen::MatrixXi& DF, Eigen::VectorXi* DuF, Eigen::VectorXi* DuV,

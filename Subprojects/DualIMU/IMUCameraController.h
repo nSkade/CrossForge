@@ -20,8 +20,8 @@
 
 #include <list>
 #include "IMUPackage.hpp"
-#include <crossforge/Graphics/VirtualCamera.h>
-#include <crossforge/Internet/UDPSocket.h>
+#include <crossforge/Graphics/Camera/VirtualCamera.h>
+#include <crossforge/Network/UDPSocket.h>
 #include <crossforge/AssetIO/File.h>
 
 namespace CForge {

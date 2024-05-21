@@ -72,6 +72,8 @@ find_package(imguizmo  CONFIG REQUIRED)
 FIND_PACKAGE(JPEG REQUIRED)
 FIND_PACKAGE(libjpeg-turbo)
 FIND_PACKAGE(FFMPEG REQUIRED)
+
+
 endif()
 
 add_executable(CForgeSandbox 
@@ -86,7 +88,6 @@ add_executable(CForgeSandbox
 	# Camera related
 	Prototypes/Camera/PhotoFinish.cpp
 	Prototypes/Camera/StripPhoto.cpp 
-	Prototypes/Camera/VideoRecorder.cpp
 	Prototypes/Camera/VideoPlayer.cpp
 	Prototypes/Camera/CameraCapture.cpp
 	Prototypes/Multimedia/SMediaDeviceManager.cpp
@@ -99,7 +100,8 @@ add_executable(CForgeSandbox
 	Prototypes/Assets/GLTFIO/GLTFIOwrite.cpp
 	Prototypes/Assets/GLTFIO/GLTFIO.cpp
 	Prototypes/MeshProcessing/SurfaceSampler.cpp
-	Prototypes/Graphics/GLRenderbuffer.cpp
+	
+	
 	"Prototypes/GUI/ImGuiUtility.cpp"
 	
 

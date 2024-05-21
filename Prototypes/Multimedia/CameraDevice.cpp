@@ -1,4 +1,4 @@
-#ifdef __WIN32__
+#ifdef _WIN32
 
 #include <crossforge/Core/SLogger.h>
 #include <crossforge/Math/CForgeMath.h>
@@ -101,7 +101,7 @@ namespace CForge {
 		enumerateCaptureFormats();
 
 		// debug
-		printf("Found %d formats for camera device\n", m_CaptureFormats.size());
+		printf("Found %d formats for camera device\n", int32_t(m_CaptureFormats.size()));
 		for (auto i : m_CaptureFormats) {
 			std::string Message = "\t" + std::to_string(i.FrameSize.x()) + "x" + std::to_string(i.FrameSize.y()) + " - ";
 			for (auto k : i.FPS) Message += std::to_string(k) + "/";

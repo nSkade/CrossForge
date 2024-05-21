@@ -35,7 +35,6 @@ namespace CForge {
 		if (pMesh->vertexCount() == 0) throw CForgeExcept("Mesh contains no vertex data");
 		
 		pMesh->computeAxisAlignedBoundingBox();
-		m_aabb = pMesh->aabb();
 		initAABB();
 		
 		//m_VertexArray.init();
@@ -650,16 +649,16 @@ namespace CForge {
 		//3, 1, 5
 		//};
 		
-		T3DMesh<float>::AABB aabb = m_aabb;
+		Box aabb = m_BV.aabb();
 		GLfloat vertices[] = { //Triangle Strip Cube
-			aabb.Min.x(), aabb.Min.y(), aabb.Min.z(),
-			aabb.Max.x(), aabb.Min.y(), aabb.Min.z(),
-			aabb.Min.x(), aabb.Max.y(), aabb.Min.z(),
-			aabb.Max.x(), aabb.Max.y(), aabb.Min.z(),
-			aabb.Min.x(), aabb.Min.y(), aabb.Max.z(),
-			aabb.Max.x(), aabb.Min.y(), aabb.Max.z(),
-			aabb.Max.x(), aabb.Max.y(), aabb.Max.z(),
-			aabb.Min.x(), aabb.Max.y(), aabb.Max.z()
+			aabb.min().x(), aabb.min().y(), aabb.min().z(),
+			aabb.max().x(), aabb.min().y(), aabb.min().z(),
+			aabb.min().x(), aabb.max().y(), aabb.min().z(),
+			aabb.max().x(), aabb.max().y(), aabb.min().z(),
+			aabb.min().x(), aabb.min().y(), aabb.max().z(),
+			aabb.max().x(), aabb.min().y(), aabb.max().z(),
+			aabb.max().x(), aabb.max().y(), aabb.max().z(),
+			aabb.min().x(), aabb.max().y(), aabb.max().z()
 		};
 		GLuint elements[] = {
 			3,2,6,
@@ -686,10 +685,6 @@ namespace CForge {
 	
 	bool LODActor::isTranslucent() {
 		return m_translucent;
-	}
-
-	T3DMesh<float>::AABB LODActor::getAABB() {
-		return m_aabb;
 	}
 
 	void LODActor::initInstancing(bool manualInstanced) {

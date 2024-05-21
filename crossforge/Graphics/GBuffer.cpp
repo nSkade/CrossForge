@@ -124,7 +124,7 @@ namespace CForge {
 	}//initialize
 
 	void GBuffer::clear(void) {
-		// delete renderbuffer and renderbuffer
+		// delete frame buffer and render buffer
 		if (glIsFramebuffer(m_Framebuffer)) glDeleteFramebuffers(1, &m_Framebuffer);
 		if (glIsRenderbuffer(m_Renderbuffer)) glDeleteRenderbuffers(1, &m_Renderbuffer);
 

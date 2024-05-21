@@ -30,6 +30,8 @@
 //#include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
 //#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
 //#include "Prototypes/TestScenes/TransparencyTestScene.hpp"
+//#include "Prototypes/TestScenes/FileDialogTestScene.hpp"
+//#include "Prototypes/TestScenes/BackgroundRemovalTestScene.hpp"
 
 #include "Prototypes/MotionRetarget/MotionRetargetingScene.hpp"
 //#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
@@ -58,6 +60,8 @@ using namespace Eigen;
 //#define ActiveScene AssetGLTFTestScene
 //#define ActiveScene CameraCaptureTestScene
 //#define ActiveScene TransparencyTestScene
+//#define ActiveScene FileDialogTestScene
+//#define ActiveScene BackgroundRemovalTestScene
 
 //#define ActiveScene ImuInputDeviceTestScene
 //#define ActiveScene B02DemonstratorScene

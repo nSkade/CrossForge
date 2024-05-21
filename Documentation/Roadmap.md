@@ -5,8 +5,8 @@
 	+ [ ] Displacement mapping
 	+ [ ] Post processing (bloom)
 	+ [ ] Integration of the polygon mesh processing library: https://www.pmp-library.org/
-	+ [ ] Global simulation class (holds stats about the current simulation stats such as time)
-+ Version v0.2.0
+	+ [x] Global simulation class (holds stats about the current simulation stats such as time)
++ Version v0.3.0
 	+ Mesh processing
 		+ [ ] integration of polygon mesh processing library (PMP)
 		+ [ ] Mesh reduction
@@ -27,10 +27,13 @@
 	+ Examples
 		+ [ ] Graphical User Interface
 		+ [ ] Audio
++ Version 0.2.0 
+	+ [ ] Do full in-code documentation
+	+ [ ] Clear all todos regarding pass-by-reference change
+	+ [ ] Check if everything works on windows, linux and emscripten
 + Version v0.1.0
 	+ General:
 		+ [x] Support for Windows, Linux, and WebAssembly (Emscripten)
-		+ [ ] Full in-code documentation
 		+ [x] General Documentation
 		+ [x] Math support class
 	+ Graphics:

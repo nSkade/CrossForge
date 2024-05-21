@@ -12,12 +12,12 @@ namespace CForge {
 		clear();
 	}//Destructor
 
-	void BoundingVolume::init(const T3DMesh<float>* pMesh, Type T) {
-		if (nullptr == pMesh) throw NullpointerExcept("pMesh");
+	void BoundingVolume::init(const T3DMesh<float> &Mesh, Type T) {
+		if (Mesh.vertexCount() == 0) throw CForgeExcept("Mesh contains no vertexes. Can not compute a bounding volume.");
 		clear();
 
-		if (pMesh->aabb().diagonal().norm() < 0.0001f) m_AABB = T3DMesh<float>::computeAxisAlignedBoundingBox(pMesh);
-		else m_AABB.init(pMesh->aabb().Min, pMesh->aabb().Max);
+		if (Mesh.aabb().diagonal().norm() < 0.0001f) m_AABB = T3DMesh<float>::computeAxisAlignedBoundingBox(Mesh);
+		else m_AABB.init(Mesh.aabb().min(), Mesh.aabb().max());
 
 		m_Sphere.init(m_AABB.min() + 0.5f * m_AABB.diagonal(), 0.5f * m_AABB.diagonal().norm());
 		m_Type = T;
@@ -41,19 +41,16 @@ namespace CForge {
 		m_Type = TYPE_UNKNOWN;
 	}//clear
 
-	void BoundingVolume::release(void) {
-		delete this;
-	}//release
 
-	Box BoundingVolume::aabb(void)const {
+	const Box BoundingVolume::aabb(void)const {
 		return m_AABB;
 	}//aabb
 
-	Sphere BoundingVolume::boundingSphere(void)const {
+	const Sphere BoundingVolume::boundingSphere(void)const {
 		return m_Sphere;
 	}//boundingSphere
 
-	BoundingVolume::Type BoundingVolume::type(void)const {
+	const BoundingVolume::Type BoundingVolume::type(void)const {
 		return m_Type;
 	}//type
 

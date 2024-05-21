@@ -22,7 +22,7 @@
 #include <crossforge/Math/Rectangle.hpp>
 #include "../../Prototypes/GUI/ImGuiUtility.h"
 #include "../../Prototypes/Camera/VideoPlayer.h"
-#include "../../Prototypes/Camera/VideoRecorder.h"
+#include <crossforge/AssetIO/VideoRecorder.h>
 #include "AdaptiveSkeletalActor.h"
 using namespace Eigen;
 using namespace std;
@@ -387,7 +387,7 @@ namespace CForge {
 				float CenteringOffset = (ImGui::GetWindowWidth() - Offset - 275) / 2.0f;
 
 				ImGui::SetCursorPosX(CenteringOffset + Offset - 10);
-				ImGui::Image((ImTextureID)m_Part1Data.ScaleImg.handle(), ImVec2(275, 50));
+				ImGui::Image((ImTextureID) uint64_t(m_Part1Data.ScaleImg.handle()), ImVec2(275, 50));
 
 				ImGui::SetCursorPosX(CenteringOffset + Offset + 20 - 10);
 				ImGui::Text("artificial"); ImGui::SameLine();
@@ -703,8 +703,7 @@ namespace CForge {
 
 				defaultCameraUpdate(&m_Cam, m_RenderWin.keyboard(), m_RenderWin.mouse());
 
-				if (m_RenderWin.mouse()->movement().norm() > 0.1f) m_LastInteraction = CForgeUtility::timestamp();
-				m_RenderWin.mouse()->movement(Vector2f(0.0f, 0.0f));
+				if (m_RenderWin.mouse()->positionDelta(true).norm() > 0.1f) m_LastInteraction = CForgeUtility::timestamp();
 
 				float IdleTime = (CForgeUtility::timestamp() - m_LastInteraction)/1000.0f;
 
@@ -746,7 +745,7 @@ namespace CForge {
 				if (m_IsVideoRecording) {
 					T2DImage<uint8_t> Screenshot;
 					CForgeUtility::retrieveFrameBuffer(&Screenshot);
-					m_VideoRecorder.addFrame(&Screenshot, 0);
+					m_VideoRecorder.addFrame(&Screenshot);
 				}
 
 				updateFPS();
@@ -991,7 +990,7 @@ namespace CForge {
 			pM->FilePath = "MyAssets/Models/B02ARKitRobot.gltf";
 			pM->OriginalMotion = "MyAssets/Models/RigMale.bvh";
 			pM->AlbedoReplacements.push_back(std::pair(0, ""));
-			pM->MaterialReplacements.push_back(std::pair(0, CForgeUtility::PLASTIC_GREY));
+			pM->MaterialReplacements.push_back(std::pair(0, CForgeUtility::PLASTIC_GRAY));
 			m_DisplayModels.push_back(pM);
 
 			//CForgeUtility::defaultMaterial(M.getMaterial(0), CForgeUtility::PLASTIC_GREY);
@@ -1116,9 +1115,9 @@ namespace CForge {
 			}
 
 			// old y values
-			x = pBone->OffsetMatrix.inverse()(0, 3);
-			y = pBone->OffsetMatrix.inverse()(1, 3);
-			z = pBone->OffsetMatrix.inverse()(2, 3);
+			x = pBone->InvBindPoseMatrix.inverse()(0, 3);
+			y = pBone->InvBindPoseMatrix.inverse()(1, 3);
+			z = pBone->InvBindPoseMatrix.inverse()(2, 3);
 
 			if (x < pMinMax[0].x()) pMinMax[0].x() = x;
 			if (y < pMinMax[1].x()) pMinMax[1].x() = y;
@@ -1130,7 +1129,7 @@ namespace CForge {
 				pMinMax[2].y() = z;
 			}
 
-			if (!DryRun)	pBone->OffsetMatrix = LocalTransform.inverse();
+			if (!DryRun)	pBone->InvBindPoseMatrix = LocalTransform.inverse();
 
 			// recursion
 			for (auto i : pBone->Children) transformSkeleton(i, LocalTransform, pKeyframes, pMinMax, ConsiderTranslationOnly, DryRun);

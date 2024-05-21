@@ -18,13 +18,13 @@
 #ifndef __CFORGE_CAMERACAPTURETESTSCENE_HPP__
 #define __CFORGE_CAMERACAPTURETESTSCENE_HPP__
 
-#ifdef __WIN32__
+#ifdef _WIN32
 
 #include "../Multimedia/SMediaDeviceManager.h"
 #include "../../Examples/ExampleSceneBase.hpp"
 #include "../Camera/CameraCapture.h"
 #include "../Multimedia/FFMPEG.h"
-#include "../Camera/VideoRecorder.h"
+#include <crossforge/AssetIO/VideoRecorder.h>
 
 using namespace Eigen;
 using namespace std;
@@ -151,7 +151,7 @@ namespace CForge {
 				}
 				else {
 					try {
-						m_VideoRecorder.startRecording("MyAssets/VideoTest.mp4", 1280, 720, 25.0f);
+						m_VideoRecorder.startRecording("MyAssets/VideoTest.mp4", 1920, 1080, 25.0f);
 						m_RecordingActive = true;
 					}
 					catch (CrossForgeException& e) {
@@ -165,7 +165,7 @@ namespace CForge {
 				T2DImage<uint8_t> Img;
 				m_pCamDevice->retrieveImage(&Img);
 
-				if(Img.width() > 0) m_VideoRecorder.addFrame(&Img, 0);
+				if(Img.width() > 0) m_VideoRecorder.addFrame(&Img);
 			}
 
 			if (m_CaptureActive) {

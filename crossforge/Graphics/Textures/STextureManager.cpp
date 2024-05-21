@@ -1,7 +1,7 @@
 #include "STextureManager.h"
-#include "../AssetIO/SAssetIO.h"
-#include "../Core/SLogger.h"
-#include "../AssetIO/File.h"
+#include "../../AssetIO/SAssetIO.h"
+#include "../../Core/SLogger.h"
+#include "../../AssetIO/File.h"
 
 namespace CForge {
 

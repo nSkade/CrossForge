@@ -92,20 +92,26 @@ void exportLibrary(void) {
 	IncludeFiles.push_back("AssetIO/SAssetIO.h");
 	IncludeFiles.push_back("AssetIO/T2DImage.hpp");
 	IncludeFiles.push_back("AssetIO/T3DMesh.hpp");
+	IncludeFiles.push_back("AssetIO/VideoRecorder.h");
+	IncludeFiles.push_back("AssetIO/UserDialog.h");
 
 	// Graphics
 	Directories.push_back("crossforge/include/crossforge/Graphics/");
 	IncludeFiles.push_back("Graphics/GBuffer.h");
 	IncludeFiles.push_back("Graphics/GLBuffer.h");
-	IncludeFiles.push_back("Graphics/GLCubemap.h");
-	IncludeFiles.push_back("Graphics/GLTexture2D.h");
+	
+	
 	IncludeFiles.push_back("Graphics/GLVertexArray.h");
 	IncludeFiles.push_back("Graphics/GLWindow.h");
 	IncludeFiles.push_back("Graphics/OpenGLHeader.h");
 	IncludeFiles.push_back("Graphics/RenderDevice.h");
 	IncludeFiles.push_back("Graphics/RenderMaterial.h");
-	IncludeFiles.push_back("Graphics/STextureManager.h");
-	IncludeFiles.push_back("Graphics/VirtualCamera.h");
+	
+	// Textures.
+	Directories.push_back("crossforge/include/crossforge/Graphics/Textures/");
+	IncludeFiles.push_back("Graphics/Textures/GLCubemap.h");
+	IncludeFiles.push_back("Graphics/Textures/GLTexture2D.h");
+	IncludeFiles.push_back("Graphics/Textures/STextureManager.h");
 
 	// Graphics/Actors
 	Directories.push_back("crossforge/include/crossforge/Graphics/Actors/");
@@ -122,6 +128,7 @@ void exportLibrary(void) {
 	// Graphics/Camera
 	Directories.push_back("crossforge/include/crossforge/Graphics/Camera/");
 	IncludeFiles.push_back("Graphics/Camera/ViewFrustum.h");
+	IncludeFiles.push_back("Graphics/Camera/VirtualCamera.h");
 
 	// Graphics/Controller
 	Directories.push_back("crossforge/include/crossforge/Graphics/Controller/");
@@ -172,9 +179,9 @@ void exportLibrary(void) {
 	IncludeFiles.push_back("Input/SInputManager.h");
 
 	// Internet
-	Directories.push_back("crossforge/include/crossforge/Internet/");
-	IncludeFiles.push_back("Internet/TCPSocket.h");
-	IncludeFiles.push_back("Internet/UDPSocket.h");
+	Directories.push_back("crossforge/include/crossforge/Network/");
+	IncludeFiles.push_back("Network/TCPSocket.h");
+	IncludeFiles.push_back("Network/UDPSocket.h");
 
 	// Math
 	Directories.push_back("crossforge/include/crossforge/Math/");
@@ -193,7 +200,7 @@ void exportLibrary(void) {
 	Directories.push_back("crossforge/include/crossforge/MeshProcessing/Builder/");
 	IncludeFiles.push_back("MeshProcessing/Builder/MorphTargetModelBuilder.h");
 
-	// GUI
+	// Utility
 	Directories.push_back("crossforge/include/crossforge/Utility/");
 	IncludeFiles.push_back("Utility/CForgeUtility.h");
 
@@ -206,6 +213,9 @@ void exportLibrary(void) {
 	Directories.push_back("crossforge/lib/x64-Debug/");
 	LibFiles.push_back("x64-Debug/crossforge.lib");
 	BinaryFiles.push_back("x64-Debug/assimp-vc143-mtd.dll");
+	BinaryFiles.push_back("x64-Debug/avcodec-60.dll");
+	BinaryFiles.push_back("x64-Debug/avformat-60.dll");
+	BinaryFiles.push_back("x64-Debug/avutil-58.dll");
 	BinaryFiles.push_back("x64-Debug/brotlicommon.dll");
 	BinaryFiles.push_back("x64-Debug/brotlidec.dll");
 	BinaryFiles.push_back("x64-Debug/bz2d.dll");
@@ -214,11 +224,16 @@ void exportLibrary(void) {
 	BinaryFiles.push_back("x64-Debug/freetyped.dll");
 	BinaryFiles.push_back("x64-Debug/glfw3.dll");
 	BinaryFiles.push_back("x64-Debug/libpng16d.dll");
+	BinaryFiles.push_back("x64-Debug/libsharpyuv.dll");
 	BinaryFiles.push_back("x64-Debug/libwebp.dll");
-	BinaryFiles.push_back("x64-Debug/zlibd1.dll");
+	BinaryFiles.push_back("x64-Debug/libx264-164.dll");
+	BinaryFiles.push_back("x64-Debug/minizip.dll");
 	BinaryFiles.push_back("x64-Debug/pugixml.dll");
+	BinaryFiles.push_back("x64-Debug/swresample-4.dll");
+	BinaryFiles.push_back("x64-Debug/swscale-7.dll");
 	BinaryFiles.push_back("x64-Debug/turbojpeg.dll");
 	BinaryFiles.push_back("x64-Debug/libsharpyuv.dll");
+	BinaryFiles.push_back("x64-Debug/zlibd1.dll");
 
 	// only required by OpenCV
 	//	BinaryFiles.push_back("x64-Debug/Irrlicht.dll");
@@ -236,6 +251,9 @@ void exportLibrary(void) {
 	Directories.push_back("crossforge/lib/x64-Release/");
 	LibFiles.push_back("x64-Release/crossforge.lib");
 	BinaryFiles.push_back("x64-Release/assimp-vc143-mt.dll");
+	BinaryFiles.push_back("x64-Release/avcodec-60.dll");
+	BinaryFiles.push_back("x64-Release/avformat-60.dll");
+	BinaryFiles.push_back("x64-Release/avutil-58.dll");
 	BinaryFiles.push_back("x64-Release/brotlicommon.dll");
 	BinaryFiles.push_back("x64-Release/brotlidec.dll");
 	BinaryFiles.push_back("x64-Release/bz2.dll");
@@ -244,11 +262,15 @@ void exportLibrary(void) {
 	BinaryFiles.push_back("x64-Release/freetype.dll");
 	BinaryFiles.push_back("x64-Release/glfw3.dll");
 	BinaryFiles.push_back("x64-Release/libpng16.dll");
+	BinaryFiles.push_back("X64-Release/libsharpyuv.dll");
 	BinaryFiles.push_back("x64-Release/libwebp.dll");
-	BinaryFiles.push_back("x64-Release/zlib1.dll");
+	BinaryFiles.push_back("x64-Release/libx264-164.dll");
+	BinaryFiles.push_back("x64-Release/minizip.dll");
 	BinaryFiles.push_back("x64-Release/pugixml.dll");
+	BinaryFiles.push_back("x64-Release/swresample-4.dll");
+	BinaryFiles.push_back("x64-Release/swscale-7.dll");
 	BinaryFiles.push_back("x64-Release/turbojpeg.dll");
-	BinaryFiles.push_back("x64-Release/libsharpyuv.dll");
+	BinaryFiles.push_back("x64-Release/zlib1.dll");
 	
 	// only required by OpenCV
 //	BinaryFiles.push_back("x64-Release/lzma.dll");

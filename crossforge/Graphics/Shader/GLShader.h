@@ -19,7 +19,7 @@
 #define __CFORGE_GLSHADER_H__
 
 #include "../../Core/CForgeObject.h"
-#include "../GLTexture2D.h"
+#include "../Textures/GLTexture2D.h"
 
 namespace CForge {
 

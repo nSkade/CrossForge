@@ -1,9 +1,9 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): ITListener.hpp                        *
+* File(s): ITListener.hpp                                                   *
 *                                                                           *
-* Content:    *
-*          .                                         *
+* Content: Listener interface for the caller/listener plug-in principle.    *
+*                                                                           *
 *                                                                           *
 *                                                                           *
 * Author(s): Tom Uhlmann                                                    *
@@ -24,19 +24,29 @@
 namespace CForge {
 	/**
 	* \brief Plug-in that works together with ITCaller. By implementing the listen function, messages can be received.
+	* \see CForge::ITCaller
 	*
-	* \todo Do full documentation.
 	*/
 	template<typename T>
 	class ITListener {
 	public:
+		/**
+		* \brief This method has to be implemented in order to receive messages.
+		* \param[in] Msg Message to receive and process.
+		*/
 		virtual void listen(const T Msg) = 0;
 
 	protected:
+		/**
+		* \brief Constructor
+		*/
 		ITListener(void) {
 
 		}
 
+		/**
+		* \brief Destructor
+		*/
 		virtual ~ITListener(void) {
 
 		}

@@ -27,6 +27,7 @@ namespace CForge {
 	* \brief Manages shaders and prevents redundant building.
 	*
 	* \todo Do full documentation.
+	* \todo Write concept page on how shaders are created and used in CrossForge.
 	*/
 	class CFORGE_API SShaderManager: CForgeObject {
 	public:

@@ -24,6 +24,7 @@
 #include "../GLBuffer.h"
 #include "../GLVertexArray.h"
 #include "../../Math/BoundingVolume.h"
+#include <crossforge/Math/Box.hpp>
 
 namespace CForge {
 
@@ -54,7 +55,7 @@ namespace CForge {
 		
 		//TODO Deprecated, was part of LOD system, rework.
 		virtual void testAABBvis(RenderDevice* pRDev, Eigen::Matrix4f sgMat);
-		virtual T3DMesh<float>::AABB getAABB();
+		virtual Box getAABB();
 		virtual void bindLODLevel(uint32_t level);
 		//virtual std::vector<float> getLODStages();
 		virtual void evaluateQueryResult(Eigen::Matrix4f mat, uint32_t pixelCount);

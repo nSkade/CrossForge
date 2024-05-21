@@ -30,12 +30,12 @@ namespace CForge {
 		return P.filename().string();
 	}//retrieveFilename
 
-	void File::createDirectory(const std::string Path) {
-		STD_FS::create_directory(Path);
+	bool File::createDirectory(const std::string Path) {
+		return STD_FS::create_directory(Path);
 	}//createDirectory
 
-	void File::createDirectories(const std::string Path) {
-		STD_FS::create_directories(Path);
+	bool File::createDirectories(const std::string Path) {
+		return STD_FS::create_directories(Path);
 	}//createDirectories
 
 	std::string File::parentPath(const std::string Path) {
@@ -63,9 +63,6 @@ namespace CForge {
 		return STD_FS::is_directory(Path);
 	}//isDirectory
 
-	bool File::createDirecotry(const std::string Path) {
-		return STD_FS::create_directory(Path);
-	}//createDirectory
 
 
 	File::File(void): CForgeObject("File") {
@@ -121,7 +118,9 @@ namespace CForge {
 		if (nullptr == m_pFile) throw NotInitializedExcept("No open file to read from!");
 		if (nullptr == pBuffer) throw NullpointerExcept("pBuffer");
 		uint32_t Read = fread(pBuffer, 1, ByteCount, m_pFile);
-		if (Read == 0) throw CForgeExcept("An error occurred reading from file " + m_Path);
+		if (Read == 0 && 0 != ferror(m_pFile)) {
+			throw CForgeExcept("An error occurred reading from file " + m_Path);
+		}
 		return Read;
 	}//read
 

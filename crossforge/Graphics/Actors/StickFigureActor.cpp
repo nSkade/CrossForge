@@ -70,7 +70,7 @@ namespace CForge {
 		}//for[all bones]
 
 		// estimate a good value for the joint and bone sizes
-		Vector3f Diag = (pMesh->aabb().diagonal().norm() < 0.0001f) ? T3DMesh<float>::computeAxisAlignedBoundingBox(pMesh).diagonal() : pMesh->aabb().diagonal();
+		Vector3f Diag = (pMesh->aabb().diagonal().norm() < 0.0001f) ? T3DMesh<float>::computeAxisAlignedBoundingBox( (*pMesh) ).diagonal() : pMesh->aabb().diagonal();
 
 		m_JointSize = Diag.norm() / 75.0f;
 		m_BoneSize = m_JointSize / 3.0f;
@@ -209,6 +209,40 @@ namespace CForge {
 		m_SG.update(1.0f);
 		m_SG.render(pRDev);
 	}//render
+
+
+	uint32_t StickFigureActor::jointCount(void)const {
+		return m_JointSGNs.size();
+	}//jointCount
+
+	uint32_t StickFigureActor::boneCount(void)const {
+		return m_BoneSGNs.size();
+	}//boneCount
+
+	bool StickFigureActor::jointActive(uint32_t ID)const {
+		if (ID >= m_JointSGNs.size()) throw IndexOutOfBoundsExcept("ID");
+		bool Rval;
+		m_JointSGNs[ID]->enabled(nullptr, &Rval);
+		return Rval;
+	}//jointActive
+
+	bool StickFigureActor::boneActive(uint32_t ID)const {
+		if (ID >= m_BoneSGNs.size()) throw IndexOutOfBoundsExcept("ID");
+		bool Rval;
+		m_BoneSGNs[ID]->enabled(nullptr, &Rval);
+		return Rval;
+	}//boneActive
+
+	void StickFigureActor::jointActive(uint32_t ID, bool Active) {
+		if (ID >= m_JointSGNs.size()) throw IndexOutOfBoundsExcept("ID");
+		m_JointSGNs[ID]->enable(Active, Active);
+	}//jointActive
+
+	void StickFigureActor::boneActive(uint32_t ID, bool Active) {
+		if (ID >= m_BoneSGNs.size()) throw IndexOutOfBoundsExcept("ID");
+		m_BoneSGNs[ID]->enable(Active, Active);
+	}//boneActive
+
 
 	void StickFigureActor::buildMaterial(T3DMesh<float>::Material* pMat) {
 		pMat->Color = Vector4f(0.0f, 0.0f, 1.0f, 1.0f);

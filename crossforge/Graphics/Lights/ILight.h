@@ -21,7 +21,7 @@
 #include "../Shader/GLShader.h"
 #include "../../AssetIO/T2DImage.hpp"
 #include "../../Core/ITCaller.hpp"
-#include "../VirtualCamera.h"
+#include "../Camera/VirtualCamera.h"
 
 namespace CForge {
 

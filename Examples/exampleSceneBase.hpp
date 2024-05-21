@@ -22,7 +22,7 @@
 #include <crossforge/Utility/CForgeUtility.h>
 #include <crossforge/AssetIO/SAssetIO.h>
 #include <crossforge/Graphics/Shader/SShaderManager.h>
-#include <crossforge/Graphics/STextureManager.h>
+#include <crossforge/Graphics/Textures/STextureManager.h>
 
 #include <crossforge/Graphics/GLWindow.h>
 #include <crossforge/Graphics/RenderDevice.h>
@@ -294,7 +294,7 @@ namespace CForge {
 
 			if (pMouse->buttonState(Mouse::BTN_RIGHT) || pMouse->buttonState(Mouse::BTN_LEFT)) {
 				if (m_CameraRotation) {
-					const Eigen::Vector2f MouseDelta = pMouse->movement();
+					const Eigen::Vector2f MouseDelta = pMouse->positionDelta();
 					pCamera->rotY(CForgeMath::degToRad(-0.1f * RotationSpeed * MouseDelta.x()));
 					pCamera->pitch(CForgeMath::degToRad(-0.1f * RotationSpeed * MouseDelta.y()));
 					
@@ -303,7 +303,7 @@ namespace CForge {
 					m_CameraRotation = true;
 					
 				}
-				pMouse->movement(Eigen::Vector2f::Zero());
+				pMouse->positionDelta(Eigen::Vector2f::Zero());
 			}
 			else {
 				m_CameraRotation = false;

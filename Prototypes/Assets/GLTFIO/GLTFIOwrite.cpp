@@ -327,18 +327,19 @@ namespace CForge {
 
 			submeshMap.emplace(std::make_pair(pSubmesh, i));
 
-			if (pSubmesh->TranslationOffset(0) > -431602080.0) {
-				newNode.translation.push_back(pSubmesh->TranslationOffset(0));
-				newNode.translation.push_back(pSubmesh->TranslationOffset(1));
-				newNode.translation.push_back(pSubmesh->TranslationOffset(2));
-			}
+			//TODO(skade) remove, tree structure has been removed from T3DMesh
+			//if (pSubmesh->TranslationOffset(0) > -431602080.0) {
+			//	newNode.translation.push_back(pSubmesh->TranslationOffset(0));
+			//	newNode.translation.push_back(pSubmesh->TranslationOffset(1));
+			//	newNode.translation.push_back(pSubmesh->TranslationOffset(2));
+			//}
 
-			if (pSubmesh->RotationOffset.x() > -431602080.0) {
-				newNode.rotation.push_back(pSubmesh->RotationOffset.x());
-				newNode.rotation.push_back(pSubmesh->RotationOffset.y());
-				newNode.rotation.push_back(pSubmesh->RotationOffset.z());
-				newNode.rotation.push_back(pSubmesh->RotationOffset.w());
-			}
+			//if (pSubmesh->RotationOffset.x() > -431602080.0) {
+			//	newNode.rotation.push_back(pSubmesh->RotationOffset.x());
+			//	newNode.rotation.push_back(pSubmesh->RotationOffset.y());
+			//	newNode.rotation.push_back(pSubmesh->RotationOffset.z());
+			//	newNode.rotation.push_back(pSubmesh->RotationOffset.w());
+			//}
 
 			if (pSubmesh->Faces.size() > 0) {
 				newNode.mesh = writePrimitive(pSubmesh);
@@ -347,28 +348,29 @@ namespace CForge {
 			m_model.nodes.push_back(newNode);
 		}
 
+		//TODO(skade)
 		//Do a second pass to set node children.
-		std::vector<int> allChildren;
+		//std::vector<int> allChildren;
 
-		for (int i = 0; i < m_model.nodes.size(); i++) {
-			auto pSubmesh = m_pCMesh->getSubmesh(i);
+		//for (int i = 0; i < m_model.nodes.size(); i++) {
+		//	auto pSubmesh = m_pCMesh->getSubmesh(i);
 
-			for (auto c : pSubmesh->Children) {
-				int childNode = submeshMap[c];
+		//	for (auto c : pSubmesh->Children) {
+		//		int childNode = submeshMap[c];
 
-				allChildren.push_back(childNode);
-				m_model.nodes[i].children.push_back(childNode);
-			}
-		}
+		//		allChildren.push_back(childNode);
+		//		m_model.nodes[i].children.push_back(childNode);
+		//	}
+		//}
 
-		//Find root nodes.
-		for (int i = 0; i < m_model.nodes.size(); i++) {
-			if (std::find(allChildren.begin(), allChildren.end(), i) == allChildren.end()) {
-				scene.nodes.push_back(i);
-			}
-		}
+		////Find root nodes.
+		//for (int i = 0; i < m_model.nodes.size(); i++) {
+		//	if (std::find(allChildren.begin(), allChildren.end(), i) == allChildren.end()) {
+		//		scene.nodes.push_back(i);
+		//	}
+		//}
 
-		m_model.scenes.push_back(scene);
+		//m_model.scenes.push_back(scene);
 	}
 
 	void GLTFIO::writeMorphTargets(std::pair<int, int> minmax) {
@@ -494,14 +496,14 @@ namespace CForge {
 		for (int i = 0; i < m_pCMesh->boneCount(); i++) {
 			auto pBone = m_pCMesh->getBone(i);
 
-			inverseBindMatrices.push_back(pBone->OffsetMatrix);
+			inverseBindMatrices.push_back(pBone->InvBindPoseMatrix);
 
 			Node newNode;
 
-			//TODO there seems to be a bug where to root node gets rotated randomly sometimes.
-			// Use OffsetMatrix to calculate Bone position as a Node.
+			//TODO(skade) there seems to be a bug where to root node gets rotated randomly sometimes.
+			// Use InvBindPoseMatrix to calculate Bone position as a Node.
 			std::vector<double> offsetMat;
-			Eigen::Matrix4f eigMat = RHskeleton[i]->OffsetMatrix;
+			Eigen::Matrix4f eigMat = RHskeleton[i]->InvBindPoseMatrix;
 
 			// convert Eigen::Matrix4f to std::vector<double>
 			for (uint32_t i=0;i<16;++i)

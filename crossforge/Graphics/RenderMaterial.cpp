@@ -1,5 +1,5 @@
 #include "RenderMaterial.h"
-#include "STextureManager.h"
+#include "Textures/STextureManager.h"
 #include "../Core/SLogger.h"
 
 namespace CForge {

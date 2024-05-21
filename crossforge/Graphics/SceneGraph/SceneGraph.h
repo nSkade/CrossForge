@@ -19,7 +19,7 @@
 #define __CFORGE_SCENEGRAPH_H__
 
 #include "../RenderDevice.h"
-#include "../VirtualCamera.h"
+#include "../Camera/VirtualCamera.h"
 #include "ISceneGraphNode.h"
 
 namespace CForge {

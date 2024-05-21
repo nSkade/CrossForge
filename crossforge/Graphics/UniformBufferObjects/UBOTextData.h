@@ -1,9 +1,9 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): UBOTextData.h and UBOTextData.cpp                                    *
+* File(s): UBOTextData.h and UBOTextData.cpp                                *
 *                                                                           *
-* Content:    *
-*          .                                         *
+* Content: Uniform buffer object required for text rendering.               *
+*                                                                           *
 *                                                                           *
 *                                                                           *
 * Author(s): Tom Uhlmann                                                    *
@@ -22,33 +22,74 @@
 
 namespace CForge {
 	/**
-	* \brief Uniform buffer object for camera related data.
-	*
-	* \todo Do full documentation.
+	* \brief Uniform buffer object required for text rendering.
+	* \ingroup UniformBufferObjects
 	*/
 	class CFORGE_API UBOTextData : public CForgeObject {
 	public:
+		/**
+		* \brief Constructor.
+		*/
 		UBOTextData(void);
+
+		/**
+		* \brief Destructor.
+		*/
 		~UBOTextData(void);
 
+		/**
+		* \brief Initialization method.
+		*/
 		void init(void);
+
+		/**
+		* \brief Clear method.
+		*/
 		void clear(void);
 
+		/**
+		* \brief Binds the buffer to a specific binding point.
+		* 
+		* \param[in] BindingPoint Binding point obtained from the shader.
+		*/
 		void bind(uint32_t BindingPoint);
 
+		/**
+		* \brief Set the color data.
+		* 
+		* \param[in] Color The new color data.
+		*/
 		void color(const Eigen::Vector4f Color);
+
+		/**
+		* \brief Set the canvas size.
+		* 
+		* \param[in] CanvasSize The new canvas size.
+		*/
 		void canvasSize(Eigen::Vector2f CanvasSize);
+
+		/**
+		* \brief Set the text position.
+		* 
+		* \param[in] TextPosition The new text position.
+		*/
 		void textPosition(Eigen::Vector2f TextPosition);
+
+		/**
+		* \brief Returns the size of the buffer in bytes.
+		* 
+		* \return Size of the buffer in bytes.
+		*/
 		uint32_t size(void)const;
 
 	protected:
 
 	private:
-		uint32_t m_ColorOffset;
-		uint32_t m_CanvasSizeOffset;
-		uint32_t m_TextPositionOffset;
+		uint32_t m_ColorOffset;			///< Buffer offset of the color data.
+		uint32_t m_CanvasSizeOffset;	///< Buffer offset of the canvas size.
+		uint32_t m_TextPositionOffset;	///< Buffer offset of the text position.
 		
-		GLBuffer m_Buffer;
+		GLBuffer m_Buffer;				///< OpenGL buffer object.
 	};//UBOTextData
 
 }//name space

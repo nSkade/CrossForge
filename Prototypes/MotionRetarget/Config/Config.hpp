@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include <crossforge/Graphics/VirtualCamera.h>
+#include <crossforge/Graphics/Camera/VirtualCamera.h>
 
 namespace CForge {
 

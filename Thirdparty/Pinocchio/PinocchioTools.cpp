@@ -53,7 +53,7 @@ namespace nsPinocchioTools {
 		Eigen::Vector3f min,max,center,d;
 		std::vector<Eigen::Vector3f> poss;
 		for (uint32_t i = 0; i < inList.size(); i++) {
-			Eigen::Matrix4f mat = inList[i]->OffsetMatrix.inverse();
+			Eigen::Matrix4f mat = inList[i]->InvBindPoseMatrix.inverse();
 			Eigen::Vector3f pos = rotation * Eigen::Vector3f(-mat.data()[12],mat.data()[13],mat.data()[14]);
 			poss.push_back(pos);
 			if (i==0)
@@ -74,7 +74,7 @@ namespace nsPinocchioTools {
 		
 		// apply scaling and offset
 		for (uint32_t i = 0; i < inList.size(); i++) {
-			Eigen::Matrix4f mat = inList[i]->OffsetMatrix.inverse();
+			Eigen::Matrix4f mat = inList[i]->InvBindPoseMatrix.inverse();
 			Vector3 o = Vector3(CVSInfo->offset[0],CVSInfo->offset[1],CVSInfo->offset[2]);
 			Vector3 pos = Vector3(poss[i][0],poss[i][1],poss[i][2])*CVSInfo->scaling - o;
 			joints->push_back(Eigen::Vector3f(pos[0],pos[1],pos[2]));
@@ -83,7 +83,7 @@ namespace nsPinocchioTools {
 			else
 				skl->PmakeJoint(inList[i]->Name, pos);
 			if (inList[i]->Children.size()==0 && inList[i]->pParent) { //endeffector, add one node
-				Eigen::Matrix4f mat = inList[i]->pParent->OffsetMatrix.inverse();
+				Eigen::Matrix4f mat = inList[i]->pParent->InvBindPoseMatrix.inverse();
 				Eigen::Vector3f apos = rotation * Eigen::Vector3f(-mat.data()[12],mat.data()[13],mat.data()[14]);
 				Vector3 piApos = Vector3(apos[0],apos[1],apos[2]);
 				piApos = piApos*CVSInfo->scaling - o;
@@ -146,7 +146,7 @@ namespace nsPinocchioTools {
 			mat.data()[14] = pos[2];
 			mat.block<3,3>(0,0) = rot;
 
-			inList[i]->OffsetMatrix = mat.inverse();
+			inList[i]->InvBindPoseMatrix = mat.inverse();
 		}
 	}
 
@@ -259,12 +259,12 @@ namespace nsPinocchioTools {
 		
 		Eigen::Vector3f min,max,d;
 		{
-			Eigen::Matrix4f mat = source.getBone(0)->OffsetMatrix.inverse();
+			Eigen::Matrix4f mat = source.getBone(0)->InvBindPoseMatrix.inverse();
 			min = Eigen::Vector3f(mat.data()[12],mat.data()[13],mat.data()[14]);
 			max = min;
 		}
 		for (uint32_t i = 1; i < source.boneCount(); i++) {
-			Eigen::Matrix4f mat = source.getBone(i)->OffsetMatrix.inverse();
+			Eigen::Matrix4f mat = source.getBone(i)->InvBindPoseMatrix.inverse();
 			for (uint32_t j = 0; j < 3; j++) {
 				min[j] = std::fmin(min[j],mat.data()[12+j]);
 				max[j] = std::fmax(max[j],mat.data()[12+j]);

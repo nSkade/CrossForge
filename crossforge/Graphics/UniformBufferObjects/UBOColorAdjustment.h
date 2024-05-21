@@ -1,9 +1,9 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): UBOPostProcessing.h and UBOPostProcessing.cpp                                   *
+* File(s): UBOPostProcessing.h and UBOPostProcessing.cpp                    *
 *                                                                           *
-* Content:    *
-*          .                                         *
+* Content: Uniform buffer object for the shader base post processing step   *
+*          color adjustment.                                                *
 *                                                                           *
 *                                                                           *
 * Author(s): Tom Uhlmann                                                    *
@@ -21,23 +21,62 @@
 #include "../GLBuffer.h"
 
 namespace CForge {
+	/**
+	* \brief Uniform buffer object for the shader base post processing step color adjustment.
+	* \ingroup UniformBufferObjects
+	*/
 	class CFORGE_API UBOColorAdjustment: public CForgeObject {
 	public:
+		/**
+		* \brief Constructor
+		*/
 		UBOColorAdjustment(void);
+
+		/**
+		* \brief Destructor
+		*/
 		~UBOColorAdjustment(void);
 
+		/**
+		* \brief Initialization method.
+		*/
 		void init(void);
-		void clear(void);
-		void release(void);
 
+		/**
+		* \brief Clear method.
+		*/
+		void clear(void);
+
+		/**
+		* \brief Binds the uniform buffer to a specific binding point,
+		* 
+		* \param[in] BindingPoint Binding point retrieved from the shader.
+		*/
 		void bind(uint32_t BindingPoint);
 
+		/**
+		* \brief Set the contrast value.
+		* 
+		* \param[in] Contrast The new contrast value.
+		*/
 		void contrast(float Contrast);
+
+		/**
+		* \brief Set the saturation value.
+		* 
+		* \param[in] Saturation Then new saturation value.
+		*/
 		void saturation(float Saturation);
+
+		/**
+		* \brief The the brightness value.
+		* 
+		* \param[in] Brightness The new brightness value.
+		*/
 		void brigthness(float Brightness);
 
 	protected:
-		GLBuffer m_Buffer;
+		GLBuffer m_Buffer;	///< The OpenGL buffer object.
 	};//UBOColorAdjustment
 
 }//name space

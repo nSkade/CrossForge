@@ -143,7 +143,7 @@ namespace CForge {
 			pJoint->LocalRotation = pAnimation->Keyframes[i]->Rotations[0].normalized();
 			pJoint->LocalScale = pAnimation->Keyframes[i]->Scalings[0];
 			
-			pJoint->OffsetMatrix = pRef->OffsetMatrix;
+			pJoint->OffsetMatrix = pRef->InvBindPoseMatrix;
 			pJoint->SkinningMatrix = Matrix4f::Identity(); // computed during applyAnimation()
 			
 			pIKJoint->GlobalPosition = Vector3f::Zero(); // computed after joint hierarchy has been constructed

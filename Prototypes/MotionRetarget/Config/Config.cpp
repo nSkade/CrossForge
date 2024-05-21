@@ -1,6 +1,6 @@
 #include "TypeSerializers.hpp"
 
-#include <crossforge/Graphics/VirtualCamera.h>
+#include <crossforge/Graphics/Camera/VirtualCamera.h>
 
 namespace CForge {
 

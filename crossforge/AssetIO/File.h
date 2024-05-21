@@ -24,38 +24,92 @@ namespace CForge {
 	* \brief Basic IO class which reads and writes from or to a binary file.
 	* \ingroup AssetIO
 	*
-	* \todo Do full documentation
 	*/
 	class CFORGE_API File: public CForgeObject {
 	public:
 		
 		/**
-		* \brief Checks whether a file exists under the specified path.
+		* \brief Checks whether a file exists at the specified path.
 		* \param[in] Path Path to the file.
 		* \return True if the file exists, false otherwise.
 		*/
 		static bool exists(const std::string Path);
-		static void createDirectory(const std::string Path);
-		static void createDirectories(const std::string Path);
 
+		/**
+		* \brief Checks whether the specified path points to a directory.
+		* 
+		* \param[in] Path Path to check.
+		* \return True if directory, false otherwise.
+		*/
+		static bool isDirectory(const std::string Path);
+
+		/**
+		* \brief Creates a directory. The parent directory has to exist!
+		* 
+		* \param[in] Path Directory path to create.
+		* return True on success, false otherwise.
+		*/
+		static bool createDirectory(const std::string Path);
+
+		/**
+		* \brief Creates a directory. Creates parent directories recursively if they do not exist.
+		* 
+		* \param[in] Path Directory to create.
+		* return True on success, false otherwise.
+		*/
+		static bool createDirectories(const std::string Path);
+
+		/**
+		* \brief Returns the parent directory path of the specified path.
+		* 
+		* \param[in] Path Path to extract parent from.
+		* \return Parent path or empty string if no parent path exists.
+		*/
 		static std::string parentPath(const std::string Path);
+
+		/**
+		* \brief Retrieves the filename from a path.
+		* 
+		* \param[in] Path The path to the file.
+		* \return Filename.
+		*/
 		static std::string retrieveFilename(const std::string Path);
 
 		/**
 		* \brief Returns size of the specified file.
+		* 
 		* \param[in] Path Path to the file.
 		* \return File's size in bytes.
-		* \note Throws std::fileystem::filesystem_error if an error occurs. 
+		* \throws std::fileystem::filesystem_error if an error occurs. 
 		*/
 		static int64_t size(const std::string Path);
 		
+		/**
+		* \brief Creates the absolute file path of a given path.
+		* 
+		* \param[in] Path The path.
+		* \return Absolute version of the path.
+		*/
 		static std::string absolute(const std::string Path);
+
+		/**
+		* \brief Creates a relative path from a given path and base path.
+		* 
+		* \param[in] Path The input path.
+		* \param[in] Basepath Base path.
+		* \return Path of input path relative to specified base path.
+		*/
 		static std::string relative(const std::string Path, const std::string Basepath);
+
+		/**
+		* \brief Removes the filename from a given path.
+		* 
+		* \param[in] Path The path to a file.
+		* \return Path without the filename.
+		*/
 		static std::string removeFilename(const std::string Path);
 
-		static bool isDirectory(const std::string Path);
-		static bool createDirecotry(const std::string Path);
-
+		
 		/**
 		* \brief Constructor
 		*/
@@ -98,14 +152,15 @@ namespace CForge {
 		uint32_t read(void* pBuffer, uint64_t ByteCount);
 
 		/**
-		* \brief Returns the internal file handle. Be careful what you do with it.
+		* \brief Returns the internal file handle. Be careful what you do with it!
 		* \return Internal file handle.
 		*/
 		FILE* handle(void)const;
 
 		/**
 		* \brief Check whether end of file is read.
-		* \return true if end of file is reached, false otherwise.
+		* 
+		* \return True if end of file is reached, false otherwise.
 		*/
 		bool eof(void)const;
 
@@ -114,10 +169,15 @@ namespace CForge {
 		*/
 		void rewind(void);
 
+		/**
+		* \brief Returns whether a file is currently opened.
+		* 
+		* \return True if a file is open and ready to perform operations, false otherwise.
+		*/
 		bool valid(void)const;
 		
 	protected:
-		FILE* m_pFile;	///< Internal file handle.
+		FILE* m_pFile;		///< Internal file handle.
 		std::string m_Path;	///< Path of the file.
 	};//CFile
 

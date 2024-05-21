@@ -45,8 +45,8 @@ namespace CForge {
 
 				auto pSubmesh = readPrimitive(&currentPrimitive);
 
-				pParentSubmesh->Children.push_back(pSubmesh);
-				pSubmesh->pParent = pParentSubmesh;
+				//pParentSubmesh->Children.push_back(pSubmesh);
+				//pSubmesh->pParent = pParentSubmesh;
 			}
 		}
 
@@ -588,7 +588,7 @@ namespace CForge {
 
 			for (int i : skin.joints) {
 				auto pBone = new T3DMesh<float>::Bone;
-				pBone->OffsetMatrix = offsetMatrices[counter];
+				pBone->InvBindPoseMatrix = offsetMatrices[counter];
 				pBone->ID = i;
 				pBone->Name = m_model.nodes[i].name;
 				pBones->push_back(pBone);
@@ -685,56 +685,57 @@ namespace CForge {
 
 			T3DMesh<float>::Submesh* pSubmesh = new T3DMesh<float>::Submesh;
 
-			if (node.matrix.size()) {
-				auto mat = toSingleMat4(&node.matrix);
+			//TODO(skade) Submesh transform
+			//if (node.matrix.size()) {
+			//	auto mat = toSingleMat4(&node.matrix);
 
-				pSubmesh->TranslationOffset = getTranslation(mat);
-				pSubmesh->RotationOffset = getRotation(mat);
+			//	pSubmesh->TranslationOffset = getTranslation(mat);
+			//	pSubmesh->RotationOffset = getRotation(mat);
 
-				auto scale = getScale(mat);
+			//	auto scale = getScale(mat);
 
-				if (std::abs(scale(0) - 1.0) > 0.001 || std::abs(scale(1) - 1.0) > 0.001 || std::abs(scale(2) - 1.0) > 0.001) {
-					std::cout << "SCALE FOUND!!!" << std::endl;
-				}
-			}
-			else {
-				if (node.translation.size()) {
-					pSubmesh->TranslationOffset(0) = node.translation[0];
-					pSubmesh->TranslationOffset(1) = node.translation[1];
-					pSubmesh->TranslationOffset(2) = node.translation[2];
-				}
+			//	if (std::abs(scale(0) - 1.0) > 0.001 || std::abs(scale(1) - 1.0) > 0.001 || std::abs(scale(2) - 1.0) > 0.001) {
+			//		std::cout << "SCALE FOUND!!!" << std::endl;
+			//	}
+			//}
+			//else {
+			//	if (node.translation.size()) {
+			//		pSubmesh->TranslationOffset(0) = node.translation[0];
+			//		pSubmesh->TranslationOffset(1) = node.translation[1];
+			//		pSubmesh->TranslationOffset(2) = node.translation[2];
+			//	}
 
-				if (node.rotation.size()) {
-					Eigen::Quaternionf newRotation(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
-					pSubmesh->RotationOffset = newRotation;
-				}
-			}
+			//	if (node.rotation.size()) {
+			//		Eigen::Quaternionf newRotation(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+			//		pSubmesh->RotationOffset = newRotation;
+			//	}
+			//}
 
-			//TODO: add Scale field to submesh struct
+			////TODO: add Scale field to submesh struct
 
-			pSubmesh->pParent = nullptr;
+			//pSubmesh->pParent = nullptr;
 
 			m_pMesh->addSubmesh(pSubmesh, false);
 		}
 
 
 		//Do a second pass to link all submeshes together.
+		//TODO(skade)
+		//for (int i = 0; i < m_model.nodes.size(); i++) {
+		//	std::vector<T3DMesh<float>::Bone*> children;
+		//	std::vector<T3DMesh<float>::Submesh*> submeshChildren;
 
-		for (int i = 0; i < m_model.nodes.size(); i++) {
-			std::vector<T3DMesh<float>::Bone*> children;
-			std::vector<T3DMesh<float>::Submesh*> submeshChildren;
+		//	auto pSubmesh = m_pMesh->getSubmesh(i);
 
-			auto pSubmesh = m_pMesh->getSubmesh(i);
+		//	for (auto c : m_model.nodes[i].children) {
+		//		auto pSubChild = m_pMesh->getSubmesh(c);
 
-			for (auto c : m_model.nodes[i].children) {
-				auto pSubChild = m_pMesh->getSubmesh(c);
+		//		pSubChild->pParent = pSubmesh;
 
-				pSubChild->pParent = pSubmesh;
-
-				submeshChildren.push_back(pSubChild);
-			}
-			pSubmesh->Children = submeshChildren;
-		}
+		//		submeshChildren.push_back(pSubChild);
+		//	}
+		//	pSubmesh->Children = submeshChildren;
+		//}
 	}
 #pragma endregion
 

@@ -982,9 +982,9 @@ namespace CForge {
 			}
 
 			// old y values
-			x = pBone->OffsetMatrix.inverse()(0, 3);
-			y = pBone->OffsetMatrix.inverse()(1, 3);
-			z = pBone->OffsetMatrix.inverse()(2, 3);
+			x = pBone->InvBindPoseMatrix.inverse()(0, 3);
+			y = pBone->InvBindPoseMatrix.inverse()(1, 3);
+			z = pBone->InvBindPoseMatrix.inverse()(2, 3);
 
 			if (x < pMinMax[0].x()) pMinMax[0].x() = x;
 			if (y < pMinMax[1].x()) pMinMax[1].x() = y;
@@ -996,7 +996,7 @@ namespace CForge {
 				pMinMax[2].y() = z;
 			}
 
-			if(!DryRun)	pBone->OffsetMatrix = LocalTransform.inverse();
+			if(!DryRun)	pBone->InvBindPoseMatrix = LocalTransform.inverse();
 
 			// recursion
 			for (auto i : pBone->Children) transformSkeleton(i, LocalTransform, pKeyframes, pMinMax, ConsiderTranslationOnly, DryRun);

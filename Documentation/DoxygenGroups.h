@@ -30,10 +30,23 @@
 \ingroup Graphics
 \brief Organizes your scene
 
+\defgroup Shaders Shaders
+\ingroup Graphics
+\brief Shader objects
 
+\defgroup Textures
+\ingroup Graphics
+\brief Texture objects.
+
+\defgroup UniformBufferObjects Uniform Buffer Objects
+\ingroup Graphics
+\brief Pre-defined uniform buffer objects used by other graphics objects.
 
 \defgroup Input Input Devices
 \brief Input devices such as keyboard, mouse, gamepad
+
+\defgroup Network Network
+\brief Network classes to send and receive data.
 
 \defgroup Math Math
 \brief Mathematics support
@@ -41,34 +54,8 @@
 \defgroup Utility Utility
 \brief Miscellaneous utility classes
 
-
-\defgroup GUI GUI
-\brief These classes form the basis of a simple GUI implementation.
-
-For most simple use cases a developer will probably only need to
-interact the the main class, CForge::GUI, and the few widgets,
-it will return to you
-
-Generally, in order to use the GUI, you should always create an
-instance of CForge::GUI first. Then you can use its methods to
-create widgets, or create some of your own. During the program's
-render loop, two methods should be queried each frame:
-CForge::GUI::processEvents and CForge::GUI::render. That is to
-make the GUI aware of user input and to draw it onto the framebuffer
-respectively. Once the program terminates, clean up should be
-handled by CForge::GUI's destructor automatically, widgets
-generally don't need to be destroyed manually if they were in
-use within the GUI.
-
-In order to best faciliate callbacks into the program code, it's
-suggested to structure your program as class and have it inherit
-the CForge::ITListener<GUICallbackObject> interface. Then you
-can have everything that needs to be accessed by the callback
-available as member variables. However, other means of providing
-the callback function can also be used if deemed appropriate.
-For more information on this kind of callback, see the documentation
-of CForge::GUICallbackObject and CForge::FormWidget.
-
+\defgroup MeshProcessing Mesh Processing
+\brief Mesh processing classes.
 
 
 \defgroup Devices Hardware Devices

@@ -367,7 +367,7 @@ private:
 		M.computePerVertexNormals();
 		M.computeAxisAlignedBoundingBox();
 		m_TargetAABB.init(&M);
-		m_TargetMarkerAABB = AlignedBox3f(M.aabb().Min, M.aabb().Max);
+		m_TargetMarkerAABB = AlignedBox3f(M.aabb().min(), M.aabb().max());
 		M.clear();
 
 		//TODO(skade) cleanup and abstract

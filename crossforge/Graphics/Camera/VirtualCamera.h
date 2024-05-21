@@ -18,9 +18,9 @@
 #ifndef __CFORGE_VIRTUALCAMERA_H__
 #define __CFORGE_VIRTUALCAMERA_H__
 
-#include "../Core/CForgeObject.h"
-#include "../Core/ITCaller.hpp"
-#include "Camera/ViewFrustum.h"
+#include "../../Core/CForgeObject.h"
+#include "../../Core/ITCaller.hpp"
+#include "ViewFrustum.h"
 
 namespace CForge {
 	/**

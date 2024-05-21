@@ -280,7 +280,10 @@ namespace CForge {
 		GLFWwindow* pWin = static_cast<GLFWwindow*>(m_pHandle);
 
 		if (m_Fullscreen) {
-			glfwSetWindowMonitor(pWin, nullptr, m_WindowPosBackup.x(), m_WindowPosBackup.y(), m_WindowPosBackup.z(), m_WindowPosBackup.w(), 0);;
+			//glfwSetWindowMonitor(pWin, nullptr, m_WindowPosBackup.x(), m_WindowPosBackup.y(), m_WindowPosBackup.z(), m_WindowPosBackup.w(), 0);
+			glfwSetWindowAttrib(pWin, GLFW_DECORATED, 1);
+			glfwSetWindowSize(pWin, m_WindowPosBackup.z(), m_WindowPosBackup.w());
+			glfwSetWindowPos(pWin, m_WindowPosBackup.x(), m_WindowPosBackup.y());
 			m_Fullscreen = false;
 		}
 		else {
@@ -291,13 +294,16 @@ namespace CForge {
 			m_WindowPosBackup.z() = Size.x();
 			m_WindowPosBackup.w() = Size.y();
 
-			int32_t MonitorCount;
-			auto **ppMonitor = glfwGetMonitors(&MonitorCount);
-
-			const GLFWvidmode* pMode = glfwGetVideoMode(ppMonitor[0]);
-			glfwSetWindowMonitor(pWin, ppMonitor[0], 0, 0, pMode->width, pMode->height, pMode->refreshRate);
-
-			m_Fullscreen = true;
+			GLFWmonitor *pMon = glfwGetPrimaryMonitor();
+			if (nullptr != pMon) {
+				const GLFWvidmode* pMode = glfwGetVideoMode(pMon);
+				if (nullptr != pMode) {
+					glfwSetWindowAttrib(pWin, GLFW_DECORATED, 0);
+					glfwSetWindowPos(pWin, 0, 0);
+					glfwSetWindowSize(pWin, pMode->width, pMode->height);
+					m_Fullscreen = true;
+				}
+			}	
 		}
 	}//toggleFullscreen
 

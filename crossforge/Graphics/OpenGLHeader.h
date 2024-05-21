@@ -1,9 +1,9 @@
 /*****************************************************************************\
 *                                                                           *
-* File(s): OpenGLHeader.h                                      *
+* File(s): OpenGLHeader.h                                                   *
 *                                                                           *
-* Content:    *
-*          .                                         *
+* Content: OpenGL header that distinct between platforms.                   *
+*                                                                           *
 *                                                                           *
 *                                                                           *
 * Author(s): Tom Uhlmann                                                    *

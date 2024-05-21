@@ -19,8 +19,8 @@
 #ifndef __CFORGE_EXAMPLESOCKETS_HPP__
 #define __CFORGE_EXAMPLESOCKETS_HPP__
 
-#include <crossforge/Internet/TCPSocket.h>
-#include <crossforge/Internet/UDPSocket.h>
+#include <crossforge/Network/TCPSocket.h>
+#include <crossforge/Network/UDPSocket.h>
 
 #include "ExampleSceneBase.hpp"
 
@@ -115,12 +115,12 @@ namespace CForge {
 			if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_1, true)) {
 				try {
 					printf("Starting UDP server...");
-					UDPServer.begin(UDPSocket::TYPE_SERVER, UDPPort);
+					UDPServer.begin(UDPPort);
 					printf("ok\n");
 					printf("Starting UDP Clients...\n\tClient 1...");
-					UDPClient1.begin(UDPSocket::TYPE_CLIENT, 0);
+					UDPClient1.begin(0);
 					printf("ok\n\tClient 2...");
-					UDPClient2.begin(UDPSocket::TYPE_CLIENT, 0);
+					UDPClient2.begin(0);
 					printf("ok\n");
 
 					UDPActive = true;
@@ -133,16 +133,16 @@ namespace CForge {
 
 			if (UDPActive) {
 				// check server data
-				while (UDPServer.recvData(Buffer, &DataSize, &Sender, &Port)) {
+				while (UDPServer.recvData(Buffer, sizeof(Buffer), &DataSize, &Sender, &Port)) {
 					printf("Message from %s:%d: %s\n", Sender.c_str(), Port, (char*)Buffer);
 					string Response = "Acknowledged - " + std::string((char*)Buffer);
 					UDPServer.sendData((uint8_t*)Response.c_str(), Response.length() + 1, Sender, Port);
 				}
 
-				if (UDPClient1.recvData(Buffer, &DataSize, &Sender, &Port)) {
+				if (UDPClient1.recvData(Buffer, sizeof(Buffer), &DataSize, &Sender, &Port)) {
 					printf("UDP Client 1 received message from %s:%d: %s\n", Sender.c_str(), Port, (char*)Buffer);
 				}
-				if (UDPClient2.recvData(Buffer, &DataSize, &Sender, &Port)) {
+				if (UDPClient2.recvData(Buffer, sizeof(Buffer), &DataSize, &Sender, &Port)) {
 					printf("UDP Client 2 received message from %s:%d: %s\n", Sender.c_str(), Port, (char*)Buffer);
 				}
 
@@ -170,8 +170,8 @@ namespace CForge {
 					printf("ok\n");
 					printf("Connecting clients to server...\n");
 					// connect to server
-					if (TCPClient1.connectTo("127.0.0.1", TCPPort)) printf("\tTCP Client 1 connected to 127.0.0.1:"); printf("%s\n", std::to_string(TCPPort).c_str());
-					if (TCPClient2.connectTo("127.0.0.1", TCPPort)) printf("\tTCP Client 2 connected to 127.0.0.1:"); printf("%s\n", std::to_string(TCPPort).c_str());
+					if (TCPClient1.connectTo("127.0.0.1", TCPPort) >= 0) printf("\tTCP Client 1 connected to 127.0.0.1:"); printf("%s\n", std::to_string(TCPPort).c_str());
+					if (TCPClient2.connectTo("127.0.0.1", TCPPort) >= 0) printf("\tTCP Client 2 connected to 127.0.0.1:"); printf("%s\n", std::to_string(TCPPort).c_str());
 
 					TCPActive = true;
 				}
@@ -183,7 +183,7 @@ namespace CForge {
 			if (TCPActive) {
 				// check data at server
 				for (uint32_t i = 0; i < TCPServer.activeConnections(); ++i) {
-					while (TCPServer.recvData(Buffer, &DataSize, i)) {
+					while (TCPServer.recvData(Buffer, sizeof(Buffer), & DataSize, i)) {
 						auto Info = TCPServer.connectionInfo(i);
 						printf("TCP Server received message from %s:%d: %s\n", Info.IP.c_str(), Info.Port, (char*)Buffer);
 						string Response = "Acknowledged - " + std::string((char*)Buffer);;
@@ -191,10 +191,10 @@ namespace CForge {
 					}
 				}
 				// check client 1 receive status
-				if (TCPClient1.recvData(Buffer, &DataSize, 0)) {
+				if (TCPClient1.recvData(Buffer, sizeof(Buffer), &DataSize, 0)) {
 					printf("TCP client 1 received message: %s\n", (char*)Buffer);
 				}
-				if (TCPClient2.recvData(Buffer, &DataSize, 0)) {
+				if (TCPClient2.recvData(Buffer, sizeof(Buffer), &DataSize, 0)) {
 					printf("TCP client 2 received message: %s\n", (char*)Buffer);
 				}
 

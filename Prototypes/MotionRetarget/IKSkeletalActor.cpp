@@ -17,7 +17,7 @@ namespace CForge {
 		initBuffer(pMesh,false);
 
 		m_pAnimationController = pController;
-		m_BV.init(pMesh, BoundingVolume::TYPE_AABB);
+		m_BV.init(*pMesh, BoundingVolume::TYPE_AABB);
 	}//initialize
 
 	void IKSkeletalActor::clear(void) {

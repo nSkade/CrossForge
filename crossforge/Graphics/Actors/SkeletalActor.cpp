@@ -18,7 +18,7 @@ namespace CForge {
 		clear();
 		initBuffer(pMesh, PrepareCPUSkinning);
 		m_pAnimationController = pController;
-		m_BV.init(pMesh, BoundingVolume::TYPE_AABB);
+		m_BV.init(*pMesh, BoundingVolume::TYPE_AABB); //TODO bounding volume does not move with animation
 	}//initialize
 
 	void SkeletalActor::initBuffer(T3DMesh<float>* pMesh, bool PrepareCPUSkinning) {
@@ -56,7 +56,7 @@ namespace CForge {
 		m_VertexArray.bind();
 		setBufferData();
 		m_VertexArray.unbind();
-	}
+	}//initialize
 
 	void SkeletalActor::prepareCPUSkinning(const T3DMesh<float>* pMesh) {
 		// clean up old data

@@ -21,7 +21,7 @@
 
 #include <crossforge/Core/CForgeObject.h>
 #include <crossforge/Graphics/Actors/ScreenQuad.h>
-#include <crossforge/Graphics/GLTexture2D.h>
+#include <crossforge/Graphics/Textures/GLTexture2D.h>
 
 namespace CForge {
 	class VideoPlayer : public CForgeObject {

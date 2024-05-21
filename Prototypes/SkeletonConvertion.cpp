@@ -15,7 +15,7 @@ std::vector<T3DMesh<float>::Bone*> SkeletonConverter::copyBones(std::vector<T3DM
 			// copy data
 			bones[i]->ID = pBones->at(i)->ID;
 			bones[i]->Name = pBones->at(i)->Name;
-			bones[i]->OffsetMatrix = pBones->at(i)->OffsetMatrix;
+			bones[i]->InvBindPoseMatrix = pBones->at(i)->InvBindPoseMatrix;
 			bones[i]->VertexInfluences = pBones->at(i)->VertexInfluences;
 			bones[i]->VertexWeights = pBones->at(i)->VertexWeights;
 			
@@ -84,8 +84,8 @@ void SkeletonConverter::collectBones(std::vector<T3DMesh<float>::Bone*>* ret,T3D
 }
 
 void SkeletonConverter::OMtoRHwrite(T3DMesh<float>::Bone* targetBone, T3DMesh<float>::Bone* sourceBone) {
-	Eigen::Matrix4f mat = sourceBone->OffsetMatrix.inverse();
-	targetBone->OffsetMatrix = mat;
+	Eigen::Matrix4f mat = sourceBone->InvBindPoseMatrix.inverse();
+	targetBone->InvBindPoseMatrix = mat;
 	
 	for (uint32_t i = 0; i < sourceBone->Children.size(); ++i) {
 		OMtoRHwrite(targetBone->Children[i], sourceBone->Children[i]);
@@ -94,9 +94,9 @@ void SkeletonConverter::OMtoRHwrite(T3DMesh<float>::Bone* targetBone, T3DMesh<fl
 	// replace translation part with translation relative to previous bone
 	Eigen::Vector3f translation = Eigen::Vector3f(mat.data()[12], mat.data()[13], mat.data()[14]);
 	if (targetBone->pParent) {
-		translation[0] -= targetBone->pParent->OffsetMatrix.data()[12];
-		translation[1] -= targetBone->pParent->OffsetMatrix.data()[13];
-		translation[2] -= targetBone->pParent->OffsetMatrix.data()[14];
+		translation[0] -= targetBone->pParent->InvBindPoseMatrix.data()[12];
+		translation[1] -= targetBone->pParent->InvBindPoseMatrix.data()[13];
+		translation[2] -= targetBone->pParent->InvBindPoseMatrix.data()[14];
 	}
 	
 	Eigen::Matrix4f f = mat;
@@ -104,11 +104,11 @@ void SkeletonConverter::OMtoRHwrite(T3DMesh<float>::Bone* targetBone, T3DMesh<fl
 	f.data()[13] = translation[1];
 	f.data()[14] = translation[2];
 	
-	targetBone->OffsetMatrix = f;
+	targetBone->InvBindPoseMatrix = f;
 }
 
 void SkeletonConverter::OMtoRHrotate(T3DMesh<float>::Bone* bone, Eigen::Matrix3f accu) {
-	Eigen::Matrix4f mat = bone->OffsetMatrix;
+	Eigen::Matrix4f mat = bone->InvBindPoseMatrix;
 	Eigen::Matrix3f rot = mat.block<3,3>(0,0);
 	Eigen::Vector3f trans = Eigen::Vector3f(mat.data()[12],mat.data()[13],mat.data()[14]);
 	
@@ -120,7 +120,7 @@ void SkeletonConverter::OMtoRHrotate(T3DMesh<float>::Bone* bone, Eigen::Matrix3f
 	mat.data()[12] = trans[0];
 	mat.data()[13] = trans[1];
 	mat.data()[14] = trans[2];
-	bone->OffsetMatrix = mat;
+	bone->InvBindPoseMatrix = mat;
 	
 	for (uint32_t i = 0; i < bone->Children.size(); i++) {
 		OMtoRHrotate(bone->Children[i], accu);
