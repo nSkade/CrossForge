@@ -1,9 +1,9 @@
 #include "IKController.h"
 
-#include "JointLimits/SwingXZTwistYLimits.h"
-#include "JointLimits/SwingXTwistYLimits.h"
-#include "JointLimits/SwingZTwistYLimits.h"
-#include "JointLimits/SwingXYTwistZLimits.h"
+//#include "JointLimits/SwingXZTwistYLimits.h"
+//#include "JointLimits/SwingXTwistYLimits.h"
+//#include "JointLimits/SwingZTwistYLimits.h"
+//#include "JointLimits/SwingXYTwistZLimits.h"
 
 #include <crossforge/Graphics/Shader/SShaderManager.h>
 #include <crossforge/Math/CForgeMath.h>
@@ -103,7 +103,8 @@ namespace CForge {
 		for (auto& i : m_IKJoints) {
 			if (i.second) {
 				if (i.second->pEndEffectorData) delete i.second->pEndEffectorData;
-				if (i.second->pLimits) delete i.second->pLimits;
+				//TODO(skade)
+				//if (i.second->pLimits) delete i.second->pLimits;
 				delete i.second;
 				i.second == nullptr;
 			}
@@ -149,84 +150,84 @@ namespace CForge {
 			pIKJoint->GlobalPosition = Vector3f::Zero(); // computed after joint hierarchy has been constructed
 			pIKJoint->GlobalRotation = Quaternionf::Identity(); // computed after joint hierarchy has been constructed
 
-			// create user defined joint constraints
-			const nlohmann::json& JointData = ConstraintData.at(pJoint->Name);
-			std::string Type = JointData.at("Type").get<std::string>();
+			//// create user defined joint constraints
+			//const nlohmann::json& JointData = ConstraintData.at(pJoint->Name);
+			//std::string Type = JointData.at("Type").get<std::string>();
 
-			if (Type == "Unconstrained")
-				pIKJoint->pLimits = nullptr;
+			//if (Type == "Unconstrained")
+			//	pIKJoint->pLimits = nullptr;
 
-			if (Type == "Hinge") {
-				std::string Hinge = JointData.at("HingeAxis").get<std::string>();
-				std::string Forward = JointData.at("BoneForward").get<std::string>();
+			//if (Type == "Hinge") {
+			//	std::string Hinge = JointData.at("HingeAxis").get<std::string>();
+			//	std::string Forward = JointData.at("BoneForward").get<std::string>();
 
-				if (Hinge == Forward) throw CForgeExcept("JointLimits for '" + pJoint->Name + "': HingeAxis and BoneForward cannot be the same joint axis!");
+			//	if (Hinge == Forward) throw CForgeExcept("JointLimits for '" + pJoint->Name + "': HingeAxis and BoneForward cannot be the same joint axis!");
 
-				Vector3f HingeAxis = Vector3f::Zero();
-				Vector3f BoneForward = Vector3f::Zero();
+			//	Vector3f HingeAxis = Vector3f::Zero();
+			//	Vector3f BoneForward = Vector3f::Zero();
 
-				if (Hinge == "x") HingeAxis = Vector3f::UnitX();
-				else if (Hinge == "y") HingeAxis = Vector3f::UnitY();
-				else if (Hinge == "z") HingeAxis = Vector3f::UnitZ();
-				else throw CForgeExcept("JointLimits for '" + pJoint->Name + "': HingeAxis must be 'x', 'y' or 'z'!");
+			//	if (Hinge == "x") HingeAxis = Vector3f::UnitX();
+			//	else if (Hinge == "y") HingeAxis = Vector3f::UnitY();
+			//	else if (Hinge == "z") HingeAxis = Vector3f::UnitZ();
+			//	else throw CForgeExcept("JointLimits for '" + pJoint->Name + "': HingeAxis must be 'x', 'y' or 'z'!");
 
-				if (Forward == "x") BoneForward = Vector3f::UnitX();
-				else if (Forward == "y") BoneForward = Vector3f::UnitY();
-				else if (Forward == "z") BoneForward = Vector3f::UnitZ();
-				else throw CForgeExcept("JointLimits for '" + pJoint->Name + "': BoneForward must be 'x', 'y' or 'z'!");
+			//	if (Forward == "x") BoneForward = Vector3f::UnitX();
+			//	else if (Forward == "y") BoneForward = Vector3f::UnitY();
+			//	else if (Forward == "z") BoneForward = Vector3f::UnitZ();
+			//	else throw CForgeExcept("JointLimits for '" + pJoint->Name + "': BoneForward must be 'x', 'y' or 'z'!");
 
-				float MinRad = CForgeMath::degToRad(JointData.at("MinAngleDegrees").get<float>());
-				float MaxRad = CForgeMath::degToRad(JointData.at("MaxAngleDegrees").get<float>());
+			//	float MinRad = CForgeMath::degToRad(JointData.at("MinAngleDegrees").get<float>());
+			//	float MaxRad = CForgeMath::degToRad(JointData.at("MaxAngleDegrees").get<float>());
 
-				HingeLimits* pNewLimits = new HingeLimits(pJoint->LocalRotation, HingeAxis, BoneForward, MinRad, MaxRad);
-				pIKJoint->pLimits = pNewLimits;
-			}
+			//	HingeLimits* pNewLimits = new HingeLimits(pJoint->LocalRotation, HingeAxis, BoneForward, MinRad, MaxRad);
+			//	pIKJoint->pLimits = pNewLimits;
+			//}
 			
-			//TODO(skade) rewrite and abstract hinge limits
+			////TODO(skade) rewrite and abstract hinge limits
 
-			if (Type == "SwingXZTwistY") {
-				float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
-				float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
-				float MinXSwing = CForgeMath::degToRad(JointData.at("MinXSwing").get<float>());
-				float MaxXSwing = CForgeMath::degToRad(JointData.at("MaxXSwing").get<float>());
-				float MinZSwing = CForgeMath::degToRad(JointData.at("MinZSwing").get<float>());
-				float MaxZSwing = CForgeMath::degToRad(JointData.at("MaxZSwing").get<float>());
-				
-				SwingXZTwistYLimits* pNewLimits = new SwingXZTwistYLimits(pJoint->LocalRotation, MinXSwing, MaxXSwing, MinZSwing, MaxZSwing, MinTwist, MaxTwist);
-				pIKJoint->pLimits = pNewLimits;
-			}
+			//if (Type == "SwingXZTwistY") {
+			//	float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
+			//	float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
+			//	float MinXSwing = CForgeMath::degToRad(JointData.at("MinXSwing").get<float>());
+			//	float MaxXSwing = CForgeMath::degToRad(JointData.at("MaxXSwing").get<float>());
+			//	float MinZSwing = CForgeMath::degToRad(JointData.at("MinZSwing").get<float>());
+			//	float MaxZSwing = CForgeMath::degToRad(JointData.at("MaxZSwing").get<float>());
+			//	
+			//	SwingXZTwistYLimits* pNewLimits = new SwingXZTwistYLimits(pJoint->LocalRotation, MinXSwing, MaxXSwing, MinZSwing, MaxZSwing, MinTwist, MaxTwist);
+			//	pIKJoint->pLimits = pNewLimits;
+			//}
 
-			if (Type == "SwingXTwistY") {
-				float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
-				float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
-				float MinSwing = CForgeMath::degToRad(JointData.at("MinSwing").get<float>());
-				float MaxSwing = CForgeMath::degToRad(JointData.at("MaxSwing").get<float>());
-				
-				SwingXTwistYLimits* pNewLimits = new SwingXTwistYLimits(pJoint->LocalRotation, MinSwing, MaxSwing, MinTwist, MaxTwist);
-				pIKJoint->pLimits = pNewLimits;
-			}
+			//if (Type == "SwingXTwistY") {
+			//	float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
+			//	float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
+			//	float MinSwing = CForgeMath::degToRad(JointData.at("MinSwing").get<float>());
+			//	float MaxSwing = CForgeMath::degToRad(JointData.at("MaxSwing").get<float>());
+			//	
+			//	SwingXTwistYLimits* pNewLimits = new SwingXTwistYLimits(pJoint->LocalRotation, MinSwing, MaxSwing, MinTwist, MaxTwist);
+			//	pIKJoint->pLimits = pNewLimits;
+			//}
 
-			if (Type == "SwingZTwistY") {
-				float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
-				float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
-				float MinSwing = CForgeMath::degToRad(JointData.at("MinSwing").get<float>());
-				float MaxSwing = CForgeMath::degToRad(JointData.at("MaxSwing").get<float>());
+			//if (Type == "SwingZTwistY") {
+			//	float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
+			//	float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
+			//	float MinSwing = CForgeMath::degToRad(JointData.at("MinSwing").get<float>());
+			//	float MaxSwing = CForgeMath::degToRad(JointData.at("MaxSwing").get<float>());
 
-				SwingZTwistYLimits* pNewLimits = new SwingZTwistYLimits(pJoint->LocalRotation, MinSwing, MaxSwing, MinTwist, MaxTwist);
-				pIKJoint->pLimits = pNewLimits;
-			}
+			//	SwingZTwistYLimits* pNewLimits = new SwingZTwistYLimits(pJoint->LocalRotation, MinSwing, MaxSwing, MinTwist, MaxTwist);
+			//	pIKJoint->pLimits = pNewLimits;
+			//}
 
-			if (Type == "SwingXYTwistZ") {
-				float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
-				float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
-				float MinXSwing = CForgeMath::degToRad(JointData.at("MinXSwing").get<float>());
-				float MaxXSwing = CForgeMath::degToRad(JointData.at("MaxXSwing").get<float>());
-				float MinYSwing = CForgeMath::degToRad(JointData.at("MinYSwing").get<float>());
-				float MaxYSwing = CForgeMath::degToRad(JointData.at("MaxYSwing").get<float>());
-				
-				SwingXYTwistZLimits* pNewLimits = new SwingXYTwistZLimits(pJoint->LocalRotation, MinXSwing, MaxXSwing, MinYSwing, MaxYSwing, MinTwist, MaxTwist);
-				pIKJoint->pLimits = pNewLimits;
-			}
+			//if (Type == "SwingXYTwistZ") {
+			//	float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
+			//	float MaxTwist = CForgeMath::degToRad(JointData.at("MaxTwist").get<float>());
+			//	float MinXSwing = CForgeMath::degToRad(JointData.at("MinXSwing").get<float>());
+			//	float MaxXSwing = CForgeMath::degToRad(JointData.at("MaxXSwing").get<float>());
+			//	float MinYSwing = CForgeMath::degToRad(JointData.at("MinYSwing").get<float>());
+			//	float MaxYSwing = CForgeMath::degToRad(JointData.at("MaxYSwing").get<float>());
+			//	
+			//	SwingXYTwistZLimits* pNewLimits = new SwingXYTwistZLimits(pJoint->LocalRotation, MinXSwing, MaxXSwing, MinYSwing, MaxYSwing, MinTwist, MaxTwist);
+			//	pIKJoint->pLimits = pNewLimits;
+			//}
 
 			//if (Type == "SwingXTwistZ") ...
 			//if (Type == "SwingYTwistZ") ...
@@ -344,10 +345,10 @@ namespace CForge {
 	}//initTargetPoints
 
 	void IKController::update(float FPSScale) {
-		forwardKinematics(m_pRoot);
 		for (auto c : m_JointChains) {
-			//ikJacobi(c.first);
-			ikCCD(c.first); //TODO(skade) different methods
+			forwardKinematics(m_pRoot);
+			ikCCDglobal(c.first);
+			//ikCCD(c.first); //TODO(skade) different methods
 		}
 	}//update
 
@@ -365,7 +366,7 @@ namespace CForge {
 
 
 	//TODO(skade) OMR impl doesnt use multiple iterations
-	void IKController::ikJacobi(const std::string segmentName) {
+	void IKController::ikCCDglobal(const std::string segmentName) {
 		std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
 		EndEffectorData* pEffData = m_IKJoints[Chain.front()]->pEndEffectorData;
 		Matrix3Xf LastEndEffectorPoints;
@@ -390,9 +391,10 @@ namespace CForge {
 
 				NewLocalRotation.normalize();
 
+				//TODO(skade)
 				// constrain new local rotation if joint is not unconstrained
-				if (pCurrentIK->pLimits != nullptr)
-					NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
+				//if (pCurrentIK->pLimits != nullptr)
+				//	NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
 
 				// apply new local rotation to joint
 				pCurrent->LocalRotation = NewLocalRotation;
@@ -412,75 +414,7 @@ namespace CForge {
 			if (PosChangeError < m_thresholdPosChange)
 				return;
 		}//for[m_MaxIterations]
-	}//ikJacobi
-
-	void IKController::ikCCD(const std::string segmentName) {
-		std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
-		EndEffectorData* pEffData = m_IKJoints[Chain.front()]->pEndEffectorData;
-		Matrix3Xf LastEndEffectorPoints;
-
-		for (int32_t i = 0; i < m_MaxIterations; ++i) {
-			LastEndEffectorPoints = pEffData->EEPosGlobal;
-
-			// check for termination -> condition: end-effector has reached the targets position and orientation
-			Matrix3Xf EffectorTargetDiff = pEffData->TargetPosGlobal - pEffData->EEPosGlobal;
-			float DistError = EffectorTargetDiff.cwiseProduct(EffectorTargetDiff).sum() / float(EffectorTargetDiff.cols());
-			if (DistError < m_thresholdDist)
-				return;
-
-			//TODO(skade) implement Forward CCD
-			// Backward CCD
-			//for (int32_t k = Chain.size()-1; k >= 0; --k) {
-			for (int32_t k = 0; k < Chain.size(); ++k) {
-				// start at base joint
-				SkeletalJoint* pCurrent = Chain[k];
-				IKJoint* pCurrentIK = m_IKJoints[pCurrent];
-
-				// calculate rotation axis
-				// joint position to end effector
-				Eigen::Vector3f jpToEE = pEffData->EEPosGlobal.col(0)-pCurrentIK->GlobalPosition;
-				// joint position to target position
-				Eigen::Vector3f jpToTar = pEffData->TargetPosGlobal.col(0)-pCurrentIK->GlobalPosition;
-
-				// rotation angle
-				float theta = std::acos(jpToEE.dot(jpToTar));
-				if (std::abs(theta) < FLT_EPSILON)
-					continue;
-
-				// vector we rotate around
-				Eigen::Vector3f rotVec = jpToEE.cross(jpToTar);
-				rotVec.normalize();
-
-				Quaternionf GlobalIncrement = Quaternionf(Eigen::AngleAxis(theta,rotVec));
-
-				Quaternionf NewGlobalRotation = GlobalIncrement * pCurrentIK->GlobalRotation;
-				
-				// transform new global rotation to new local rotation
-				Quaternionf NewLocalRotation;
-				if (pCurrent == m_pRoot)
-					NewLocalRotation = NewGlobalRotation;
-				else
-					NewLocalRotation = m_IKJoints[m_Joints[pCurrent->Parent]]->GlobalRotation.conjugate() * NewGlobalRotation;
-
-				NewLocalRotation.normalize();
-
-				// constrain new local rotation if joint is not unconstrained
-				if (pCurrentIK->pLimits != nullptr)
-					NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
-
-				// apply new local rotation to joint
-				pCurrent->LocalRotation = NewLocalRotation;
-
-				// update kinematic chain
-				forwardKinematics(pCurrent);
-			}//for[each joint in chain]
-
-			Matrix3Xf EffectorPosDiff = pEffData->EEPosGlobal - LastEndEffectorPoints;
-			float PosChangeError = EffectorPosDiff.cwiseProduct(EffectorPosDiff).sum() / float(EffectorPosDiff.cols());
-			if (PosChangeError < m_thresholdPosChange)
-				return;
-		}//for[m_MaxIterations]
-	}//ikCCD
+	}//ikCCDglobal
 
 	//TODO(skade) rewrite?
 	void IKController::rotateGaze(void) {
@@ -509,82 +443,6 @@ namespace CForge {
 		//	forwardKinematics(m_pHead);
 		//}
 	}//rotateGaze
-
-	Quaternionf IKController::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
-
-		//TODO(skade) this is not CCD but not Jacobi either
-
-		//TODO: combine points of multiple end effectors and targets into 2 point clouds to compute CCD rotation for multiple end effectors?
-		Matrix3Xf EndEffectorPoints = pEffData->EEPosGlobal.colwise() - pJoint->GlobalPosition; // current local joint position
-		Matrix3Xf TargetPoints = pEffData->TargetPosGlobal.colwise() - pJoint->GlobalPosition;  // target local joint position
-
-#if 0
-
-		// compute matrix W
-		Matrix3f W = TargetPoints * EndEffectorPoints.transpose();
-
-		// compute singular value decomposition
-		JacobiSVD<Matrix3f> SVD(W, ComputeFullU | ComputeFullV);
-		Matrix3f U = SVD.matrixU();
-		Matrix3f V = SVD.matrixV();
-
-		// compute rotation
-		Matrix3f R = U * V.transpose();
-		Quaternionf GlobalRotation(R);
-		GlobalRotation.normalize();
-
-#else
-
-		// compute rotation using quaternion characteristic polynomial from: "Closed-form solution of absolute orientation using unit quaternions." - Berthold K. P. Horn, 1987
-		// https://web.stanford.edu/class/cs273/refs/Absolute-OPT.pdf
-
-		//
-		//			0	1	2
-		//		0	Sxx	Sxy	Sxz
-		// S =	1	Syx	Syy	Syz
-		//		2	Szx	Szy	Szz
-		//		
-		Matrix3f S = EndEffectorPoints * TargetPoints.transpose();
-
-		//
-		// N = 
-		//		Sxx + Syy + Szz		Syz - Szy			 Szx - Sxz			 Sxy - Syx
-		//		Syz - Szy			Sxx - Syy - Szz		 Sxy + Syx			 Szx + Sxz
-		//		Szx - Sxz			Sxy + Syx			-Sxx + Syy - Szz	 Syz + Szy
-		//		Sxy - Syx			Szx + Sxz			 Syz + Szy			-Sxx - Syy + Szz
-		//
-		Matrix4f N = Matrix4f::Zero();
-
-		N(0, 0) = S(0, 0) + S(1, 1) + S(2, 2);  //  Sxx + Syy + Szz
-		N(0, 1) = S(1, 2) - S(2, 1);            //  Syz - Szy
-		N(0, 2) = S(2, 0) - S(0, 2);            //  Szx - Sxz
-		N(0, 3) = S(0, 1) - S(1, 0);            //  Sxy - Syx
-		
-		N(1, 0) = N(0, 1);                      //  Syz - Szy
-		N(1, 1) = S(0, 0) - S(1, 1) - S(2, 2);  //  Sxx - Syy - Szz
-		N(1, 2) = S(0, 1) + S(1, 0);            //  Sxy + Syx
-		N(1, 3) = S(2, 0) + S(0, 2);            //  Szx + Sxz
-		
-		N(2, 0) = N(0, 2);                      //  Szx - Sxz
-		N(2, 1) = N(1, 2);                      //  Sxy + Syx
-		N(2, 2) = -S(0, 0) + S(1, 1) - S(2, 2); // -Sxx + Syy - Szz
-		N(2, 3) = S(1, 2) + S(2, 1);            //  Syz + Szy
-		
-		N(3, 0) = N(0, 3);                      //  Sxy - Syx
-		N(3, 1) = N(1, 3);                      //  Szx + Sxz
-		N(3, 2) = N(2, 3);                      //  Syz + Szy
-		N(3, 3) = -S(0, 0) - S(1, 1) + S(2, 2); // -Sxx - Syy + Szz
-		
-		Eigen::SelfAdjointEigenSolver<Matrix4f> Solver(4);
-		Solver.compute(N);
-		Vector4f BiggestEVec = Solver.eigenvectors().col(3); // last column of eigenvectors() matrix contains eigenvector of largest eigenvalue;
-		                                                     // that's supposed to equal the desired rotation quaternion
-		Quaternionf GlobalRotation = Quaternionf(BiggestEVec(0), BiggestEVec(1), BiggestEVec(2), BiggestEVec(3));
-
-#endif
-
-		return GlobalRotation;
-	}//computeUnconstrainedGlobalRotation
 
 	void IKController::forwardKinematics(SkeletalJoint* pJoint) {
 		if (nullptr == pJoint) throw NullpointerExcept("pJoint");
@@ -725,5 +583,152 @@ namespace CForge {
 			}
 		}
 	}
+
+//TODO(skade) remove
+void IKController::ikCCD(const std::string segmentName) {
+	std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
+	EndEffectorData* pEffData = m_IKJoints[Chain.front()]->pEndEffectorData;
+	Matrix3Xf LastEndEffectorPoints;
+
+	for (int32_t i = 0; i < m_MaxIterations; ++i) {
+		LastEndEffectorPoints = pEffData->EEPosGlobal;
+
+		// check for termination -> condition: end-effector has reached the targets position and orientation
+		Matrix3Xf EffectorTargetDiff = pEffData->TargetPosGlobal - pEffData->EEPosGlobal;
+		float DistError = EffectorTargetDiff.cwiseProduct(EffectorTargetDiff).sum() / float(EffectorTargetDiff.cols());
+		if (DistError < m_thresholdDist)
+			return;
+
+		//TODO(skade) implement Forward CCD
+		// Backward CCD
+		//for (int32_t k = Chain.size()-1; k >= 0; --k) {
+		for (int32_t k = 0; k < Chain.size(); ++k) {
+			// start at base joint
+			SkeletalJoint* pCurrent = Chain[k];
+			IKJoint* pCurrentIK = m_IKJoints[pCurrent];
+
+			// calculate rotation axis
+			// joint position to end effector
+			Eigen::Vector3f jpToEE = pEffData->EEPosGlobal.col(0)-pCurrentIK->GlobalPosition;
+			// joint position to target position
+			Eigen::Vector3f jpToTar = pEffData->TargetPosGlobal.col(0)-pCurrentIK->GlobalPosition;
+
+			// rotation angle
+			float theta = std::acos(jpToEE.dot(jpToTar));
+			if (std::abs(theta) < FLT_EPSILON)
+				continue;
+
+			// vector we rotate around
+			Eigen::Vector3f rotVec = jpToEE.cross(jpToTar);
+			rotVec.normalize();
+
+			Quaternionf GlobalIncrement = Quaternionf(Eigen::AngleAxis(theta,rotVec));
+
+			Quaternionf NewGlobalRotation = GlobalIncrement * pCurrentIK->GlobalRotation;
+			
+			// transform new global rotation to new local rotation
+			Quaternionf NewLocalRotation;
+			if (pCurrent == m_pRoot)
+				NewLocalRotation = NewGlobalRotation;
+			else
+				NewLocalRotation = m_IKJoints[m_Joints[pCurrent->Parent]]->GlobalRotation.conjugate() * NewGlobalRotation;
+
+			NewLocalRotation.normalize();
+
+			//TODO(skade)
+			//// constrain new local rotation if joint is not unconstrained
+			//if (pCurrentIK->pLimits != nullptr)
+			//	NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
+
+			// apply new local rotation to joint
+			pCurrent->LocalRotation = NewLocalRotation;
+
+			// update kinematic chain
+			forwardKinematics(pCurrent);
+		}//for[each joint in chain]
+
+		Matrix3Xf EffectorPosDiff = pEffData->EEPosGlobal - LastEndEffectorPoints;
+		float PosChangeError = EffectorPosDiff.cwiseProduct(EffectorPosDiff).sum() / float(EffectorPosDiff.cols());
+		if (PosChangeError < m_thresholdPosChange)
+			return;
+	}//for[m_MaxIterations]
+}//ikCCD
+
+//TODO(skade) remove
+Quaternionf IKController::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
+
+	//TODO(skade) this is not CCD but not Jacobi either
+
+	//TODO: combine points of multiple end effectors and targets into 2 point clouds to compute CCD rotation for multiple end effectors?
+	Matrix3Xf EndEffectorPoints = pEffData->EEPosGlobal.colwise() - pJoint->GlobalPosition; // current local joint position
+	Matrix3Xf TargetPoints = pEffData->TargetPosGlobal.colwise() - pJoint->GlobalPosition;  // target local joint position
+
+#if 0
+
+	// compute matrix W
+	Matrix3f W = TargetPoints * EndEffectorPoints.transpose();
+
+	// compute singular value decomposition
+	JacobiSVD<Matrix3f> SVD(W, ComputeFullU | ComputeFullV);
+	Matrix3f U = SVD.matrixU();
+	Matrix3f V = SVD.matrixV();
+
+	// compute rotation
+	Matrix3f R = U * V.transpose();
+	Quaternionf GlobalRotation(R);
+	GlobalRotation.normalize();
+
+#else
+
+	// compute rotation using quaternion characteristic polynomial from: "Closed-form solution of absolute orientation using unit quaternions." - Berthold K. P. Horn, 1987
+	// https://web.stanford.edu/class/cs273/refs/Absolute-OPT.pdf
+
+	//
+	//			0	1	2
+	//		0	Sxx	Sxy	Sxz
+	// S =	1	Syx	Syy	Syz
+	//		2	Szx	Szy	Szz
+	//		
+	Matrix3f S = EndEffectorPoints * TargetPoints.transpose();
+
+	//
+	// N = 
+	//		Sxx + Syy + Szz		Syz - Szy			 Szx - Sxz			 Sxy - Syx
+	//		Syz - Szy			Sxx - Syy - Szz		 Sxy + Syx			 Szx + Sxz
+	//		Szx - Sxz			Sxy + Syx			-Sxx + Syy - Szz	 Syz + Szy
+	//		Sxy - Syx			Szx + Sxz			 Syz + Szy			-Sxx - Syy + Szz
+	//
+	Matrix4f N = Matrix4f::Zero();
+
+	N(0, 0) = S(0, 0) + S(1, 1) + S(2, 2);  //  Sxx + Syy + Szz
+	N(0, 1) = S(1, 2) - S(2, 1);            //  Syz - Szy
+	N(0, 2) = S(2, 0) - S(0, 2);            //  Szx - Sxz
+	N(0, 3) = S(0, 1) - S(1, 0);            //  Sxy - Syx
+	
+	N(1, 0) = N(0, 1);                      //  Syz - Szy
+	N(1, 1) = S(0, 0) - S(1, 1) - S(2, 2);  //  Sxx - Syy - Szz
+	N(1, 2) = S(0, 1) + S(1, 0);            //  Sxy + Syx
+	N(1, 3) = S(2, 0) + S(0, 2);            //  Szx + Sxz
+	
+	N(2, 0) = N(0, 2);                      //  Szx - Sxz
+	N(2, 1) = N(1, 2);                      //  Sxy + Syx
+	N(2, 2) = -S(0, 0) + S(1, 1) - S(2, 2); // -Sxx + Syy - Szz
+	N(2, 3) = S(1, 2) + S(2, 1);            //  Syz + Szy
+	
+	N(3, 0) = N(0, 3);                      //  Sxy - Syx
+	N(3, 1) = N(1, 3);                      //  Szx + Sxz
+	N(3, 2) = N(2, 3);                      //  Syz + Szy
+	N(3, 3) = -S(0, 0) - S(1, 1) + S(2, 2); // -Sxx - Syy + Szz
+	
+	Eigen::SelfAdjointEigenSolver<Matrix4f> Solver(4);
+	Solver.compute(N);
+	Vector4f BiggestEVec = Solver.eigenvectors().col(3); // last column of eigenvectors() matrix contains eigenvector of largest eigenvalue;
+	                                                     // that's supposed to equal the desired rotation quaternion
+	Quaternionf GlobalRotation = Quaternionf(BiggestEVec(0), BiggestEVec(1), BiggestEVec(2), BiggestEVec(3));
+
+#endif
+
+	return GlobalRotation;
+}//computeUnconstrainedGlobalRotation
 
 }//CForge

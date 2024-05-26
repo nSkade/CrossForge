@@ -1,6 +1,357 @@
 #include "MotionRetargetingScene.hpp"
 
+#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
+#include <Prototypes/GUI/ImGuiUtility.h>
+#include "UI/ImGuiStyle.hpp"
+#include "UI/IKSequencer.hpp"
+
 namespace CForge {
+
+void MotionRetargetingScene::init() {
+	initWindowAndRenderDevice();
+	gladLoadGL();
+	initCameraAndLights();
+
+	// build scene graph
+	m_RootSGN.init(nullptr);
+	m_SG.init(&m_RootSGN);
+
+	//initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
+	initFPSLabel();
+	initSkybox();
+	initCharacter(); // initialize character & animation controller
+	initEndEffectorMarkers(); // initialize end-effector & target markers
+	
+	LineOfText* pKeybindings = new LineOfText();
+	pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement:(Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text");
+	m_HelpTexts.push_back(pKeybindings);
+	pKeybindings->color(0.0f, 0.0f, 0.0f, 1.0f);
+	m_DrawHelpTexts = false;
+
+	// check whether a GL error occurred
+	std::string GLError = "";
+	CForgeUtility::checkGLError(&GLError);
+	if (!GLError.empty()) printf("GLError occurred: %s\n", GLError.c_str());
+
+	ImGuiUtility::initImGui(&m_RenderWin);
+
+	T3DMesh<float> M;
+	SAssetIO::load("MyAssets/ccd-ik/joint.obj", &M);
+	m_JointVisActor.init(&M);
+	
+	glClearColor(.3f,.3f,.3f,.0f);
+	SetupImGuiStyle(true,0.5f);
+
+	m_RenderWin.position(0,31);
+	m_RenderWin.size(1920,1009);
+
+	m_config.baseLoad();
+	m_config.load(&m_Cam);
+}//initialize
+
+void MotionRetargetingScene::clear() {
+	ExampleSceneBase::clear();
+
+	m_EndEffectors.clear();
+
+	for (auto& EffTransforms : m_EffectorTransformSGNs) {
+		for (auto pSGN : EffTransforms.second) if (pSGN != nullptr) delete pSGN;
+	}
+	m_EffectorTransformSGNs.clear();
+
+	for (auto& EffGeoms : m_EffectorGeomSGNs) {
+		for (auto pSGN : EffGeoms.second) if (pSGN != nullptr) delete pSGN;
+	}
+	m_EffectorGeomSGNs.clear();
+
+	for (auto& TargetTransforms : m_TargetTransformSGNs) {
+		for (auto pSGN : TargetTransforms.second) if (pSGN != nullptr) delete pSGN;
+	}
+	m_TargetTransformSGNs.clear();
+
+	for (auto& TargetGeoms : m_TargetGeomSGNs) {
+		for (auto pSGN : TargetGeoms.second) if (pSGN != nullptr) delete pSGN;
+	}
+	m_TargetGeomSGNs.clear();
+
+	ImGuiUtility::shutdownImGui();
+
+	m_config.store(&m_Cam);
+	m_config.baseStore();
+}
+
+void MotionRetargetingScene::mainLoop() {
+	m_RenderWin.update();
+	m_SG.update(60.0f / m_FPS);
+
+	if (m_IKCupdate || m_IKCupdateSingle) {
+		m_IKController->update(60.0f / m_FPS);
+		m_IKCupdateSingle = false;
+	}
+	updateEndEffectorMarkers();
+
+	if (m_pAnimCurr) {
+		if (m_animAutoplay) {
+			m_animFrameCurr = m_pAnimCurr->t*m_pAnimCurr->TicksPerSecond;
+			m_pAnimCurr->t += 1.f/m_FPS*m_pAnimCurr->Speed;
+			if (m_pAnimCurr->t > m_pAnimCurr->Duration)
+				m_pAnimCurr->t = 0.f;
+		} else {
+			m_pAnimCurr->t = m_animFrameCurr/m_pAnimCurr->TicksPerSecond;
+		}
+		m_IKController->updateBones(m_pAnimCurr);
+		m_IKController->updateEndEffectorPoints();
+	}
+	
+	// Handle Picking
+	if (m_useGuizmo && m_LastSelectedEffectorTarget != -1) {
+		m_guizmo.active(true);
+		dragTarget(m_LastSelectedEffectorTarget);
+	} else
+		m_guizmo.active(false);
+
+	if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
+		pickTarget();
+		//dragTarget(m_SelectedEffectorTarget);
+	} else
+		m_editCam.defaultCameraUpdate(&m_Cam, &m_RenderWin, 0.05f, .7f, 32.0f);
+	m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
+
+	// Render Scene
+	m_RenderDev.activePass(RenderDevice::RENDERPASS_SHADOW, &m_Sun);
+	m_RenderDev.activeCamera(const_cast<VirtualCamera*>(m_Sun.camera()));
+	m_SG.render(&m_RenderDev);
+	
+	m_RenderDev.activePass(RenderDevice::RENDERPASS_GEOMETRY);
+	m_RenderDev.activeCamera(&m_Cam);
+	m_SG.render(&m_RenderDev);
+
+	m_RenderDev.activePass(RenderDevice::RENDERPASS_LIGHTING);
+	
+	m_RenderDev.activePass(RenderDevice::RENDERPASS_FORWARD, nullptr, false);
+
+	// Render UI
+	renderVisualizers();
+	renderUI();
+
+	m_RenderWin.swapBuffers();
+	
+	updateFPS();
+	defaultKeyboardUpdate(m_RenderWin.keyboard());
+}//mainLoop
+
+void MotionRetargetingScene::initCharacter() {
+	//TODO(skade) file load gui
+	T3DMesh<float> M;
+	//SAssetIO::load("MyAssets/ccd-ik/ces/CesiumMan.gltf", &M);
+	
+	GLTFIO gltfio;
+	gltfio.load("MyAssets/ccd-ik/ces/CesiumManZ-90.gltf", &M);
+	
+	//TODO(skade) fix assimp fbx
+	//SAssetIO::load("MyAssets/ccd-ik/ces/ces.fbx", &M);
+
+	//TODO(skade) test
+	//gltfio.load("MyAssets/ccd-ik/BrainStem/glTF/BrainStem.gltf", &M);
+
+	setMeshShader(&M, 0.7f, 0.04f);
+	M.computePerVertexNormals();
+
+	//TODO(skade) option to export skeletal config
+
+	m_IKController = std::make_unique<IKController>();
+	m_IKController->init(&M, "MyAssets/ccd-ik/ces/SkeletonConfig.json");
+
+	//TODO(skade) write option without json
+	//m_IKController->init(&M);
+
+	for (uint32_t i=0;i<M.skeletalAnimationCount();++i)
+		m_IKController->addAnimationData(M.getSkeletalAnimation(i));
+
+	m_IKActor = std::make_unique<IKSkeletalActor>();
+	m_IKActor->init(&M, m_IKController.get());
+
+	m_CharacterSGN.init(&m_RootSGN, m_IKActor.get());
+
+	//TODO(skade) remove/rewrite
+	m_IKStickActor.init(&M, m_IKController.get());
+	m_IKStickActorSGN.init(&m_RootSGN, &m_IKStickActor);
+	m_IKStickActorSGN.enable(true, false);
+	M.clear();
+}//initActors
+
+void MotionRetargetingScene::initEndEffectorMarkers() {
+	m_EndEffectors = m_IKController->retrieveEndEffectors();
+
+	T3DMesh<float> M;
+
+	// end-effector actors
+	PrimitiveShapeFactory::uvSphere(&M, Vector3f(0.05f, 0.05f, 0.05f), 8, 8);
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
+		pMat->Metallic = 0.3f;
+		pMat->Roughness = 0.2f;
+		pMat->VertexShaderForwardPass.push_back("Shader/ForwardPassPBS.vert");
+		pMat->FragmentShaderForwardPass.push_back("Shader/ForwardPassPBS.frag");
+		pMat->VertexShaderGeometryPass.push_back("Shader/BasicGeometryPass.vert");
+		pMat->FragmentShaderGeometryPass.push_back("Shader/BasicGeometryPass.frag");
+		pMat->VertexShaderShadowPass.push_back("Shader/ShadowPassShader.vert");
+		pMat->FragmentShaderShadowPass.push_back("Shader/ShadowPassShader.frag");
+	}
+	M.computePerVertexNormals();
+	m_EffectorPos.init(&M);
+
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
+	}
+	m_EffectorX.init(&M);
+
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(0.0f, 1.0f, 0.0f, 1.0f);
+	}
+	m_EffectorY.init(&M);
+
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(0.0f, 0.0f, 1.0f, 1.0f);
+	}
+	m_EffectorZ.init(&M);
+	M.clear();
+
+	// target actors
+	PrimitiveShapeFactory::cuboid(&M, Vector3f(0.05f, 0.05f, 0.05f), Vector3i(1, 1, 1));
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(1.0f, 0.4f, 0.9f, 1.0f);
+		pMat->Metallic = 0.3f;
+		pMat->Roughness = 0.2f;
+		pMat->VertexShaderForwardPass.push_back("Shader/ForwardPassPBS.vert");
+		pMat->FragmentShaderForwardPass.push_back("Shader/ForwardPassPBS.frag");
+		pMat->VertexShaderGeometryPass.push_back("Shader/BasicGeometryPass.vert");
+		pMat->FragmentShaderGeometryPass.push_back("Shader/BasicGeometryPass.frag");
+		pMat->VertexShaderShadowPass.push_back("Shader/ShadowPassShader.vert");
+		pMat->FragmentShaderShadowPass.push_back("Shader/ShadowPassShader.frag");
+	}
+	M.computePerVertexNormals();
+	m_TargetPos.init(&M);
+
+	//TODO(skade)
+	//for (uint32_t i = 0; i < M.materialCount(); ++i) {
+	//	auto* pMat = M.getMaterial(i);
+	//	pMat->Color = Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
+	//}
+	//m_TargetX.init(&M);
+
+	M.clear();
+
+	// target aabb actor
+	PrimitiveShapeFactory::cuboid(&M, Vector3f(0.1f, 0.1f, 0.1f), Vector3i(1, 1, 1));
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
+		pMat->Metallic = 0.3f;
+		pMat->Roughness = 0.2f;
+		pMat->VertexShaderForwardPass.push_back("Shader/ForwardPassPBS.vert");
+		pMat->FragmentShaderForwardPass.push_back("Shader/ForwardPassPBS.frag");
+		pMat->VertexShaderGeometryPass.push_back("Shader/BasicGeometryPass.vert");
+		pMat->FragmentShaderGeometryPass.push_back("Shader/BasicGeometryPass.frag");
+		pMat->VertexShaderShadowPass.push_back("Shader/ShadowPassShader.vert");
+		pMat->FragmentShaderShadowPass.push_back("Shader/ShadowPassShader.frag");
+	}
+	M.computePerVertexNormals();
+	M.computeAxisAlignedBoundingBox();
+	m_TargetAABB.init(&M);
+	m_TargetMarkerAABB = AlignedBox3f(M.aabb().min(), M.aabb().max());
+	M.clear();
+
+	//TODO(skade) cleanup and abstract
+	for (int32_t i = 0; i < m_EndEffectors.size(); ++i) {
+		m_EffectorTransformSGNs.try_emplace(m_EndEffectors[i].segmentName);
+		m_EffectorGeomSGNs.try_emplace(m_EndEffectors[i].segmentName);
+		m_TargetTransformSGNs.try_emplace(m_EndEffectors[i].segmentName);
+		m_TargetGeomSGNs.try_emplace(m_EndEffectors[i].segmentName);
+
+		auto& EffectorTransforms = m_EffectorTransformSGNs.at(m_EndEffectors[i].segmentName);
+		auto& EffectorGeoms = m_EffectorGeomSGNs.at(m_EndEffectors[i].segmentName);
+		auto& TargetTransforms = m_TargetTransformSGNs.at(m_EndEffectors[i].segmentName);
+		auto& TargetGeoms = m_TargetGeomSGNs.at(m_EndEffectors[i].segmentName);
+
+		//TODO(skade) memory management
+		for (uint32_t i = 0; i < EffectorTransforms.size(); ++i) {
+			delete EffectorTransforms[i];
+		}
+		EffectorTransforms.clear();
+		for (uint32_t i = 0; i < EffectorGeoms.size(); ++i) {
+			delete EffectorGeoms[i];
+		}
+		EffectorGeoms.clear();
+		for (uint32_t i = 0; i < TargetTransforms.size(); ++i) {
+			delete TargetTransforms[i];
+		}
+		TargetTransforms.clear();
+		for (uint32_t i = 0; i < TargetGeoms.size(); ++i) {
+			delete TargetGeoms[i];
+		}
+		TargetGeoms.clear();
+
+		// assign end effector transforms and initialize geometry for every joint in joint chain
+		Eigen::Matrix3Xf EndEffectorPoints = m_EndEffectors[i].jointIK->pEndEffectorData->EEPosGlobal;
+		Eigen::Matrix3Xf TargetPoints = m_EndEffectors[i].jointIK->pEndEffectorData->TargetPosGlobal;
+		for (int32_t j = 0; j < EndEffectorPoints.cols(); ++j) {
+			EffectorTransforms.push_back(new SGNTransformation());
+			EffectorGeoms.push_back(new SGNGeometry());
+			EffectorTransforms.back()->init(&m_EffectorVis, EndEffectorPoints.col(j));
+			
+			StaticActor* efac = &m_EffectorPos;
+
+			if (j == 0)
+				efac = &m_EffectorZ;
+			else if (j==EndEffectorPoints.cols()-1)
+				efac = &m_EffectorY;
+			else
+				efac = &m_EffectorX;
+
+			EffectorGeoms[j]->init(EffectorTransforms[j], efac);
+		}
+
+		for (int32_t j = 0; j < EndEffectorPoints.cols(); ++j) {
+			TargetTransforms.push_back(new SGNTransformation());
+			TargetGeoms.push_back(new SGNGeometry());
+			EffectorGeoms.back()->init(EffectorTransforms[j], &m_EffectorPos);
+			TargetTransforms.back()->init(&m_TargetVis, TargetPoints.col(j));
+			TargetGeoms.back()->init(TargetTransforms.back(), &m_TargetPos);
+		}
+
+		int32_t AABBIndex = EndEffectorPoints.cols()-1;
+
+		TargetTransforms[AABBIndex] = new SGNTransformation();
+		TargetGeoms[AABBIndex] = new SGNGeometry();
+
+		//TODO(skade)
+		//Vector3f AABBPos = m_EndEffectors[i]->TargetPoints.rowwise().sum();
+		//AABBPos /= m_EndEffectors[i]->TargetPoints.cols();
+
+		Vector3f AABBPos = TargetPoints.col(0);
+		
+		TargetTransforms[AABBIndex]->init(&m_TargetVis, AABBPos);
+		TargetGeoms[AABBIndex]->init(TargetTransforms[AABBIndex], &m_TargetAABB);
+		TargetGeoms[AABBIndex]->visualization(SGNGeometry::Visualization::VISUALIZATION_WIREFRAME);
+	}
+}//initEndEffectorMarkers
+
+
+void MotionRetargetingScene::updateEndEffectorMarkers() {
+	for (int32_t i = 0; i < m_EndEffectors.size(); ++i) {
+		auto& EffectorTransforms = m_EffectorTransformSGNs.at(m_EndEffectors[i].segmentName);
+		Eigen::Matrix3Xf EndEffectorPoints = m_EndEffectors[i].jointIK->pEndEffectorData->EEPosGlobal;
+		for (int32_t j = 0; j < EndEffectorPoints.cols(); ++j) {
+			EffectorTransforms[j]->translation(EndEffectorPoints.col(j));
+		}
+	}
+}//updateEndEffectorMarkers
 
 void MotionRetargetingScene::renderUIAnimation() {
 	if (!m_IKActor || !m_IKController)
@@ -68,7 +419,6 @@ void MotionRetargetingScene::renderUIAnimation() {
 
 void MotionRetargetingScene::renderUI() {
 	ImGuiUtility::newFrame();
-	ImGuizmo::SetOrthographic(false); //TODO(skade) Ortograhic cam + numpad orientation
 	ImGuizmo::BeginFrame();
 
 	static int selectedEntry = -1;
@@ -217,44 +567,7 @@ void MotionRetargetingScene::renderVisualizers() {
 	}
 }
 
-void MotionRetargetingScene::defaultCameraUpdate(VirtualCamera* pCamera, Keyboard* pKeyboard, Mouse* pMouse,
-                                                 const float MovementSpeed, const float RotationSpeed, const float SpeedScale) {
-	if (nullptr == pCamera) throw NullpointerExcept("pCamera");
-	if (nullptr == pKeyboard) throw NullpointerExcept("pKeyboard");
-	if (nullptr == pMouse) throw NullpointerExcept("pMouse");
-
-	float S = 1.0f;
-	if (pKeyboard->keyPressed(Keyboard::KEY_LEFT_SHIFT)) S = SpeedScale;
-
-	Vector2f scrollDelta = pMouse->wheel()-m_prevScroll;
-	m_prevScroll = pMouse->wheel();
-
-	//TODO(skade) implement proper mouse controls
-	//if (pKeyboard->keyPressed(Keyboard::KEY_LEFT_CONTROL)) {
-		pCamera->forward(scrollDelta.y());
-	//} else {
-	//	pCamera->rotY(CForgeMath::degToRad(-10.f * RotationSpeed * scrollDelta.x()));
-	//	pCamera->pitch(CForgeMath::degToRad(-10.f * RotationSpeed * scrollDelta.y()));
-	//}
-
-	if (pKeyboard->keyPressed(Keyboard::KEY_W)) pCamera->forward(S * MovementSpeed);
-	if (pKeyboard->keyPressed(Keyboard::KEY_S)) pCamera->forward(S * -MovementSpeed);
-	if (pKeyboard->keyPressed(Keyboard::KEY_A)) pCamera->right(-S * MovementSpeed);
-	if (pKeyboard->keyPressed(Keyboard::KEY_D)) pCamera->right(S * MovementSpeed);
-	if (pKeyboard->keyPressed(Keyboard::KEY_SPACE)) pCamera->up(S * MovementSpeed);
-	if (pKeyboard->keyPressed(Keyboard::KEY_C)) pCamera->up(-S * MovementSpeed);
-
-	if (pMouse->buttonState(Mouse::BTN_RIGHT)) {
-		if (m_CameraRotation) {
-			const Eigen::Vector2f MouseDelta = pMouse->positionDelta();
-			pCamera->rotY(CForgeMath::degToRad(-0.1f * RotationSpeed * MouseDelta.x()));
-			pCamera->pitch(CForgeMath::degToRad(-0.1f * RotationSpeed * MouseDelta.y()));
-		} else
-			m_CameraRotation = true;
-		pMouse->positionDelta(Eigen::Vector2f::Zero());
-	} else
-		m_CameraRotation = false;
-}//defaultCameraUpdate
+#include "Picking.cpp"
 
 }//CForge
 

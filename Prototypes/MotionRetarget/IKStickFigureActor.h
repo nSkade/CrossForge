@@ -1,10 +1,10 @@
 #pragma once
 
 #include "IKSkeletalActor.h"
-#include "../../crossforge/Graphics/Actors/StaticActor.h"
-#include "../../crossforge/Graphics/SceneGraph/SceneGraph.h"
-#include "../../crossforge/Graphics/SceneGraph/SGNGeometry.h"
-#include "../../crossforge/Graphics/SceneGraph/SGNTransformation.h"
+#include <crossforge/Graphics/Actors/StaticActor.h>
+#include <crossforge/Graphics/SceneGraph/SceneGraph.h>
+#include <crossforge/Graphics/SceneGraph/SGNGeometry.h>
+#include <crossforge/Graphics/SceneGraph/SGNTransformation.h>
 
 namespace CForge {
 	class IKStickFigureActor : public IKSkeletalActor {

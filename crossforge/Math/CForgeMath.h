@@ -222,6 +222,15 @@ namespace CForge {
 		static Eigen::Matrix4f rotationMatrix(Eigen::Quaternionf Rot);
 
 		/**
+		* \brief Creates a 4x4 rotation matrix from angle axis
+		* 
+		* \param[in] angle in degrees.
+		* \param[in] axis needs to be normalized.
+		* \return Rotations matrix.
+		*/
+		static Eigen::Matrix4f rotationMatrix(float angle, Eigen::Vector3f axis);
+
+		/**
 		* \brief Creates a 4x4 translation matrix from a vector.
 		* 
 		* \param[in] Trans The translation.

@@ -101,9 +101,7 @@ add_executable(CForgeSandbox
 	Prototypes/Assets/GLTFIO/GLTFIO.cpp
 	Prototypes/MeshProcessing/SurfaceSampler.cpp
 	
-	
-	"Prototypes/GUI/ImGuiUtility.cpp"
-	
+	Prototypes/GUI/ImGuiUtility.cpp
 
 	# Subprojects
 	# B02 Demonstrator
@@ -113,12 +111,10 @@ add_executable(CForgeSandbox
 
 	# Other
 	Prototypes/Actor/LODActor.cpp
-	"Prototypes/Actor/SLOD.cpp"
-	"Prototypes/Actor/LODHandler.cpp"
-	"Prototypes/Actor/UBOInstancedData.cpp"
-	"Prototypes/MeshProcessing/MeshDecimate.cpp"
-
-	
+	Prototypes/Actor/SLOD.cpp
+	Prototypes/Actor/LODHandler.cpp
+	Prototypes/Actor/UBOInstancedData.cpp
+	Prototypes/MeshProcessing/MeshDecimate.cpp
 
 	Prototypes/SkeletonConvertion.cpp
 
@@ -128,17 +124,21 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/IKController.cpp
 	Prototypes/MotionRetarget/IKSkeletalActor.cpp
 	Prototypes/MotionRetarget/IKStickFigureActor.cpp
-	Prototypes/MotionRetarget/JointLimits/JointLimits.cpp
-	Prototypes/MotionRetarget/JointLimits/HingeLimits.cpp
-	Prototypes/MotionRetarget/JointLimits/SwingXZTwistYLimits.cpp
-	Prototypes/MotionRetarget/JointLimits/SwingXTwistYLimits.cpp
-	Prototypes/MotionRetarget/JointLimits/SwingZTwistYLimits.cpp
-	Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
+
+	#Prototypes/MotionRetarget/Picking.cpp
+	#Prototypes/MotionRetarget/IKSolver/CCDSolver.cpp
 
 	Prototypes/MotionRetarget/UI/IKImGui.cpp
 	Prototypes/MotionRetarget/UI/Guizmo.cpp
+	Prototypes/MotionRetarget/UI/EditCamera.cpp
 	Prototypes/MotionRetarget/Config/Config.cpp
 
+	#Prototypes/MotionRetarget/JointLimits/JointLimits.cpp
+	#Prototypes/MotionRetarget/JointLimits/HingeLimits.cpp
+	#Prototypes/MotionRetarget/JointLimits/SwingXZTwistYLimits.cpp
+	#Prototypes/MotionRetarget/JointLimits/SwingXTwistYLimits.cpp
+	#Prototypes/MotionRetarget/JointLimits/SwingZTwistYLimits.cpp
+	#Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
 )
 
 if(EMSCRIPTEN)

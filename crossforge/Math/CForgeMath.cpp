@@ -141,6 +141,10 @@ namespace CForge {
 		return Rval;
 	}//rotationMatrix
 
+	Eigen::Matrix4f CForgeMath::rotationMatrix(float angle, Eigen::Vector3f axis) {
+		return rotationMatrix((Quaternionf) AngleAxisf(degToRad(angle),axis));
+	}//rotationMatrix
+
 	Eigen::Matrix4f CForgeMath::translationMatrix(Eigen::Vector3f Trans) {
 		Matrix4f Rval = Matrix4f::Identity();
 		Rval(0, 3) = Trans.x();
@@ -159,7 +163,7 @@ namespace CForge {
 	}//scaleMatrix
 
 	Eigen::Matrix3f CForgeMath::alignVectors(const Eigen::Vector3f Source, const Eigen::Vector3f Target) {
-		//TODO(skade) remove
+		//TODO remove
 		// thanks to: ChatGPT
 		//const Vector3f a = Source;
 		//const Vector3f b = Target;
