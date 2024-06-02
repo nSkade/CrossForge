@@ -1,4 +1,3 @@
-
 void MotionRetargetingScene::rayCast(Eigen::Vector3f* ro, Eigen::Vector3f* rd) {
 	Vector4f Viewport = Vector4f(0.0f, 0.0f, float(m_RenderWin.width()), float(m_RenderWin.height())); 
 	Vector2f CursorPos = Vector2f(m_RenderWin.mouse()->position().x(), Viewport(3) - m_RenderWin.mouse()->position().y());
@@ -69,4 +68,3 @@ void MotionRetargetingScene::dragTarget(int target) {
 		TargetTransforms[i]->translation(targetPoints.col(i));
 	}
 }//dragTarget
-

@@ -40,43 +40,43 @@ namespace CForge {
 		enum Key : int16_t {
 			KEY_UNKNOWN = -1,	///< Default value.
 
-			KEY_0 = 48,		///< Numeric key 0.
-			KEY_1 = 49,		///< Numeric key 1.
-			KEY_2 = 50,		///< Numeric key 2.
-			KEY_3 = 51,		///< Numeric key 3.
-			KEY_4 = 52,		///< Numeric key 4.
-			KEY_5 = 53,		///< Numeric key 5.
-			KEY_6 = 54,		///< Numeric key 6.
-			KEY_7 = 55,		///< Numeric key 7.
-			KEY_8 = 56,		///< Numeric key 8.
-			KEY_9 = 57,		///< Numeric key 9.
+			KEY_0,// = 48,		///< Numeric key 0.
+			KEY_1,// = 49,		///< Numeric key 1.
+			KEY_2,// = 50,		///< Numeric key 2.
+			KEY_3,// = 51,		///< Numeric key 3.
+			KEY_4,// = 52,		///< Numeric key 4.
+			KEY_5,// = 53,		///< Numeric key 5.
+			KEY_6,// = 54,		///< Numeric key 6.
+			KEY_7,// = 55,		///< Numeric key 7.
+			KEY_8,// = 56,		///< Numeric key 8.
+			KEY_9,// = 57,		///< Numeric key 9.
 
-			KEY_A = 97,		///< Letter key a.
-			KEY_B = 98,		///< Letter key b.	
-			KEY_C = 99,		///< Letter key c.
-			KEY_D = 100,	///< Letter key d.
-			KEY_E = 101,	///< Letter key e.
-			KEY_F = 102,	///< Letter key f.
-			KEY_G = 103,	///< Letter key g.
-			KEY_H = 104,	///< Letter key h.
-			KEY_I = 105,	///< Letter key i.
-			KEY_J = 106,	///< Letter key j.	
-			KEY_K = 107,	///< Letter key k.
-			KEY_L = 108,	///< Letter key l.
-			KEY_M = 109,	///< Letter key m.
-			KEY_N = 110,	///< Letter key n.
-			KEY_O = 111,	///< Letter key o.
-			KEY_P = 112,	///< Letter key p.
-			KEY_Q = 113,	///< Letter key q.
-			KEY_R = 114,	///< Letter key r.
-			KEY_S = 115,	///< Letter key s.	
-			KEY_T = 116,	///< Letter key t.
-			KEY_U = 117,	///< Letter key u.	
-			KEY_V = 118,	///< Letter key v.
-			KEY_W = 119,	///< Letter key w.
-			KEY_X = 120,	///< Letter key x.
-			KEY_Y = 121,	///< Letter key y.
-			KEY_Z = 122,	///< Letter key z.
+			KEY_A,// = 97,		///< Letter key a.
+			KEY_B,// = 98,		///< Letter key b.
+			KEY_C,// = 99,		///< Letter key c.
+			KEY_D,// = 100,	///< Letter key d.
+			KEY_E,// = 101,	///< Letter key e.
+			KEY_F,// = 102,	///< Letter key f.
+			KEY_G,// = 103,	///< Letter key g.
+			KEY_H,// = 104,	///< Letter key h.
+			KEY_I,// = 105,	///< Letter key i.
+			KEY_J,// = 106,	///< Letter key j.
+			KEY_K,// = 107,	///< Letter key k.
+			KEY_L,// = 108,	///< Letter key l.
+			KEY_M,// = 109,	///< Letter key m.
+			KEY_N,// = 110,	///< Letter key n.
+			KEY_O,// = 111,	///< Letter key o.
+			KEY_P,// = 112,	///< Letter key p.
+			KEY_Q,// = 113,	///< Letter key q.
+			KEY_R,// = 114,	///< Letter key r.
+			KEY_S,// = 115,	///< Letter key s.
+			KEY_T,// = 116,	///< Letter key t.
+			KEY_U,// = 117,	///< Letter key u.
+			KEY_V,// = 118,	///< Letter key v.
+			KEY_W,// = 119,	///< Letter key w.
+			KEY_X,// = 120,	///< Letter key x.
+			KEY_Y,// = 121,	///< Letter key y.
+			KEY_Z,// = 122,	///< Letter key z.
 			
 			KEY_F1,	///< Function key F1.
 			KEY_F2,	///< Function key F2.
@@ -86,7 +86,7 @@ namespace CForge {
 			KEY_F6,	///< Function key F6.
 			KEY_F7,	///< Function key F7.
 			KEY_F8,	///< Function key F8.
-			KEY_F9,	///< Function key F9.	
+			KEY_F9,	///< Function key F9.
 			KEY_F10,///< Function key F10.
 			KEY_F11,///< Function key F11.
 			KEY_F12,///< Function key F12.

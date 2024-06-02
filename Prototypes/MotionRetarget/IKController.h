@@ -9,31 +9,28 @@
 
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
+#include "Constraints/IKTarget.hpp"
+
 namespace CForge {
+using namespace Eigen;
 
 class IKController : public SkeletalAnimationController {
 public:
-	struct EndEffectorData { // X corresponds to entry from end-effector to root
-		Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
-		Eigen::Matrix3Xf EEPosGlobal;     // current global joint positions
-		Eigen::Matrix3Xf TargetPosGlobal; // target global joint positions
-	};
-
-	//TODO(skade)
-	struct IKTarget {
-		Eigen::Vector3f pos;
-		float influence = 1.; //TODO(skade)
-	};
+	//struct EndEffectorData { // X corresponds to entry from end-effector to root
+	//	Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
+	//	Eigen::Matrix3Xf EEPosGlobal;     // current global joint positions
+	//	Eigen::Matrix3Xf TargetPosGlobal; // target global joint positions
+	//};
 
 	struct IKJoint {
-		Eigen::Vector3f GlobalPosition;
-		Eigen::Quaternionf GlobalRotation;
+		Eigen::Vector3f posGlobal;
+		Eigen::Quaternionf rotGlobal;
 
-		Eigen::Vector3f LocalPosition;         //TODO(skade) requred? corresponded to EEPosLocal
+		Eigen::Vector3f posLocal;         //TODO(skade) requred? corresponded to EEPosLocal
 		//TODO(skade) target pos needs to be handled by iksolver
 		//std::vector<IKTarget> TargetPosGlobal; // Global target Positions the Joint tries to reach
 
-		EndEffectorData* pEndEffectorData;     //TODO(skade) remove
+		//EndEffectorData* pEndEffectorData;     //TODO(skade) remove
 		
 		//JointLimits* pLimits;
 	};
@@ -45,21 +42,23 @@ public:
 	struct IKSegment {
 		std::string name;
 		std::vector<SkeletalJoint*> joints; // front() is end-effector joint
+		IKTarget* target;
 	};
 
-	//TODO(skade) improve SPOT
+	//TODO(skade) improve SPOT remove
 	/**
 	 * @brief EndEffector object for interaction and visualization outside of this class.
 	 */
-	struct SkeletalEndEffector {
-		SkeletalJoint* joint = nullptr;
-		IKJoint* jointIK = nullptr;
-		std::string segmentName;
-	};
+	//struct SkeletalEndEffector {
+	//	SkeletalJoint* joint = nullptr;
+	//	IKJoint* jointIK = nullptr;
+	//	std::string segmentName;
+	//};
+
 	/**
 	 * \brief Returns reference to m_IKJoints.
 	 */
-	std::vector<SkeletalEndEffector> retrieveEndEffectors(void);
+	//std::vector<SkeletalEndEffector> retrieveEndEffectors(void);
 
 	IKController(void);
 	~IKController(void);
@@ -80,13 +79,22 @@ public:
 	void updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton);
 
 	void translateTarget(std::string segmentName, Eigen::Vector3f Translation);
-	Eigen::Matrix3Xf getTargetPoints(std::string segmentName);
+	//Eigen::Matrix3Xf getTargetPoints(std::string segmentName);
 
 	/**
 	 * @brief Update IK Bone values to current animation frame.
 	 */
 	void updateBones(Animation* pAnim);
-	void updateEndEffectorPoints();
+	//void updateEndEffectorPoints();
+	std::vector<IKTarget*> getTargets() { return m_targets; };
+
+	//TODO(skade) find better solution
+	IKSegment* getSegment(IKTarget* target) {
+		for (auto& a : m_JointChains) {
+			if (a.second.target == target)
+				return &a.second;
+		}
+	}
 
 protected:
 	
@@ -94,16 +102,23 @@ protected:
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
 	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
 	void initEndEffectorPoints();
-	void initTargetPoints(void);
+
+	//TODO(skade) remove
+	/**
+	 * @brief inits for every skeleton endeffector a target
+	*/
+	void initTargetPoints();
+	std::vector<IKTarget*> m_targets;
 
 	// end-effector -> root CCD IK
-	void ikCCDglobal(std::string segmentName);
+	//void ikCCDglobal(std::string segmentName);
 	//TODO(skade) remove
 	void ikCCD(std::string segmentName);
 	void rotateGaze();
 
 	//TODO(skade) remove 
-	Eigen::Quaternionf computeUnconstrainedGlobalRotation(IKJoint* pJoint, EndEffectorData* pEffData);
+	//TODO(skade) EndEffectorData
+	//Eigen::Quaternionf computeUnconstrainedGlobalRotation(IKJoint* pJoint, EndEffectorData* pEffData);
 
 	/**
 	 * @brief Computes global position and rotation of joints of the skeletal hierarchy.

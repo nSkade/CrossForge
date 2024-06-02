@@ -12,12 +12,13 @@
 
 #include "IKSkeletalActor.h"
 #include "IKStickFigureActor.h"
+#include "UI/Picking.h"
 
 namespace CForge {
 
 class MotionRetargetingScene : public ExampleSceneBase {
 public:
-	MotionRetargetingScene(void) {
+	MotionRetargetingScene(void) : m_picker(&m_RenderWin,&m_Cam) {
 		m_WindowTitle = "CForge Motion Retarget Editor";
 	}//Constructor
 
@@ -34,14 +35,14 @@ public:
 	void renderUIAnimation();
 
 private:
-	void rayCast(Eigen::Vector3f* ro, Eigen::Vector3f* rd);
+	//void rayCast(Eigen::Vector3f* ro, Eigen::Vector3f* rd);
 	//TODO(skade) implement target bone
-	void pickTarget();
-	void dragTarget(int target);
+	//void pickTarget();
+	//void dragTarget(int target);
 
 	void initCharacter();
 	void initEndEffectorMarkers();
-	void updateEndEffectorMarkers();
+	//void updateEndEffectorMarkers();
 
 	/**
 	 * @brief Render Joints and Constraints
@@ -67,7 +68,7 @@ private:
 	SkeletalActor m_SkeletalActor;
 	
 	// end-effector & target markers
-	std::vector<IKController::SkeletalEndEffector> m_EndEffectors;
+	//std::vector<IKController::SkeletalEndEffector> m_EndEffectors;
 
 	SGNTransformation m_EffectorVis;
 	std::map<std::string, std::vector<SGNTransformation*>> m_EffectorTransformSGNs;
@@ -83,8 +84,8 @@ private:
 	AlignedBox3f m_TargetMarkerAABB;
 
 	//TODO(skade) comment
-	int32_t m_SelectedEffectorTarget = -1; // index into m_EndEffectors vector; NOT id of joint inside m_CharacterController
-	int32_t m_LastSelectedEffectorTarget = -1; // index into m_EndEffectors vector; NOT id of joint inside m_CharacterController
+	//int32_t m_SelectedEffectorTarget = -1; // index into m_EndEffectors vector; NOT id of joint inside m_CharacterController
+	//int32_t m_LastSelectedEffectorTarget = -1; // index into m_EndEffectors vector; NOT id of joint inside m_CharacterController
 
 	bool m_LMBDownLastFrame = false;
 	Vector3f m_DragStart = Vector3f::Zero();
@@ -98,17 +99,21 @@ private:
 	bool m_visualizeJoints = true;
 	bool m_showEffector = true;
 	bool m_showTarget = true;
-	Eigen::Matrix4f m_guizmoMat = Eigen::Matrix4f::Identity();
+	bool m_guizmoViewManipChanged = false;
+	Matrix4f m_guizmoMat = Matrix4f::Identity();
 
 	// Anim Gui
 	int m_animFrameCurr = 0;
 	SkeletalAnimationController::Animation* m_pAnimCurr = nullptr; //TODO(skade) rename
 	int m_animAutoplay = false;
 
+	bool keyboardAnyKeyPressed();
+
 	IKImGui m_gui;
 	Guizmo m_guizmo;
 	Config m_config;
 	EditCamera m_editCam;
+	Picker m_picker;
 };//MotionRetargetingScene
 
 }//CForge
