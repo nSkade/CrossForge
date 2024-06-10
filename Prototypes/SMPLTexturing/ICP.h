@@ -7,8 +7,6 @@
 
 namespace CForge
 {
-
-
     struct PointLenght{
         size_t source;
         size_t target;

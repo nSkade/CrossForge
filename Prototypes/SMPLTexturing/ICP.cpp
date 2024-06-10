@@ -205,6 +205,8 @@ namespace CForge {
 			pointLenght.push_back(pt);
 		}
 	} //findClosestPointKDTree
+
+	
 	
 	int32_t ICP::findClosestPoint(const Eigen::Vector3f P, SpacePartition::OctreeNode* pRoot, const std::vector<Eigen::Vector3f> *pPointCloud, float &closestDistance) {
 		int32_t ClosestPoint = -1;

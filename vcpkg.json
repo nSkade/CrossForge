@@ -12,9 +12,10 @@
 		"tinyxml2",
 		"tinygltf",
 		"libjpeg-turbo",
-    "nanoflann", 
-    "nlohmann-json",
-    "jsoncpp", 
+    	"nanoflann", 
+    	"nlohmann-json",
+    	"jsoncpp",
+		"libpng", 
 		{
 			"name": "ffmpeg",
 			"default-features": true,

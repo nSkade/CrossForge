@@ -140,6 +140,9 @@ add_executable(CForgeSandbox
 
 	Prototypes/SkeletonConvertion.cpp
 
+	Prototypes/PNGimport/pngImport.cpp
+	Prototypes/SMPLTexturing/MeshConnection.cpp
+
 	#Inverse Kinematics Prototype
 	Prototypes/InverseKinematics/InverseKinematicsController.cpp
 	Prototypes/InverseKinematics/IKSkeletalActor.cpp
@@ -221,6 +224,7 @@ elseif(UNIX)
 		PRIVATE nlohmann_json::nlohmann_json
 		PRIVATE JsonCpp::JsonCpp
 		PRIVATE Pinocchio
+		# PRIVATE libpng 
 		)
 endif()
 

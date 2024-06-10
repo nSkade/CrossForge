@@ -25,9 +25,13 @@
 #include "json/json.h"
 #include <Prototypes/JsonBone/JsonBoneRead.h>
 #include <Prototypes/objImport/objImport.h>
+#include <Prototypes/PNGimport/pngImport.h>
+#include <Prototypes/SMPLTexturing/ICP.h>
+#include <Prototypes/SMPLTexturing/MeshConnection.h>
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 using namespace Eigen;
 using namespace std;
@@ -46,6 +50,18 @@ namespace CForge {
 			ARM,
 			HAND
 		};
+
+		struct BorderNeighborhood{
+			int id; 
+			BoneGroups group; 
+			std::vector<std::vector<int32_t>> neighboringFaces;
+			std::vector<int32_t> border; 
+		}; 
+
+		struct ParentChildBorder{
+			std::vector<int32_t> parentBorder; 
+			std::vector<int32_t> childBorder;
+		}; 
 
 		ExampleBAMaterials(void) {
 			m_WindowTitle = "CrossForge Example - ICP";
@@ -82,7 +98,7 @@ namespace CForge {
 
 			// std::vector<Eigen::Vector3f>>* color; 
 			// m_ProxyMesh.colors(); 
-            m_Reconstruction.init(&m_ProxyMesh);
+            m_Reconstruction.init(&m_SMPLXMesh);
 			m_ReconstructionTransformSGN.init(&m_RootSGN); // Vector3f(0.0f, 0.0f, 0.0f)
 			
             m_ReconstructionTransformSGN.translation(Vector3f(0.0f, 1.25f, 0.0f));
@@ -92,12 +108,30 @@ namespace CForge {
 			const std::string fileName = "MyAssets/result.json"; 
 			T3DMesh<float> regionMesh = getRegionalModel(fileName, &m_ProxyMesh);
 			
-			regionMesh.computePerVertexNormals(); 
-			regionMesh.computePerFaceNormals(); 
+			// copying the region mesh to m_RegionMesh
+			std::vector<Vector3f> vertices;
+			for(int i = 0; i < regionMesh.vertexCount(); i++){
+				vertices.push_back(regionMesh.vertex(i));
+			}
+			m_RegionMesh.vertices(&vertices);
+			for(int i = 0; i < regionMesh.submeshCount(); i++){
+				T3DMesh<float>::Submesh *sub = regionMesh.getSubmesh(i); 
+				m_RegionMesh.addSubmesh(sub, true);	
+			}
+			for(int i = 0; i < regionMesh.materialCount(); i++){
+				T3DMesh<float>::Material *mat = regionMesh.getMaterial(i); 
+				m_RegionMesh.addMaterial(mat, true);	
+			}
+			// copying end 
+			
+			m_RegionMesh.computePerVertexNormals(); 
+			m_RegionMesh.computePerFaceNormals(); 
 
-			m_RegionActor.init(&regionMesh); 
+			m_RegionActor.init(&m_RegionMesh); 
 			m_RegionActorTransformSGN.init(&m_RootSGN); 
 			m_RegionActorSGN.init(&m_RegionActorTransformSGN, &m_RegionActor); 
+			m_RegionActorTransformSGN.rotation(Quaternionf(AngleAxis(CForgeMath::degToRad(180.0f), Vector3f::UnitY())));
+			m_RegionActorTransformSGN.translation(Vector3f(0.0f, -0.5f, 0.0f));
 
 			// create help text
 			LineOfText* pKeybindings = new LineOfText();
@@ -128,15 +162,15 @@ namespace CForge {
 			// std::string ErrorMsg;
 			// if (0 != CForgeUtility::checkGLError(&ErrorMsg)) {
 			// 	SLogger::log("OpenGL Error" + ErrorMsg, "PrimitiveFactoryTestScene", SLogger::LOGTYPE_ERROR);
-			// }
+			// } 
+
+			// later for floatfill
+			m_textur.readPNGFile("MyAssets/Reko_Timo/Timon_A_20k.png"); 
+			m_correspondencies = countDoubleVerticesKDTree(&m_ProxyMesh, &m_SMPLXMesh, &m_correspondenciesNotInverted);
+
+			//getNeigborhoodRegionMesh(&m_RegionMesh, &timon);
 
 		}//initialize
-
-		T3DMesh<float> getRegionalModel(const std::string fileName, CForge::T3DMesh<float> *mesh){
-            std::vector<int32_t> correspondingGroup = maxSkinningInfluence(fileName); 
-			std::vector<BoneGroups> boneRegion = getRegionOfGroup(correspondingGroup);
-			return constructRegionalModel(mesh, boneRegion);
-		}
 
 		void clear(void) override{
 			m_RenderWin.stopListening(this);
@@ -172,7 +206,16 @@ namespace CForge {
 			updateFPS();
 
 			defaultKeyboardUpdate(m_RenderWin.keyboard());
-
+			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_1)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_1, Keyboard::KEY_RELEASED); 
+				moveBorderMesh(&m_RegionMesh, BoneGroups::HEAD, BoneGroups::TORSO);
+				m_RegionActor.init(&m_RegionMesh);
+			}
+			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_2)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_2, Keyboard::KEY_RELEASED); 
+				floatfill(&m_RegionMesh, &m_textur);
+				m_RegionActor.init(&m_RegionMesh);
+			}
 			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_J)){
 				m_RenderWin.keyboard()->keyState(Keyboard::KEY_J, Keyboard::KEY_RELEASED); 
                 Eigen::Vector3f trans = m_ReconstructionTransformSGN.translation() + Eigen::Vector3f(0.125f, 0.0f, 0.0f);
@@ -187,34 +230,331 @@ namespace CForge {
 
 		}//mainLoop
 
-        std::vector<std::vector<int>> countDoubleVertices(T3DMesh<float>* pOrigin, T3DMesh<float>* pProxy, float eps = 0.0001f){
-			std::vector<std::vector<int>> correspondingIndex;
-			for(int i = 0; i < pOrigin->vertexCount(); i++){
-				Vector3f originVertex = pOrigin->vertex(i);
-				std::vector<int> vertexList; 
-				
-				for(int j = 0; j < pProxy->vertexCount(); j++){
-					Vector3f proxyVertex = pProxy->vertex(j);
+		void floatfill(T3DMesh<float> *pMesh, PNGImport *textur){
+			if(pMesh->submeshCount() != m_allRegionTypes.size()) throw CForgeExcept("Region Mesh has not the same number of regions as the hard coded ones");
+			if(pMesh == nullptr) throw CForgeExcept("Mesh is nullptr");
+			if(textur == nullptr || !textur->isPictureLoaded()) throw CForgeExcept("Texture is nullptr or not existing");
+			
 
-					float dist = (proxyVertex - originVertex).norm();
-					if(dist < eps){
-						vertexList.push_back(j); 
+			// 1. pick the neighboring regions
+			for(int parentID = 0; parentID < m_NeighborshipOneWay.size(); parentID++){
+				BoneGroups parentGroup = m_allRegionTypes[parentID];
+				std::vector<BoneGroups> childVector = m_NeighborshipOneWay.at(parentGroup);
+
+				// 1.1. get submesh of parent
+				T3DMesh<float>::Submesh *subParent = pMesh->getSubmesh(parentID);
+
+				for(int childID = 0; childID < childVector.size(); childID++){
+					// 1.2. get submesh of child
+					BoneGroups childGroup = childVector.at(childID);
+					T3DMesh<float>::Submesh *subChild = pMesh->getSubmesh(childGroup);
+
+					// 2. prepare the border of the parent and the child
+					std::vector<std::vector<int32_t>> neighboringFacesParent, neighboringFacesChild;
+					std::vector<int32_t> parentBorder, childBorder;
+					BorderNeighborhood parent, child; 
+					ParentChildBorder borderRegions;
+
+					int counter = 0; 
+					double colorDifference = 0, oldColorDifference = 0;
+					
+					do {
+						// 2.1 get the border of the parent and the child
+						parentBorder = MeshConnection::getEdgesSubmesh(pMesh, parentGroup, &neighboringFacesParent);
+						childBorder = MeshConnection::getEdgesSubmesh(pMesh, childGroup, &neighboringFacesChild);
+						parent = BorderNeighborhood{parentGroup, parentGroup, neighboringFacesParent, parentBorder};
+						child = BorderNeighborhood{childGroup, childGroup, neighboringFacesChild, childBorder};
+						borderRegions = detectCommonBorder(pMesh, &parent, &child);
+
+						// 3. get the color of the borders
+						oldColorDifference = colorDifference;
+						colorDifference = colorDifferenceChildParent(pMesh, textur, &parent, &child, &borderRegions);
+
+						// 4. if color under threshold -> add to parent and remove from child
+						if(colorDifference < m_thresholdDeltaColor){
+							addAndRemoveFacesMesh(pMesh, &parent, &child, &borderRegions);
+							std::cout << "Parent: " << parentID << "| Child: " << childID << " | Color Difference: " << colorDifference << std::endl;
+							counter++;
+						}
+						else{
+							std::cout << "Color Difference too high: " << colorDifference << std::endl;
+							counter = 0; 
+						}
+
+					// 5. rinse and repeat
+					} while (colorDifference < m_thresholdDeltaColor && counter < m_maxFloatFillItteration);
+					
+				}// childID
+			}// parentID
+
+			// serach for isolated faces and add them to the according region
+
+		}
+
+		void moveBorderMesh(T3DMesh<float> *pMesh, BoneGroups parentID, BoneGroups childID){
+			// just for testing - I've noticed that the border removal is not as seamless as I thought
+			// idea is, to remove the border between the head and the torso and to add the torso border to the head
+
+			if(pMesh->submeshCount() != m_allRegionTypes.size()) throw CForgeExcept("Region Mesh has not the same number of regions as the hard coded ones");
+			if(pMesh == nullptr) throw CForgeExcept("Mesh is nullptr");
+
+			// test with the head and torso -> they share a border
+			// BoneGroups parentID = BoneGroups::HEAD, childID = BoneGroups::TORSO;
+
+			std::vector<std::vector<int32_t>> neighboringFacesParent, neighboringFacesChild;
+			std::vector<int32_t> parentBorder = MeshConnection::getEdgesSubmesh(pMesh, parentID, &neighboringFacesParent);
+			std::vector<int32_t> childBorder = MeshConnection::getEdgesSubmesh(pMesh, childID, &neighboringFacesChild);
+			BorderNeighborhood parent = BorderNeighborhood{parentID, parentID, neighboringFacesParent, parentBorder};    
+			BorderNeighborhood child = BorderNeighborhood{childID, childID, neighboringFacesChild, childBorder};
+
+			// get the common border
+			ParentChildBorder borderRegions = detectCommonBorder(pMesh, &parent, &child);
+
+			// remove the head border from the Mesh
+			T3DMesh<float>::Submesh *subParent = pMesh->getSubmesh(parentID);
+			T3DMesh<float>::Submesh *subChild = pMesh->getSubmesh(childID); 
+			std::vector<T3DMesh<float>::Face> newFacesParent;
+			std::vector<T3DMesh<float>::Face> newFacesChild;
+
+			// push original faces and the torso faces to the newFacesParent
+			for(int i = 0; i < subParent->Faces.size(); i++){
+				newFacesParent.push_back(subParent->Faces[i]);
+			}
+			for(int i = 0; i < borderRegions.childBorder.size(); i++){
+				T3DMesh<float>::Face f = subChild->Faces[borderRegions.childBorder.at(i)];
+				newFacesParent.push_back(f);
+			}
+			subParent->Faces = newFacesParent;
+
+			// push everything except the border to the newFacesChild
+			for(int i = 0; i < subChild->Faces.size(); i++){
+				bool inVec = std::find(borderRegions.childBorder.begin(), borderRegions.childBorder.end(), i) != borderRegions.childBorder.end();
+				if(!inVec){
+					newFacesChild.push_back(subChild->Faces[i]); 
+				}
+			}
+			subChild->Faces = newFacesChild;
+		}
+
+		void getNeigborhoodRegionMesh(T3DMesh<float> *pMesh, PNGImport *textur){
+			if(pMesh->submeshCount() != m_allRegionTypes.size()) throw CForgeExcept("Region Mesh has not the same number of regions as the hard coded ones");
+			if(pMesh == nullptr) throw CForgeExcept("Mesh is nullptr");
+			if(textur == nullptr || !textur->isPictureLoaded()) throw CForgeExcept("Texture is nullptr or not existing"); 
+
+			// we want to get the neighborhood of the regions
+			// i.e. which region is next to which one
+
+			std::vector<BorderNeighborhood> borderNeighborhood;
+			for(int i = 0; i < pMesh->submeshCount(); i++){
+				std::vector<std::vector<int32_t>> neighboringFaces; 
+				std::vector<int32_t> border =  MeshConnection::getEdgesSubmesh(pMesh, i, &neighboringFaces); 
+				borderNeighborhood.push_back(BorderNeighborhood{i, m_allRegionTypes[i], neighboringFaces, border});
+			}
+
+			// compare every border triangle to the others -> which borders which?
+			ParentChildBorder borderRegions; 
+			for(int region = 0; region < m_Neighborship.size(); region++){
+				std::vector<BoneGroups> neighbor = m_Neighborship.at(region);
+
+				for(int border = 0; border < neighbor.size(); border++){
+					// for every border...
+					BorderNeighborhood *parent = &borderNeighborhood.at(region);
+					BorderNeighborhood *child = &borderNeighborhood.at(neighbor.at(border));
+					
+					// // get the common border
+					// borderRegions = detectCommonBorder(pMesh, parent, child);
+					// // get the color of the borders
+					// double colorDifference = 0; 
+					
+					// // colorDifferenceChildParent(pMesh, textur, parent, child, &borderRegions);
+
+					// if(colorDifference < m_thresholdDeltaColor){
+					// 	// add to the parent and do it again
+					// 	// remove from child 
+					// 	addAndRemoveFacesMesh(pMesh, parent, child, &borderRegions);
+					// }
+
+					
+					int counterFloatFill = 0; 
+					double colorDifference = 0;
+					double oldColorDifference = 0; 
+					do { //.do it once first and then check -> do while...
+						// get the common border
+						borderRegions = detectCommonBorder(pMesh, parent, child);
+						if(borderRegions.childBorder.size() == 0 || borderRegions.parentBorder.size() == 0){
+							std::cout << "No Common Border" << std::endl;
+							break; 
+						} 
+
+						colorDifference = colorDifferenceChildParent(pMesh, textur, parent, child, &borderRegions);
+						std::cout << "Child id: " << child->id << " Parent id: " << parent->id << "| Color Difference: " << colorDifference << std::endl;
+
+						// add to the parent and do it again
+						// remove from child 
+						addAndRemoveFacesMesh(pMesh, parent, child, &borderRegions);
+
+						
+						if(m_thresholdDeltaColor * 1.5 < oldColorDifference + colorDifference){
+							std::cout << "Color Difference is too high" << std::endl;
+							break;
+						}  
+						oldColorDifference = colorDifference;
+
+						// we know that the child's border is the new border of the parent - do not need to search
+						// for(auto &element : borderRegions.childBorder){
+						// 	parent->border.push_back(element);
+						// }
+						// but need to search for the child (or get it via the neighbroing faces)
+						
+						std::vector<int32_t> borderParent =  MeshConnection::getEdgesSubmesh(pMesh, parent->id);
+						std::vector<int32_t> borderChild =  MeshConnection::getEdgesSubmesh(pMesh, child->id);
+						parent->border = borderParent;  
+						child->border = borderChild;
+						// I need to do it at the regions not the indicies 
+						// Ich mein, hier nehme ich einfach region und border, brauche aber an den stellen neighborhood(region) und neighborhood(border)
+						// d.h. ich benutzte die völlig falschen submeshes! - deshalb funktioniert das nur einmal!
+
+						// for(int i = 0; i < pMesh->submeshCount(); i++){
+						// 	std::vector<std::vector<int32_t>> neighboringFaces; 
+						// 	std::vector<int32_t> border =  MeshConnection::getEdgesSubmesh(pMesh, i, &neighboringFaces); 
+						// 	borderNeighborhood.push_back(BorderNeighborhood{i, m_allRegionTypes[i], neighboringFaces, border});
+						// }		
+					} 
+					while (colorDifference < m_thresholdDeltaColor || counterFloatFill < m_maxFloatFillItteration);
+					
+
+				}//border
+			}//region  
+		}
+		
+		void addAndRemoveFacesMesh(T3DMesh<float> *pMesh, BorderNeighborhood *parent, BorderNeighborhood *child, ParentChildBorder *borderRegions){
+			// we want to add the faces from the child to the parent and remove them from the child
+			// we also want to update the border of the parent and child
+
+			T3DMesh<float>::Submesh *subParent = pMesh->getSubmesh(parent->id);
+			T3DMesh<float>::Submesh *subChild = pMesh->getSubmesh(child->id);
+			std::vector<T3DMesh<float>::Face> newFacesParent;
+			std::vector<T3DMesh<float>::Face> newFacesChild;
+			
+
+			// push original faces and the torso faces to the newFacesParent
+			for(int i = 0; i < subParent->Faces.size(); i++){
+				newFacesParent.push_back(subParent->Faces[i]);
+			}
+			for(int i = 0; i < borderRegions->childBorder.size(); i++){
+				T3DMesh<float>::Face f = subChild->Faces[borderRegions->childBorder.at(i)];
+				newFacesParent.push_back(f);
+			}
+			subParent->Faces = newFacesParent;
+
+			// push everything except the border to the newFacesChild
+			for(int i = 0; i < subChild->Faces.size(); i++){
+				bool inVec = std::find(borderRegions->childBorder.begin(), borderRegions->childBorder.end(), i) != borderRegions->childBorder.end();
+				if(!inVec){
+					newFacesChild.push_back(subChild->Faces[i]); 
+				}
+			}
+			subChild->Faces = newFacesChild;
+		}
+
+		ParentChildBorder detectCommonBorder(T3DMesh<float> *pMesh, BorderNeighborhood *parent, BorderNeighborhood *child){
+			// we want to detect the border between two regions (parent and child)
+			
+			ParentChildBorder Rval; 
+			T3DMesh<float>::Submesh *parentSub = pMesh->getSubmesh(parent->id);
+			T3DMesh<float>::Submesh *childSub  = pMesh->getSubmesh(child->id);
+			
+			// here we save the future border - so we can compare the color
+			std::vector<int32_t> parentBorder; std::vector<int32_t> childBorder;
+
+			// get the actual triangles which border each other
+			// need to search through the faces of the submeshes - but we have the border
+			for(int i = 0; i < parent->border.size(); i++){
+				// this face we want to compare with the child
+				T3DMesh<float>::Face fParent = parentSub->Faces[parent->border.at(i)];
+
+				for(int j = 0; j < child->border.size(); j++){
+					T3DMesh<float>::Face fChild = childSub->Faces[child->border.at(j)];
+
+					// compare the faces
+					if(MeshConnection::shareEdge(fParent, fChild)){
+						parentBorder.push_back(parent->border.at(i)); 
+						childBorder.push_back(child->border.at(j)); 
 					}
-				}
-				if(vertexList.empty()){
-					std::cout << "At place " << i << " is empty" << std::endl; 
-					vertexList.push_back(-1); 
-				}
-				correspondingIndex.push_back(vertexList); 
+
+				}//child
+			}//parent
+
+			Rval.childBorder = childBorder;
+			Rval.parentBorder = parentBorder;
+			return Rval;
+
+		}//detectCommonBorder
+
+		double colorDifferenceChildParent(T3DMesh<float> *pMesh, PNGImport *textur, BorderNeighborhood *parent, BorderNeighborhood *child, ParentChildBorder *borderRegions){
+			double Rval; 
+			// first get the mean color of the regions
+			Eigen::Vector4d parentCol = textur->getMeanColor(pMesh, parent->id, &borderRegions->parentBorder, &m_SMPLXMesh, &m_correspondenciesNotInverted);
+			Eigen::Vector4d childCol = textur->getMeanColor(pMesh, child->id, &borderRegions->childBorder, &m_SMPLXMesh, &m_correspondenciesNotInverted);
+		
+			// convert it to lab space and then compare the two colors
+			Eigen::Vector3f parentCol3 = Eigen::Vector3f(parentCol.x(), parentCol.y(), parentCol.z());
+			Eigen::Vector3f childCol3 = Eigen::Vector3f(childCol.x(), childCol.y(), childCol.z());
+			Rval = ColorSpace::differenceRGBValues(parentCol3, childCol3); 
+			return Rval; 
+		}
+
+		T3DMesh<float> getRegionalModel(const std::string fileName, CForge::T3DMesh<float> *mesh){
+            std::vector<int32_t> correspondingGroup = maxSkinningInfluence(fileName); 
+			std::vector<BoneGroups> boneRegion = getRegionOfGroup(correspondingGroup);
+			return constructRegionalModel(mesh, boneRegion);
+		}
+
+		std::vector<std::vector<int>> countDoubleVerticesKDTree(T3DMesh<float>* pProxy, T3DMesh<float>* pOrigin, std::vector<int> *notInverted = nullptr){
+			// this is the same as countDoubleVertices but it is much faster due to the use of a kd-tree
+			// it achieves the same result as the other function
+
+			std::vector<Eigen::Vector3f> A, B;  
+			std::vector<PointLenght> closestPoints;
+			std::vector<std::vector<int>> Rval; 
+
+			for(int i = 0; i < pOrigin->vertexCount(); i++){
+				A.push_back(pOrigin->vertex(i)); 
+			}
+			for(int i = 0; i < pProxy->vertexCount(); i++){
+				B.push_back(pProxy->vertex(i)); 
 			}
 			
-			// check whether the corresponding list has as many entrys as the proxy geometry
-			// int counter = 0; 
-			// for (size_t i = 0; i < correspondingIndex.size(); i++){
-			// 	counter += correspondingIndex[i].size();
-			// } // -> should be the same 
-			
-			return correspondingIndex; 
+			ICP::findClosestPointsKDTree(&A, &B, closestPoints);
+
+			for(int i = 0; i < pProxy->vertexCount(); i++){
+				std::vector<int> p = {-1}; 
+				Rval.push_back(p); 
+			}
+
+			// now invert closestPoints
+			for(int i = 0; i < closestPoints.size(); i++){
+				int t = closestPoints[i].target; 
+				int s = closestPoints[i].source; 
+				Rval.at(t).push_back(s); 
+
+				// for not inverted
+				notInverted->push_back(closestPoints[i].target);
+			}
+
+			for(int i = 0; i < Rval.size(); i++){
+				Rval.at(i).erase(Rval.at(i).begin()); // get rid of -1
+			}
+
+			// for(int i = 0; i < Rval.size(); i++){
+			// 	printf("%d: ", i);
+			// 	for(int j = 0; j < Rval.at(i).size(); j++){
+			// 		printf("%d ", Rval.at(i).at(j)); 
+			// 	}
+			// 	printf("\n"); 
+			// }
+
+			return Rval; 
 		}
 
         std::vector<int32_t> maxSkinningInfluence(const std::string &fileName){
@@ -293,8 +633,6 @@ namespace CForge {
 					faceGroupBelonging.push_back(face); 
 
 					// push it to the right region
-
-					// TODO: HIER IRGENDWO LIEGT DER FEHLER
 					auto it = find(m_allRegionTypes.begin(), m_allRegionTypes.end(), face);
 					int regionIndex; 
 					if(it != m_allRegionTypes.end()) regionIndex = it - m_allRegionTypes.begin(); 
@@ -348,7 +686,7 @@ namespace CForge {
 			else{
 				// maybe something better? -> examin neighborhood
 				// which vertex has the most neighbors with the same class?
-				rval=  correspondingGroup[v1];  
+				rval=  correspondingGroup[v2];  
 			}
 			return rval; 
 		}
@@ -374,6 +712,11 @@ namespace CForge {
 		
         T3DMesh<float> m_SMPLXMesh;
 		T3DMesh<float> m_ProxyMesh; 
+		T3DMesh<float> m_RegionMesh;
+		T3DMesh<float>* m_RegionMeshPtr;
+
+		std::vector<std::vector<int32_t>> m_correspondencies;
+		std::vector<int32_t> m_correspondenciesNotInverted;
 
         Eigen::Vector3f m_translationReconstruction = Eigen::Vector3f(0.0f, 0.0f, 0.0f); 
 
@@ -388,16 +731,42 @@ namespace CForge {
 		std::array<BoneGroups, 55> m_SMPLXGroup =  
 									{TORSO, LEG, LEG, TORSO, LEG, 
 									LEG, TORSO, FOOT, FOOT, TORSO, 
-									FOOT, FOOT, FOOT, TORSO, TORSO, 
-									FOOT, ARM, ARM, ARM, ARM, 
-									HAND, HAND, FOOT, FOOT, FOOT, 
+									FOOT, FOOT, HEAD, TORSO, TORSO, 
+									HEAD, ARM, ARM, ARM, ARM, 
+									HAND, HAND, HEAD, HEAD, HEAD, 
 									HAND, HAND, HAND, HAND, HAND, 
 									HAND, HAND, HAND, HAND, HAND, 
 									HAND, HAND, HAND, HAND, HAND, 
 									HAND, HAND, HAND, HAND, HAND,
 									HAND, HAND, HAND, HAND, HAND, 
 									HAND, HAND, HAND, HAND, HAND}; 
-	
-    };//ExampleScanScreenshot
+		
+		// hard coded neighborship 
+		std::vector<std::vector<BoneGroups>> m_Neighborship = {
+			{TORSO},
+			{HEAD, ARM, LEG},
+			{LEG},
+			{FOOT},
+			{HAND},
+			{ARM}
+		}; 
+
+		// during floatfill we do not want to do things two times (i.e. HEAD -> TORSO and TORSO -> HEAD)
+		// so we have a one way neighborship
+		std::vector<std::vector<BoneGroups>> m_NeighborshipOneWay = {
+			{}, // HEAD
+			{HEAD, ARM, LEG}, // TORSO
+			{LEG}, // FOOT
+			{}, // LEG
+			{}, // ARM
+			{ARM}, // HAND
+		};
+
+		// max color difference in lab space
+		double m_thresholdDeltaColor = 3;
+		int m_maxFloatFillItteration = 10;
+		PNGImport m_textur; 
+
+	}; //ExampleBAMaterials
 
 }//name space

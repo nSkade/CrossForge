@@ -5,6 +5,8 @@
 namespace CForge{
     
     // this is just for reading a smplx file - it has just vertices and indices and comments
+    // texture are not completely supported
+
     void objImportExport::readObjFile(std::string fileName, std::vector<Eigen::Vector3f> &vertices, std::vector<T3DMesh<float>::Face> &indices, std::vector<Eigen::Matrix<float, 3, 1>>& uvs){
         // read a file
         std::ifstream file(fileName);
