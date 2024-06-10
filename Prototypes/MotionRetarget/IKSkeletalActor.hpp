@@ -2,7 +2,7 @@
 
 #include <crossforge/Graphics/Actors/SkeletalActor.h>
 
-#include "IKController.h"
+#include "IKController.hpp"
 
 namespace CForge {
 	class IKSkeletalActor : public SkeletalActor {

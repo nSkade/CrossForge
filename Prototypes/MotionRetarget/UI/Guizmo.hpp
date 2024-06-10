@@ -1,4 +1,5 @@
 #pragma once
+
 #include <crossforge/Graphics/Camera/VirtualCamera.h>
 
 namespace CForge {

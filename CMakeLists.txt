@@ -125,7 +125,8 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/IKSkeletalActor.cpp
 	Prototypes/MotionRetarget/IKStickFigureActor.cpp
 
-	#Prototypes/MotionRetarget/IKSolver/CCDSolver.cpp
+	Prototypes/MotionRetarget/IKSolver/CCDSolver.cpp
+	Prototypes/MotionRetarget/IKSolver/FABRIKSolver.cpp
 
 	Prototypes/MotionRetarget/CMN/EigenMesh.cpp
 	Prototypes/MotionRetarget/UI/Picking.cpp

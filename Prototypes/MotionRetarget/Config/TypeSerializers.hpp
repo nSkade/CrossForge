@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Config.hpp"
 #include <typeinfo>
 #include <fstream>
@@ -37,4 +39,3 @@ void Config::baseLoad() {
 }
 
 }//CForge
-

@@ -1,5 +1,5 @@
 
-#include <Prototypes/MotionRetarget/IKController.h>
+#include <Prototypes/MotionRetarget/IKController.hpp>
 
 namespace CForge {
 

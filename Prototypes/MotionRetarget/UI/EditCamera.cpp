@@ -7,8 +7,26 @@
 
 namespace CForge {
 
+void EditCamera::setCamProj(VirtualCamera* pCamera, GLWindow* pRWin) {
+	float rwWidth = pRWin->width();
+	float rwHeight = pRWin->height();
+	float aspect = rwWidth/rwHeight;
+	float fov = 45.;
+	float dist = std::abs(pCamera->position().norm());
+	if (!m_CamIsProj)
+		pCamera->orthographicProjection(-aspect*dist*.5, // left
+		                                aspect*dist*.5, // right
+		                                -1.*dist*.5, // bottom
+		                                1.*dist*.5, // top
+		                                .01, // near
+		                                1000.); // far
+	else
+		pCamera->projectionMatrix(rwWidth,rwHeight, CForgeMath::degToRad(fov), 0.1f, 1000.0f);
+	ImGuizmo::SetOrthographic(!m_CamIsProj);
+}
+
 void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin,
-                                                 const float MovementSpeed, const float RotationSpeed, const float SpeedScale) {
+                                     const float MovementSpeed, const float RotationSpeed, const float SpeedScale) {
 
 	if (nullptr == pCamera) throw NullpointerExcept("pCamera");
 	if (nullptr == pRWin) throw NullpointerExcept("pKeyboard");
@@ -24,24 +42,11 @@ void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin,
 	Vector2f scrollDelta = pMouse->wheel()-m_prevScroll;
 	m_prevScroll = pMouse->wheel();
 
-	//TODO(skade) implement proper mouse controls
-	//if (pKeyboard->keyPressed(Keyboard::KEY_LEFT_CONTROL)) {
-	float rwWidth = pRWin->width();
-	float rwHeight = pRWin->height();
-	float aspect = rwWidth/rwHeight;
 	if (scrollDelta.y() != 0. || pKeyboard->keyPressed(Keyboard::KEY_W) || pKeyboard->keyPressed(Keyboard::KEY_S)) {
 		pCamera->forward(scrollDelta.y());
-		if (!m_CamIsProj) {
-			float fov = 45.;
-			float dist = std::abs(pCamera->position().norm());
-			pCamera->orthographicProjection(-aspect*dist*.5, // left
-											aspect*dist*.5, // right
-											-1.*dist*.5, // bottom
-											1.*dist*.5, // top
-											.01, // near
-											1000.); // far
-		}
+		setCamProj(pCamera,pRWin);
 	}
+	//if (pKeyboard->keyPressed(Keyboard::KEY_LEFT_CONTROL)) {
 	//} else {
 	//	pCamera->rotY(CForgeMath::degToRad(-10.f * RotationSpeed * scrollDelta.x()));
 	//	pCamera->pitch(CForgeMath::degToRad(-10.f * RotationSpeed * scrollDelta.y()));
@@ -68,33 +73,23 @@ void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin,
 	// numpad camera movement
 	if (pKeyboard->keyPressed(Keyboard::KEY_KP_5, true)) {
 		//TODO(skade) abstract fov
-		float fov = 45.;
-		float dist = std::abs(pCamera->position().norm());
-		if (m_CamIsProj)
-			pCamera->orthographicProjection(-aspect*dist*.5, // left
-			                                aspect*dist*.5, // right
-			                                -1.*dist*.5, // bottom
-			                                1.*dist*.5, // top
-			                                .01, // near
-			                                1000.); // far
-		else
-			pCamera->projectionMatrix(rwWidth,rwHeight, CForgeMath::degToRad(fov), 0.1f, 1000.0f);
 		m_CamIsProj = !m_CamIsProj;
-		ImGuizmo::SetOrthographic(!m_CamIsProj);
+		setCamProj(pCamera,pRWin);
 	}
 
 	//TODO(skade) move into function
 	auto funcNPO = [&](Keyboard::Key key, float angle, Vector3f axis, bool add = false) {
 		if (pKeyboard->keyPressed(key,true)) {
-			pCamera->orthographicProjection(-aspect,aspect,-1.,1.,.01,1000.);
 			Eigen::Matrix4f view = pCamera->cameraMatrix();
-			if (!add)
+			if (!add) {
 				view.block<3,3>(0,0) = CForgeMath::rotationMatrix(angle,axis).block<3,3>(0,0);
-			else
-				view = CForgeMath::rotationMatrix(angle,axis)*view;
+				m_CamIsProj = false;
+				setCamProj(pCamera,pRWin);
+			}
+			else {
+				view = view*CForgeMath::rotationMatrix(angle,axis);
+			}
 			pCamera->cameraMatrix(view);
-			m_CamIsProj = false;
-			ImGuizmo::SetOrthographic(true);
 		}
 	};
 	funcNPO(Keyboard::KEY_KP_1,90.,Vector3f::UnitY());

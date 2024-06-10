@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IKSkeletalActor.h"
+#include "IKSkeletalActor.hpp"
 #include <crossforge/Graphics/Actors/StaticActor.h>
 #include <crossforge/Graphics/SceneGraph/SceneGraph.h>
 #include <crossforge/Graphics/SceneGraph/SGNGeometry.h>

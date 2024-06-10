@@ -49,9 +49,16 @@ void MotionRetargetingScene::init() {
 
 	m_config.baseLoad();
 	m_config.load(&m_Cam);
+	m_config.load("m_editCam.m_CamIsProj", &m_editCam.m_CamIsProj);
+	m_config.load(&m_RenderWin);
+	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
 }//initialize
 
 void MotionRetargetingScene::clear() {
+	m_config.store(m_Cam);
+	m_config.store("m_editCam.m_CamIsProj", m_editCam.m_CamIsProj);
+	m_config.baseStore();
+
 	ExampleSceneBase::clear();
 
 	//m_EndEffectors.clear();
@@ -77,10 +84,29 @@ void MotionRetargetingScene::clear() {
 	m_TargetGeomSGNs.clear();
 
 	ImGuiUtility::shutdownImGui();
-
-	m_config.store(&m_Cam);
-	m_config.baseStore();
 }
+
+void MotionRetargetingScene::initCameraAndLights(bool CastShadows) {
+	// initialize camera
+	m_Cam.init(Vector3f(0.0f, 3.0f, 8.0f), Vector3f::UnitY());
+	m_Cam.projectionMatrix(m_WinWidth, m_WinHeight, CForgeMath::degToRad(45.0f), 0.1f, 1000.0f);
+
+	// initialize sun (key light) and back ground light (fill light)
+	Vector3f SunDir = Vector3f(-5.0f, 15.0f, 35.0f);
+	Vector3f SunPos = Vector3f(-5.0f, 15.0f, 35.0f);
+	m_Sun.init(SunPos, -SunDir.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 5.0f);
+	if(CastShadows)
+		m_Sun.initShadowCasting(2048, 2048, Vector2i(2, 2), 0.1f, 1000.0f);
+
+	Vector3f BGLightPos = Vector3f(0.0f, 5.0f, -30.0f);
+	m_BGLight.init(BGLightPos, -BGLightPos.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 1.5f, Vector3f(0.0f, 0.0f, 0.0f));
+
+	// set camera and lights
+	m_RenderDev.activeCamera(&m_Cam);
+	m_RenderDev.addLight(&m_Sun);
+	m_RenderDev.addLight(&m_BGLight);
+}//initCameraAndLights
+
 
 void MotionRetargetingScene::mainLoop() {
 
@@ -130,8 +156,8 @@ void MotionRetargetingScene::mainLoop() {
 	// Handle Picking and camera
 	if (!ImGui::IsAnyItemHovered() && !ImGui::IsAnyItemActive()) { // !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)
 		if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
-			std::vector<IKTarget*> t = m_IKController->getTargets();
-			std::vector<IPickable*> p(t.begin(),t.end());
+			std::vector<std::weak_ptr<IKTarget>> t = m_IKController->getTargets();
+			std::vector<std::weak_ptr<IPickable>> p(t.begin(),t.end());
 
 			if (!ImGuizmo::IsUsing()) {
 				m_picker.pick(p);
@@ -144,11 +170,12 @@ void MotionRetargetingScene::mainLoop() {
 
 		//if (m_useGuizmo && m_LastSelectedEffectorTarget != -1) {
 		if (m_useGuizmo && m_picker.getLastPick()) {
-			m_picker.update(m_guizmoMat);
 			m_guizmo.active(true);
 			//dragTarget(m_LastSelectedEffectorTarget);
 		} else
 			m_guizmo.active(false);
+
+		m_picker.update(m_guizmoMat);
 
 		m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
 	}
@@ -173,6 +200,7 @@ void MotionRetargetingScene::mainLoop() {
 	m_RenderWin.swapBuffers();
 	
 	updateFPS();
+	m_config.store(m_RenderWin);
 	defaultKeyboardUpdate(m_RenderWin.keyboard());
 }//mainLoop
 
@@ -197,8 +225,6 @@ void MotionRetargetingScene::initCharacter() {
 
 	m_IKController = std::make_unique<IKController>();
 	m_IKController->init(&M, "MyAssets/ccd-ik/ces/SkeletonConfig.json");
-
-	//TODO(skade) write option without json
 	//m_IKController->init(&M);
 
 	for (uint32_t i=0;i<M.skeletalAnimationCount();++i)
@@ -605,6 +631,7 @@ void MotionRetargetingScene::renderVisualizers() {
 			m_JointVisActor.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
 		}
 		glDisable(GL_BLEND);
+
 		glEnable(GL_DEPTH_TEST);
 	}
 	glDisable(GL_DEPTH_TEST);
@@ -613,7 +640,9 @@ void MotionRetargetingScene::renderVisualizers() {
 	if (m_showEffector)
 		m_EffectorVis.render(&m_RenderDev,Eigen::Vector3f::Zero(),Eigen::Quaternionf::Identity(),Eigen::Vector3f(1.f,1.f,1.f));
 	if (m_showTarget) {
-		std::vector<IKTarget*> t = m_IKController->getTargets();
+		std::vector<std::shared_ptr<IKTarget>> t;
+		m_IKController->getTargets(&t);
+		
 		for (uint32_t i = 0; i < t.size(); ++i) {
 			//Box aabb = t[i]->bv.aabb();
 			m_RenderDev.modelUBO()->modelMatrix(t[i]->pckTrans());
@@ -621,16 +650,50 @@ void MotionRetargetingScene::renderVisualizers() {
 		}
 	}
 		//m_TargetVis.render(&m_RenderDev,Eigen::Vector3f::Zero(),Eigen::Quaternionf::Identity(),Eigen::Vector3f(1.f,1.f,1.f));
+	for (uint32_t j=0;j<m_IKController->m_iksFABRIK.size();++j) {
+		std::vector<Vector3f> fbrkPoints = m_IKController->m_iksFABRIK[j].fbrkPoints;
+		for (uint32_t i = 0; i < fbrkPoints.size(); ++i) {
+			Eigen::Matrix4f cubeTransform = CForgeMath::translationMatrix(fbrkPoints[i]);
+			float r = .5;
+			Eigen::Matrix4f cubeScale = CForgeMath::scaleMatrix(Eigen::Vector3f(r,r,r)*1.0f);
+			m_RenderDev.modelUBO()->modelMatrix(cubeTransform*cubeScale);
+			bool cmr = (i+1) & 1;
+			bool cmg = (i+1) & 2;
+			bool cmb = (i+1) & 4;
+			
+			//TODO(skade) reads drive due to shader init
+			T3DMesh<float> M;
+			PrimitiveShapeFactory::cuboid(&M, Vector3f(0.05f, 0.05f, 0.05f), Vector3i(1, 1, 1));
+			auto* pMat = M.getMaterial(0);
+			pMat->Color = Vector4f(cmr,cmg,cmb, 1.0f);
+			pMat->Metallic = 0.3f;
+			pMat->Roughness = 0.2f;
+			
+			M.computePerVertexNormals();
+			StaticActor a; a.init(&M);
+			
+			//glColorMask(cmr,cmg,cmb,1);
+			a.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
+			//glColorMask(1,1,1,1);
+		}
+	}
 	//glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 }
 
 bool MotionRetargetingScene::keyboardAnyKeyPressed() {
+	Mouse* pMouse = m_RenderWin.mouse();
 	bool r = false;
 	for (uint32_t i=0;i<Keyboard::KEY_COUNT;++i)
 		r |= m_RenderWin.keyboard()->keyPressed(Keyboard::Key(i));
 	for (uint32_t i=0;i<Mouse::BTN_COUNT;++i)
-		r |= m_RenderWin.mouse()->buttonState(Mouse::Button(i));
+		r |= pMouse->buttonState(Mouse::Button(i));
+
+	static Vector2f prevScroll = Vector2f::Zero();
+	Vector2f scrollDelta = pMouse->wheel()-prevScroll;
+	prevScroll = pMouse->wheel();
+	if (scrollDelta.x() != 0. || scrollDelta.y() != 0.)
+		r = true;
 	
 	return r;
 }

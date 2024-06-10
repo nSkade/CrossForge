@@ -30,6 +30,11 @@ namespace CForge {
 
 		const std::string Message = (Tag.empty()) ? Msg : Tag + ":" + Msg;
 
+		if (m_pInstance->printToConsole) {
+			printf("%s\n", Message.c_str());
+			return;
+		}
+
 		switch (Type) {
 		case LOGTYPE_ERROR: {
 			m_pInstance->m_ErrorLog.push_back(Entry);

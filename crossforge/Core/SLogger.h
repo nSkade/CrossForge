@@ -97,6 +97,8 @@ namespace CForge {
 		*/
 		static int32_t instanceCount(void);
 
+		bool printToConsole = false;
+
 	protected:
 		/**
 		*\brief Constructor.

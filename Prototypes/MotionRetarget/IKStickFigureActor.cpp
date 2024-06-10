@@ -1,4 +1,4 @@
-#include "IKStickFigureActor.h"
+#include "IKStickFigureActor.hpp"
 #include <crossforge/AssetIO/SAssetIO.h>
 #include <crossforge/Math/CForgeMath.h>
 #include <crossforge/Utility/CForgeUtility.h>

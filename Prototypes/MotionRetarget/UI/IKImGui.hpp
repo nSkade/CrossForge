@@ -1,6 +1,7 @@
 #pragma once
+
 #include <Prototypes/GUI/ImGuiUtility.h>
-#include <Prototypes/MotionRetarget/IKController.h>
+#include <Prototypes/MotionRetarget/IKController.hpp>
 
 namespace CForge {
 
@@ -18,4 +19,3 @@ class IKImGui {
 };
 
 }//CForge
-

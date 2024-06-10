@@ -1,15 +1,18 @@
 #pragma once
 
-#include "../../crossforge/AssetIO/T3DMesh.hpp"
-#include "../../crossforge/Graphics/UniformBufferObjects/UBOBoneData.h"
-#include "../../crossforge/Graphics/Shader/ShaderCode.h"
-#include "../../crossforge/Graphics/Shader/GLShader.h"
-
-//#include "JointLimits/HingeLimits.h"
-
+#include <crossforge/AssetIO/T3DMesh.hpp>
+#include <crossforge/Graphics/UniformBufferObjects/UBOBoneData.h>
+#include <crossforge/Graphics/Shader/ShaderCode.h>
+#include <crossforge/Graphics/Shader/GLShader.h>
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
+#include "UI/JointPickable.hpp"
 #include "Constraints/IKTarget.hpp"
+
+#include "IKSolver/CCDSolver.hpp"
+#include "IKSolver/FABRIKSolver.hpp"
+
+//#include "JointLimits/HingeLimits.h"
 
 namespace CForge {
 using namespace Eigen;
@@ -26,7 +29,7 @@ public:
 		Eigen::Vector3f posGlobal;
 		Eigen::Quaternionf rotGlobal;
 
-		Eigen::Vector3f posLocal;         //TODO(skade) requred? corresponded to EEPosLocal
+		//Eigen::Vector3f posLocal;         //TODO(skade) requred? corresponded to EEPosLocal
 		//TODO(skade) target pos needs to be handled by iksolver
 		//std::vector<IKTarget> TargetPosGlobal; // Global target Positions the Joint tries to reach
 
@@ -41,7 +44,7 @@ public:
 	 */
 	struct IKSegment {
 		std::string name;
-		std::vector<SkeletalJoint*> joints; // front() is end-effector joint
+		std::vector<SkeletalJoint*> joints; // [0] is end-effector joint
 		IKTarget* target;
 	};
 
@@ -78,7 +81,7 @@ public:
 	uint32_t boneCount();
 	void updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton);
 
-	void translateTarget(std::string segmentName, Eigen::Vector3f Translation);
+	//void translateTarget(std::string segmentName, Eigen::Vector3f Translation);
 	//Eigen::Matrix3Xf getTargetPoints(std::string segmentName);
 
 	/**
@@ -86,7 +89,12 @@ public:
 	 */
 	void updateBones(Animation* pAnim);
 	//void updateEndEffectorPoints();
-	std::vector<IKTarget*> getTargets() { return m_targets; };
+	std::vector<std::weak_ptr<IKTarget>> getTargets() {
+		return std::vector<std::weak_ptr<IKTarget>>(m_targets.begin(),m_targets.end());
+	};
+	void getTargets(std::vector<std::shared_ptr<IKTarget>>* targets) {
+		*targets = m_targets;
+	};
 
 	//TODO(skade) find better solution
 	IKSegment* getSegment(IKTarget* target) {
@@ -96,6 +104,18 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Computes global position and rotation of joints of the skeletal hierarchy.
+	*/
+	void forwardKinematics(SkeletalJoint* pJoint);
+
+	std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
+	std::map<SkeletalJoint*,std::shared_ptr<JointPickable>> m_JointsPickable;
+
+	//TODOf(skade) name included here and in IKSegment, improve SPOT
+	std::map<std::string,IKSegment> m_JointChains;
+	IKSolverCCD m_iksCCD;
+	std::vector<IKSolverFABRIK> m_iksFABRIK;
 protected:
 	
 	void initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
@@ -108,33 +128,33 @@ protected:
 	 * @brief inits for every skeleton endeffector a target
 	*/
 	void initTargetPoints();
-	std::vector<IKTarget*> m_targets;
+	void clearTargetPoints();
+	void updateTargetPoints();
+	std::vector<std::shared_ptr<IKTarget>> m_targets;
 
-	// end-effector -> root CCD IK
+	//TODO(skade) move into CCDSolver
+	// CCD solver solving for whole chain targets
 	//void ikCCDglobal(std::string segmentName);
+
 	//TODO(skade) remove
-	void ikCCD(std::string segmentName);
+	//template<bool isForward>
+	//void ikCCD(std::string segmentName);
+
+	//float m_thresholdDist = 1e-6f;
+	//float m_thresholdPosChange = 1e-6f;
+
+	//int32_t m_MaxIterations = 50;
+
 	void rotateGaze();
 
 	//TODO(skade) remove 
 	//TODO(skade) EndEffectorData
 	//Eigen::Quaternionf computeUnconstrainedGlobalRotation(IKJoint* pJoint, EndEffectorData* pEffData);
 
-	/**
-	 * @brief Computes global position and rotation of joints of the skeletal hierarchy.
-	*/
-	void forwardKinematics(SkeletalJoint* pJoint);
+	//float m_thresholdDist = 1e-6f;
+	//float m_thresholdPosChange = 1e-6f;
 
-	std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
-
-	//TODOf(skade) name included here and in IKSegment, improve SPOT
-	std::map<std::string,IKSegment> m_JointChains;
-
-	float m_thresholdDist = 1e-6f;
-	float m_thresholdPosChange = 1e-6f;
-
-	int32_t m_MaxIterations = 50;
+	//int32_t m_MaxIterations = 50;
 };//IKController
 
 }//CForge
-

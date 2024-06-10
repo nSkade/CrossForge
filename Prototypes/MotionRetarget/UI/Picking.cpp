@@ -1,4 +1,4 @@
-#include "Picking.h"
+#include "Picking.hpp"
 
 #include <crossforge/Graphics/GLWindow.h>
 #include <crossforge/Graphics/Camera/VirtualCamera.h>
@@ -21,15 +21,15 @@ void Picker::rayCast(Vector3f* ro, Vector3f* rd) {
 	rd->normalize();
 }
 
-void Picker::pick(std::vector<IPickable*> objects) {
+void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 	
 	Vector3f ro0, rd;
 	rayCast(&ro0, &rd);
-	IPickable* pPick = nullptr;
+	std::weak_ptr<IPickable> pPick;
 	Matrix4f t = Matrix4f::Identity();
 
 	for (int32_t i = 0; i < objects.size(); ++i) {
-		IPickable* pPobj = objects[i];
+		std::shared_ptr<IPickable> pPobj = objects[i].lock();
 
 		float T0 = m_pCam->nearPlane();
 		float T1 = m_pCam->farPlane();
@@ -66,32 +66,33 @@ void Picker::pick(std::vector<IPickable*> objects) {
 			break;
 		}
 	}
-	if (pPick) {
-		m_guizmoMat = pPick->pckTrans();
-		if (m_pLastPick)
-			m_pLastPick->pckDeselect();
-		pPick->pckSelect();
+	if (!pPick.expired()) {
+		m_guizmoMat = pPick.lock().get()->pckTrans();
+
+		if (!m_pLastPick.expired())
+			m_pLastPick.lock().get()->pckDeselect();
+		pPick.lock().get()->pckSelect();
 
 		m_pLastPick = pPick;
 		m_pCurrPick = pPick;
 	}
 	else {
 		// deselect only after pick was miss again
-		if (!m_pCurrPick) {
-			if (m_pLastPick)
-				m_pLastPick->pckDeselect();
-			m_pLastPick = nullptr;
+		if (m_pCurrPick.expired()) {
+			if (!m_pLastPick.expired())
+				m_pLastPick.lock().get()->pckDeselect();
+			m_pLastPick.reset();
 		}
-		m_pCurrPick = nullptr;
+		m_pCurrPick.reset();
 	}
 }
 
 void Picker::update(Matrix4f trans) {
-	if (!m_pLastPick)
+	if (m_pLastPick.expired())
 		return;
 
 	m_guizmoMat = trans;
-	m_pLastPick->pckMove(trans);
+	m_pLastPick.lock().get()->pckMove(trans);
 }
 
 }//CForge

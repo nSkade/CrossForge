@@ -1,6 +1,6 @@
 #include <crossforge/Graphics/RenderDevice.h>
 #include <crossforge/Graphics/OpenGLHeader.h>
-#include "IKSkeletalActor.h"
+#include "IKSkeletalActor.hpp"
 
 
 namespace CForge {

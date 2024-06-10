@@ -1,3 +1,6 @@
+#pragma once
+
+//TODO(skade)f cpp
 
 namespace CForge {
 

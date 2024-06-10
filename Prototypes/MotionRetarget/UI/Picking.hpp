@@ -33,17 +33,21 @@ private:
 class Picker {
 public:
 	Picker(GLWindow* pWin, VirtualCamera* pCam);
-	void pick(std::vector<IPickable*> objects);
+	void pick(std::vector<std::weak_ptr<IPickable>> objects);
 	void update(Matrix4f trans);
-	IPickable* getLastPick() { return m_pLastPick; };
+	IPickable* getLastPick() {
+		if (!m_pLastPick.expired())
+			return m_pLastPick.lock().get();
+		return nullptr;
+	};
 	Matrix4f m_guizmoMat = Matrix4f::Identity();
 private:
 	void rayCast(Vector3f* ro, Vector3f* rd);
 	GLWindow* m_pWin;
 	VirtualCamera* m_pCam;
 	//TODO(skade) unsafe, object might get destroyed
-	IPickable* m_pLastPick = nullptr; // picked object
-	IPickable* m_pCurrPick = nullptr; // last clicked object
+	std::weak_ptr<IPickable> m_pLastPick; // picked object
+	std::weak_ptr<IPickable> m_pCurrPick; // last clicked object
 	//Vector3f m_DragStart = Vector3f::Zero(); //TODO(skade) remove
 };
 

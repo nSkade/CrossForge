@@ -10,15 +10,16 @@
 #include <Prototypes/MotionRetarget/UI/EditCamera.hpp>
 #include <Prototypes/MotionRetarget/Config/Config.hpp>
 
-#include "IKSkeletalActor.h"
-#include "IKStickFigureActor.h"
-#include "UI/Picking.h"
+#include "IKSkeletalActor.hpp"
+#include "IKStickFigureActor.hpp"
+#include "UI/Picking.hpp"
 
 namespace CForge {
 
 class MotionRetargetingScene : public ExampleSceneBase {
 public:
 	MotionRetargetingScene(void) : m_picker(&m_RenderWin,&m_Cam) {
+		SLogger::instance()->printToConsole = true;
 		m_WindowTitle = "CForge Motion Retarget Editor";
 	}//Constructor
 
@@ -29,6 +30,7 @@ public:
 	void init() override;
 	void clear() override;
 	void mainLoop() override;
+	void initCameraAndLights(bool CastShadows = true);
 
 	//TODO(skade) put in seperate class
 	void renderUI();

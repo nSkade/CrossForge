@@ -2,17 +2,19 @@
 
 #include <nlohmann/json.hpp>
 
-#include <crossforge/Graphics/Camera/VirtualCamera.h>
-
 namespace CForge {
+class VirtualCamera;
+class GLWindow;
 
 /**
  * @brief Config class for parsing various Types.
  */
 class Config {
 public:
-	void store(const VirtualCamera* object);
+	void store(const VirtualCamera& object);
 	void load(VirtualCamera* object);
+	void store(const GLWindow& object);
+	void load(GLWindow* object); 
 
 public:
 	void baseStore();
@@ -20,14 +22,14 @@ public:
 
 	// template functions to load and store simple types
 	template <typename T>
-	void store(std::string name, const T* value) {
+	void store(std::string name, const T& value) {
 		m_ConfigData[name] = value;
 	}
 	
 	template <typename T>
 	void load(std::string name, T* value) {
 		if (m_ConfigData.contains(name)) {
-			value = m_ConfigData[name];
+			(*value) = m_ConfigData[name];
 		}
 	}
 
