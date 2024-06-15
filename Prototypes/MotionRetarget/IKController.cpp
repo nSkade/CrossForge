@@ -67,27 +67,66 @@ void IKController::init(T3DMesh<float>* pMesh) {
 	
 	T3DMesh<float>::SkeletalAnimation* pAnimation = pMesh->getSkeletalAnimation(0); // used as initial pose of skeleton
 
-	for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
-		const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
-		SkeletalJoint* pJoint = new SkeletalJoint();
+	//TODO(skade) add option
+	//for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
+	//	const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
+	//	SkeletalJoint* pJoint = new SkeletalJoint();
 
-		pJoint->ID = pRef->ID;
-		pJoint->Name = pRef->Name;
+	//	pJoint->ID = pRef->ID;
+	//	pJoint->Name = pRef->Name;
 
-		//TODOf(skade) insert rest pose values with solver: loc*paret * offset = identity (skinningmat)
-		pJoint->LocalPosition = Vector3f::Zero();
-		pJoint->LocalRotation = Quaternionf::Identity();
-		pJoint->LocalScale = Vector3f(1.f,1.f,1.f);
+	//	Matrix4f iom = pRef->InvBindPoseMatrix.inverse();
 
-		pJoint->LocalScale = pAnimation->Keyframes[i]->Scalings[0];
-		pJoint->LocalPosition = pAnimation->Keyframes[i]->Positions[0];
-		pJoint->LocalRotation = pAnimation->Keyframes[i]->Rotations[0].normalized();
-		pJoint->LocalScale = pAnimation->Keyframes[i]->Scalings[0];
-		
-		pJoint->OffsetMatrix = pRef->InvBindPoseMatrix;
+	//	//TODOf(skade) insert rest pose values with solver: loc*paret * offset = identity (skinningmat)
+
+	//	// iom = p * r * s
+	//	pJoint->LocalPosition = iom.block<3,1>(0,3);
+	//	pJoint->LocalRotation = Quaternionf(iom.block<3,3>(0,0));
+	//	pJoint->LocalScale = Vector3f(1.,1.,1.);
+	//	//pJoint->LocalScale = Vector3f(iom.data()[0],iom.data()[5],iom.data()[10]);
+	//	//pJoint->LocalScale = iom.block<3,3>(0,0).inverse()*pJoint->LocalScale;
+
+	//	//pJoint->LocalScale = pAnimation->Keyframes[i]->Scalings[0];
+	//	//pJoint->LocalPosition = pAnimation->Keyframes[i]->Positions[0];
+	//	//pJoint->LocalRotation = pAnimation->Keyframes[i]->Rotations[0].normalized();
+	//	
+	//	pJoint->OffsetMatrix = pRef->InvBindPoseMatrix;
+	//	pJoint->SkinningMatrix = Matrix4f::Identity(); // computed during applyAnimation()
+	//	m_Joints.push_back(pJoint);
+	//}
+
+	// compute local joint parameters for restpose
+	for (uint32_t i = 0; i < pMesh->boneCount(); ++i)
+		m_Joints.emplace_back(new SkeletalJoint());
+
+	std::function<void(const T3DMesh<float>::Bone* pBone, Matrix4f offP)> initJoint;
+	initJoint = [&](const T3DMesh<float>::Bone* pBone, Matrix4f offP) {
+		Matrix4f iom = pBone->InvBindPoseMatrix.inverse();
+		Matrix4f t = offP.inverse() * iom;
+
+		SkeletalJoint* pJoint = m_Joints[pBone->ID];
+		pJoint->ID = pBone->ID;
+		pJoint->Name = pBone->Name;
+		// https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
+		pJoint->LocalPosition = t.block<3,1>(0,3);
+		pJoint->LocalScale = Vector3f(t.block<3,1>(0,0).norm(),
+		                              t.block<3,1>(0,1).norm(),
+		                              t.block<3,1>(0,2).norm());
+		Matrix3f rotScale;
+		rotScale.row(0) = pJoint->LocalScale;
+		rotScale.row(1) = pJoint->LocalScale;
+		rotScale.row(2) = pJoint->LocalScale;
+		pJoint->LocalRotation = Quaternionf(t.block<3,3>(0,0).cwiseQuotient(rotScale));
+		pJoint->LocalRotation.normalize();
+
+		pJoint->OffsetMatrix = pBone->InvBindPoseMatrix;
 		pJoint->SkinningMatrix = Matrix4f::Identity(); // computed during applyAnimation()
-		m_Joints.push_back(pJoint);
-	}
+
+		for (uint32_t i = 0; i < pBone->Children.size(); ++i)
+			initJoint(pBone->Children[i],iom);
+	};
+	initJoint(pMesh->rootBone(),Matrix4f::Identity());
+
 	// copy structure
 	for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
 		const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
@@ -133,6 +172,11 @@ void IKController::init(T3DMesh<float>* pMesh) {
 	m_pShadowPassShader = pSMan->buildShader(&VSSources, &FSSources, nullptr);
 
 	pSMan->release();
+
+	for (uint32_t i=0;i<m_Joints.size();++i) {
+		m_jointPickables.emplace_back(std::make_shared<JointPickable>());
+		//m_jointPickables.back()->BVtrans
+	}
 }
 
 // pMesh has to hold skeletal definition
@@ -395,10 +439,24 @@ void IKController::update(float FPSScale) {
 	int i=0;
 	for (auto c : m_JointChains) {
 		forwardKinematics(m_pRoot);
-		//m_iksCCD.solve<IKSolverCCD::BACKWARD>(c.first,this);
 		//if (c.second.name!="RightLeg")
 		//	continue;
-		m_iksFABRIK[i].solve(c.first,this);
+		
+		switch (testIKslvSelect)
+		{
+		case CForge::IKController::IKSS_CCD_F:
+			m_iksCCD.solve<IKSolverCCD::FORWARD>(c.first,this);
+			break;
+		case CForge::IKController::IKSS_CCD_B:
+			m_iksCCD.solve<IKSolverCCD::BACKWARD>(c.first,this);
+			break;
+		case CForge::IKController::IKSS_CCD_FABRIK:
+			m_iksFABRIK[i].solve(c.first,this);
+			break;
+		default:
+			break;
+		}
+
 		++i;
 
 		//ikCCDglobal(c.first);

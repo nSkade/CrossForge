@@ -5,7 +5,18 @@
 #include "UI/ImGuiStyle.hpp"
 #include "UI/IKSequencer.hpp"
 
+#include "IKSolver/IKChain.hpp"
+
 #include <GLFW/glfw3.h>
+
+namespace ImGui {
+
+auto ComboStr = [](const char* label, int* current_item, const std::vector<std::string>& items, int items_count, int height_in_items = -1)
+{
+	return ImGui::Combo(label, current_item, [](void* data, int idx, const char** out_text) { *out_text = ((const std::vector<std::string>*)data)->at(idx).c_str(); return true; }, (void*)&items, items_count, height_in_items);
+};
+
+}//ImGui
 
 namespace CForge {
 
@@ -40,6 +51,7 @@ void MotionRetargetingScene::init() {
 	T3DMesh<float> M;
 	SAssetIO::load("MyAssets/ccd-ik/joint.obj", &M);
 	m_JointVisActor.init(&M);
+	m_JointVisActor.material(0)->color(Vector4f(1.,1.,1.,1.));
 	
 	glClearColor(.3f,.3f,.3f,.0f);
 	SetupImGuiStyle(true,0.5f);
@@ -124,6 +136,7 @@ void MotionRetargetingScene::mainLoop() {
 		frameAction = true;
 
 	frameActionIdx = frameAction ? 0 : frameActionIdx+1;
+	updateFPS(); //TODOf(skade) improve deltaTime
 	if (frameActionIdx < 3) { // render 1 frame after action to update ui
 		m_RenderWin.update();
 	} else {
@@ -163,13 +176,21 @@ void MotionRetargetingScene::mainLoop() {
 				m_picker.pick(p);
 				m_guizmoMat = m_picker.m_guizmoMat;
 			}
+
+			//TODO(skade) JointPickable
+			//p.clear();
+			//std::vector<std::weak_ptr<JointPickable>> jp = m_IKController->getJointPickables();
+			//p = std::vector<std::weak_ptr<IPickable>>(jp.begin(),jp.end());
+			//m_picker.pick(p);
+			//m_guizmoMat = m_picker.m_guizmoMat;
+
 			//pickTarget();
 			//dragTarget(m_SelectedEffectorTarget);
 		} else
 			m_editCam.defaultCameraUpdate(&m_Cam, &m_RenderWin, 0.05f, .7f, 32.0f);
 
 		//if (m_useGuizmo && m_LastSelectedEffectorTarget != -1) {
-		if (m_useGuizmo && m_picker.getLastPick()) {
+		if (m_useGuizmo && dynamic_cast<IKTarget*>(m_picker.getLastPick())) {
 			m_guizmo.active(true);
 			//dragTarget(m_LastSelectedEffectorTarget);
 		} else
@@ -199,7 +220,6 @@ void MotionRetargetingScene::mainLoop() {
 
 	m_RenderWin.swapBuffers();
 	
-	updateFPS();
 	m_config.store(m_RenderWin);
 	defaultKeyboardUpdate(m_RenderWin.keyboard());
 }//mainLoop
@@ -429,11 +449,7 @@ void MotionRetargetingScene::renderUIAnimation() {
 	for (uint32_t i=0;i<m_IKActor->getController()->animationCount();++i) {
 		items.push_back(m_IKActor->getController()->animation(i)->Name);
 	}
-	auto ComboStr = [](const char* label, int* current_item, const std::vector<std::string>& items, int items_count, int height_in_items = -1)
-	{
-		return ImGui::Combo(label, current_item, [](void* data, int idx, const char** out_text) { *out_text = ((const std::vector<std::string>*)data)->at(idx).c_str(); return true; }, (void*)&items, items_count, height_in_items);
-	};
-	ComboStr("select animation",&m_current_anim_item,items,items.size());
+	ImGui::ComboStr("select animation",&m_current_anim_item,items,items.size());
 
 	if (m_current_anim_item > 0) { // anim selected
 		if (m_pAnimCurr && m_current_anim_item - 1 != m_pAnimCurr->AnimationID) { // Animation changed
@@ -594,13 +610,22 @@ void MotionRetargetingScene::renderUI() {
 		//	ImGui::Text("IK segmentName: %s",pEndEffector.segmentName.c_str());
 		//} else
 		//	ImGui::Text("IK segmentName none");
-		IKTarget* lp = (IKTarget*) m_picker.getLastPick();
+		IKTarget* lp = dynamic_cast<IKTarget*>(m_picker.getLastPick());
 		if (lp) {
-			IKController::IKSegment* seg = m_IKController->getSegment(lp);
+			IKSegment* seg = m_IKController->getSegment(lp);
 			assert(seg);
 			ImGui::Text("IK segmentName: %s",seg->name.c_str());
 		} else
 			ImGui::Text("IK segmentName none");
+
+		std::vector<std::string> items = {
+			"IKSS_CCD_F",
+			"IKSS_CCD_B",
+			"IKSS_CCD_FABRIK"
+		};
+		int currItem = m_IKController->testIKslvSelect;
+		ImGui::ComboStr("ik method",&currItem,items,items.size());
+		m_IKController->testIKslvSelect = static_cast<IKController::TestIKslvSelect>(currItem);
 
 		ImGui::Checkbox("enable IK",&m_IKCupdate);
 		if (ImGui::Button("singleIK"))
@@ -618,24 +643,69 @@ void MotionRetargetingScene::renderUI() {
 
 void MotionRetargetingScene::renderVisualizers() {
 	if (m_visualizeJoints) { //TODO(skade) put in function
-		glDisable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		//glDisable(GL_DEPTH_TEST);
+		//glEnable(GL_BLEND);
+
+		//std::function<void(SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f parMat)> renderJoint;
+		//renderJoint = [&](SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f fromPar) {
+		//	//TODO(skade) appply sg node transform
+		//	const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
+		//	const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
+		//	const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
+		//	const Matrix4f JointTransform = T * R * S;
+		//	Matrix4f LocalTransform = fromPar * JointTransform;
+
+		//	Vector3f BoneVec; // vector to next bone
+		//	if (pJoint->Children.size() > 0)
+		//		BoneVec = m_IKController->getBone(pJoint->Children[0])->LocalPosition;
+		//	else
+		//		BoneVec = pJoint->LocalPosition;
+		//	float Length = BoneVec.norm(); // length to next bone
+
+		//	Quaternionf LR = Quaternionf::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
+		//	Matrix4f t = LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
+		//	
+		//	m_RenderDev.modelUBO()->modelMatrix(t);
+		//	m_JointVisActor.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
+		//	for (uint32_t i = 0; i < pJoint->Children.size(); ++i)
+		//		renderJoint(m_IKController->getBone(pJoint->Children[i]),LocalTransform);
+		//};
+		//renderJoint(m_IKController->getRoot(),Matrix4f::Identity());
 
 		for (uint32_t i = 0; i < m_IKController->boneCount(); i++) {
-			Eigen::Matrix4f loct = CForgeMath::translationMatrix(m_IKController->getBone(i)->LocalPosition);
-			Eigen::Matrix4f cubeTransform = m_IKController->getBone(i)->SkinningMatrix
-											* m_IKController->getBone(i)->OffsetMatrix.inverse(); // Transform to restpose Space
-			float r = 0.1f;
-			Eigen::Matrix4f cubeScale = CForgeMath::scaleMatrix(Eigen::Vector3f(r,r,r)*1.0f);
-			m_RenderDev.modelUBO()->modelMatrix(cubeTransform*cubeScale);
+			SkeletalAnimationController::SkeletalJoint* pJoint = m_IKController->getBone(i);
+			//TODO(skade) appply sg node transform
+			const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
+			const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
+			const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
+			const Matrix4f JointTransform = T * R * S;
+
+			Matrix4f fromPar = Matrix4f::Identity();
+			if (pJoint->Parent != -1)
+				fromPar = m_IKController->getBone(pJoint->Parent)->SkinningMatrix
+				          * m_IKController->getBone(pJoint->Parent)->OffsetMatrix.inverse();
+			Matrix4f LocalTransform = fromPar * JointTransform;
+
+			Vector3f BoneVec; // vector to next bone
+			if (pJoint->Children.size() > 0)
+				BoneVec = m_IKController->getBone(pJoint->Children[0])->LocalPosition;
+			else
+				BoneVec = pJoint->LocalPosition;
+			float Length = BoneVec.norm(); // length to next bone
+
+			Quaternionf LR = Quaternionf::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
+			Matrix4f t = LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
+			
+			m_RenderDev.modelUBO()->modelMatrix(t);
 			m_JointVisActor.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
 		}
-		glDisable(GL_BLEND);
+		//glDisable(GL_BLEND);
 
-		glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_DEPTH_TEST);
 	}
 	glDisable(GL_DEPTH_TEST);
-	//glEnable(GL_BLEND); //TODO(skade)f change blendmode in active material forward pass
+	//glEnable(GL_BLEND); //TODOf(skade) change blendmode in active material forward pass
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	if (m_showEffector)
 		m_EffectorVis.render(&m_RenderDev,Eigen::Vector3f::Zero(),Eigen::Quaternionf::Identity(),Eigen::Vector3f(1.f,1.f,1.f));

@@ -77,7 +77,7 @@ void IKSolverFABRIK::backwardKinematics(std::string segmentName, IKController* p
 
 	for (int32_t i = Chain.size() - 1; i > 0; --i) {
 		// angle axis for every fabrik point
-		IKController::IKJoint* ikJ = pController->m_IKJoints[Chain[i]];
+		IKJoint* ikJ = pController->m_IKJoints[Chain[i]];
 
 		// destination
 		Vector3f destvec = fbrkPoints[i-1] - ikJ->posGlobal;

@@ -25,7 +25,6 @@
 //#include <Examples/ExampleLighting.hpp>
 //
 //#include "Prototypes/TestScenes/ShadowTestScene.hpp"
-//#include "Prototypes/TestScenes/SkelAnimTestScene.hpp"
 //#include "Prototypes/TestScenes/SurfaceSamplerTestScene.hpp"
 //#include "Prototypes/TestScenes/AssetGLTFTestScene.hpp"
 //#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
@@ -34,6 +33,7 @@
 //#include "Prototypes/TestScenes/BackgroundRemovalTestScene.hpp"
 
 #include "Prototypes/MotionRetarget/MotionRetargetingScene.hpp"
+#define ActiveScene MotionRetargetingScene
 //#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
 
 //#include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
@@ -55,7 +55,6 @@ using namespace Eigen;
 //#define ActiveScene ExampleMultiViewport
 //#define ActiveScene ExampleSocket
 
-//#define ActiveScene SkelAnimTestScene
 //#define ActiveScene SurfaceSamplerTestScene
 //#define ActiveScene AssetGLTFTestScene
 //#define ActiveScene CameraCaptureTestScene
@@ -67,7 +66,6 @@ using namespace Eigen;
 //#define ActiveScene B02DemonstratorScene
 
 //#define ActiveScene AutoRiggingTestScene
-#define ActiveScene MotionRetargetingScene
 
 ActiveScene* pScene = nullptr;
 

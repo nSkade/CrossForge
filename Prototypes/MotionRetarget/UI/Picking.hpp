@@ -24,7 +24,7 @@ public:
 	virtual Matrix4f pckTrans() = 0;
 	virtual const BoundingVolume& pckBV() = 0;
 	virtual EigenMesh* pckEigenMesh() { return nullptr; };
-private:
+	Matrix4f BVtrans = Matrix4f::Identity();
 };
 
 /**

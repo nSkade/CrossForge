@@ -8,7 +8,7 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 	std::vector<IKController::SkeletalJoint*>& Chain = pController->m_JointChains.at(segmentName).joints;
 	IKTarget* target = pController->m_JointChains.at(segmentName).target;
 	Vector3f lastEFpos;
-	IKController::IKJoint* eef = pController->m_IKJoints[Chain[0]];
+	IKJoint* eef = pController->m_IKJoints[Chain[0]];
 
 	for (int32_t i = 0; i < m_MaxIterations; ++i) {
 		lastEFpos = eef->posGlobal;
@@ -29,7 +29,7 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 		for (; fwd ? k >= 1 :  k < Chain.size(); fwd ? --k : ++k) {
 			// start at base joint
 			IKController::SkeletalJoint* pCurrent = Chain[k];
-			IKController::IKJoint* pCurrentIK = pController->m_IKJoints[pCurrent];
+			IKJoint* pCurrentIK = pController->m_IKJoints[pCurrent];
 
 			// calculate rotation axis
 			// joint position to end effector

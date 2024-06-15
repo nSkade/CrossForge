@@ -4,7 +4,39 @@
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 #include <crossforge/Math/CForgeMath.h>
 
+#include <crossforge/AssetIO/SAssetIO.h>
+#include <crossforge/Graphics/Actors/StaticActor.h>
+//#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
+
 namespace CForge {
+
+class SJointPickableMesh {
+public:
+	EigenMesh eigenMesh;
+	StaticActor actor;
+	BoundingVolume bv;
+
+	SJointPickableMesh() { 
+		//TODO(skade) JointPickable
+		// actor deallocation in singleton not possible due to material manager
+		//T3DMesh<float> M;
+		//SAssetIO::load("MyAssets/ccd-ik/joint.obj", &M); //TODO(skade) use primitive shape factory instead
+		//eigenMesh = EigenMesh(M);
+		//actor.init(&M);
+		//M.computeAxisAlignedBoundingBox();
+		//bv.init(M.aabb());
+	};
+
+	// singleton pattern https://stackoverflow.com/questions/1008019/how-do-you-implement-the-singleton-design-pattern
+public:
+	static SJointPickableMesh& instance() {
+		static SJointPickableMesh instance;
+		return instance;
+	}
+private:
+	SJointPickableMesh(SJointPickableMesh const&); // dont implement
+	void operator=(SJointPickableMesh const&); // dont implement
+};
 
 struct JointPickable : public IPickable {
 	void pckMove(const Matrix4f& trans) {
@@ -23,9 +55,9 @@ struct JointPickable : public IPickable {
 		return t*r*s;
 	};
 	const BoundingVolume& pckBV() {
-		return bv;
+		return SJointPickableMesh::instance().bv;
 	}
-	BoundingVolume bv; //TODO(skade)
+
 	SkeletalAnimationController::SkeletalJoint* pJoint;
 };
 

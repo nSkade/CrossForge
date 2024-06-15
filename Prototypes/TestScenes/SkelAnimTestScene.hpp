@@ -27,6 +27,8 @@
 using namespace Eigen;
 using namespace std;
 
+//TODO MyAssets?????????
+
 // chose only one!
 //#define ART_HUMAN_2_TEST
 //#define MAKE_HUMAN_TEST
@@ -174,11 +176,11 @@ namespace CForge {
 			T3DMesh<float> M;
 			T3DMesh<float> AnimData;
 
-			SAssetIO::load("Assets/ExampleScenes/SimpleSkydome.gltf", &M);
-			setMeshShader(&M, 0.8f, 0.04f);
-			M.computePerVertexNormals();
-			m_Skydome.init(&M);
-			M.clear();
+			//SAssetIO::load("Assets/ExampleScenes/SimpleSkydome.gltf", &M);
+			//setMeshShader(&M, 0.8f, 0.04f);
+			//M.computePerVertexNormals();
+			//m_Skydome.init(&M);
+			//M.clear();
 	
 #ifdef MAKE_HUMAN_TEST
 			// 0 is Blender exported models

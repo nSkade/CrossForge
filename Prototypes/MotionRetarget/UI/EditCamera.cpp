@@ -103,6 +103,8 @@ void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin,
 	if (pKeyboard->keyPressed(Keyboard::KEY_KP_9,true)) {
 		//TODO(skade) mirror position?
 		pCamera->rotY(CForgeMath::degToRad(180.));
+		Vector3f np = CForgeMath::rotationMatrix(180.,pCamera->up()).block<3,3>(0,0)*pCamera->position();
+		pCamera->position(np);
 	}
 }//defaultCameraUpdate
 

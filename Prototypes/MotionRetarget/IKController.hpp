@@ -14,49 +14,19 @@
 
 //#include "JointLimits/HingeLimits.h"
 
+#include "IKSolver/IKChain.hpp"
+
 namespace CForge {
 using namespace Eigen;
 
 class IKController : public SkeletalAnimationController {
 public:
-	//struct EndEffectorData { // X corresponds to entry from end-effector to root
-	//	Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
-	//	Eigen::Matrix3Xf EEPosGlobal;     // current global joint positions
-	//	Eigen::Matrix3Xf TargetPosGlobal; // target global joint positions
-	//};
-
-	struct IKJoint {
-		Eigen::Vector3f posGlobal;
-		Eigen::Quaternionf rotGlobal;
-
-		//Eigen::Vector3f posLocal;         //TODO(skade) requred? corresponded to EEPosLocal
-		//TODO(skade) target pos needs to be handled by iksolver
-		//std::vector<IKTarget> TargetPosGlobal; // Global target Positions the Joint tries to reach
-
-		//EndEffectorData* pEndEffectorData;     //TODO(skade) remove
-		
-		//JointLimits* pLimits;
-	};
-
-	//TODO(skade) priority of IK Segments?
-	/**
-	 * @brief Segment of Skeleton on which IK is applied to.
-	 */
-	struct IKSegment {
-		std::string name;
-		std::vector<SkeletalJoint*> joints; // [0] is end-effector joint
-		IKTarget* target;
-	};
-
-	//TODO(skade) improve SPOT remove
-	/**
-	 * @brief EndEffector object for interaction and visualization outside of this class.
-	 */
-	//struct SkeletalEndEffector {
-	//	SkeletalJoint* joint = nullptr;
-	//	IKJoint* jointIK = nullptr;
-	//	std::string segmentName;
-	//};
+	enum TestIKslvSelect {
+		IKSS_CCD_F,
+		IKSS_CCD_B,
+		IKSS_CCD_FABRIK,
+	} testIKslvSelect = IKSS_CCD_B;
+	SkeletalJoint* getRoot() { return m_pRoot; }
 
 	/**
 	 * \brief Returns reference to m_IKJoints.
@@ -110,13 +80,17 @@ public:
 	void forwardKinematics(SkeletalJoint* pJoint);
 
 	std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
-	std::map<SkeletalJoint*,std::shared_ptr<JointPickable>> m_JointsPickable;
 
 	//TODOf(skade) name included here and in IKSegment, improve SPOT
 	std::map<std::string,IKSegment> m_JointChains;
 	IKSolverCCD m_iksCCD;
 	std::vector<IKSolverFABRIK> m_iksFABRIK;
+	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
+		return std::vector<std::weak_ptr<JointPickable>>(m_jointPickables.begin(),m_jointPickables.end());
+	};
+
 protected:
+	std::vector<std::shared_ptr<JointPickable>> m_jointPickables;
 	
 	void initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);

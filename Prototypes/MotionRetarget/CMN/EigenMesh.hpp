@@ -3,15 +3,17 @@
 #include <crossforge/AssetIO/T3DMesh.hpp>
 
 namespace CForge {
+using namespace Eigen;
 
 class EigenMesh {
 public:
+	EigenMesh() = default;
 	EigenMesh(const CForge::T3DMesh<float>& inMesh);
-	Eigen::MatrixXd& getDV();
-	Eigen::MatrixXi& getDF();
+	MatrixXd& getDV();
+	MatrixXi& getDF();
 private:
-	Eigen::MatrixXd m_DV;
-	Eigen::MatrixXi m_DF;
+	MatrixXd m_DV;
+	MatrixXi m_DF;
 };
 
 }//CForge

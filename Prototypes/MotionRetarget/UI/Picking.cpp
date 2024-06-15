@@ -38,9 +38,11 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 		bool hit = false;
 
 		// simply apply obj Transform my inverse transforming ray pos
-		Matrix4f objTrans = pPobj->pckTrans();
+		Matrix4f objTrans = pPobj->pckTrans()*pPobj->BVtrans;
+		objTrans = objTrans.inverse().eval(); // transform ray instead of bv //TODO(skade) eval because of alias (BVtrans?)
+
 		Vector4f ro04; ro04 << ro0,1.;
-		Vector3f ro = (objTrans.inverse()*Vector4f(ro04)).head<3>();
+		Vector3f ro = (objTrans*Vector4f(ro04)).head<3>();
 
 		switch (bv.type()) {
 		case BoundingVolume::TYPE_AABB: {
