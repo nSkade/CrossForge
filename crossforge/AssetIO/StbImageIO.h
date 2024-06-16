@@ -25,7 +25,7 @@ namespace CForge {
 	* \brief Import/export plug-in using the stb image library.
 	* \ingroup AssetIO
 	*/
-	class StbImageIO : public I2DImageIO {
+	class CFORGE_API StbImageIO : public I2DImageIO {
 	public:
 		/**
 		* \brief Constructor.

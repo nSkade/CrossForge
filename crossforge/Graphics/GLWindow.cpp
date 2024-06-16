@@ -322,4 +322,13 @@ namespace CForge {
 		auto Mode = glfwGetInputMode(pWin, GLFW_CURSOR);
 		return (Mode != GLFW_CURSOR_NORMAL);
 	}//isMouseCursorHidden
+
+	void GLWindow::setIcon(int width, int height, uint8_t* data) {
+		GLFWimage image;
+		image.height = height;
+		image.width= width;
+		image.pixels = data;
+		for (auto& window : m_WindowList)
+			glfwSetWindowIcon(window.second, 1, &image);
+	}
 }//name space

@@ -236,6 +236,8 @@ namespace CForge {
 		*/
 		bool isMouseCursorHidden(void)const;
 
+		//TODO(skade) brief
+		void setIcon(int width, int height, uint8_t* data);
 	private:
 
 		/**

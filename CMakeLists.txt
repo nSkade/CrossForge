@@ -141,7 +141,13 @@ add_executable(CForgeSandbox
 	#Prototypes/MotionRetarget/JointLimits/SwingXTwistYLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/SwingZTwistYLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
+
 )
+
+#icon windows only
+if (WIN32)
+	target_sources(CForgeSandbox PRIVATE Assets/icon/icon.rc)
+endif()
 
 if(EMSCRIPTEN)
 	target_link_Libraries(CForgeSandbox
