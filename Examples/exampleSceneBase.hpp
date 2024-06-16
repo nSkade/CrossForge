@@ -50,6 +50,9 @@
 #include <glad/glad.h>
 #endif
 
+//TODO(skade) for icon
+#include <crossforge/AssetIO/StbImageIO.h>
+
 using namespace Eigen;
 using namespace std;
 
@@ -150,6 +153,11 @@ namespace CForge {
 		virtual void initWindowAndRenderDevice(bool UseGBuffer = true, uint32_t DirLightCount = 1, uint32_t PointLightCount = 1, uint32_t SpotLightCount = 0) {
 			m_RenderWin.init(Vector2i(100, 100), Vector2i(m_WinWidth, m_WinHeight), m_WindowTitle);
 			m_RenderWin.startListening(this);
+
+			StbImageIO stbImageIO;
+			T2DImage<uint8_t> iconImage;
+			stbImageIO.load("Assets/icon/icon.png",&iconImage);
+			m_RenderWin.setIcon(iconImage.width(),iconImage.height(),iconImage.data());
 
 			auto Traits = CForgeUtility::retrieveGPUTraits();
 			SLogger::log("Created context with GL version: " + Traits.GLVersion + "\n", "ProgramFlow");
