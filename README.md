@@ -17,12 +17,12 @@ CrossForge: Your research and education tool for cross-platform 3D-Apps
 [![GitHub release](https://img.shields.io/github/release/CrossForge/StrapDown.js.svg)](https://GitHub.com/CrossForge/StrapDown.js/releases/)
 
 <p style="text-align: justify">
- CrossForge is a cross platform graphics framework for 3D applications on Windows, Linux, and WebAssembly. It is primarily designed for educational purposes and computer graphics research. Hence it focuses solely on OpenGL as graphics API (no DirectX or Vulcan), and features extensive tutorials for computer graphics novices. If you want to learn how 3D application work from the ground up, you are at the right place.
+ CrossForge is a cross platform graphics framework for 3D applications on Windows, Linux, and WebAssembly. It is primarily designed for educational purposes and computer graphics research. Hence it focuses solely on OpenGL as graphics API (no DirectX or Vulkan), and features extensive tutorials for computer graphics novices. If you want to learn how 3D application work from the ground up, you are at the right place.
 </P>
 
 # Why CrossForge?
 <img align="right" height="200" style="margin:0px 12px" src="Documentation/Images/Examples/Lighting.webp"/>
-There are a lot of very impressive open source graphics engines out there and most of them support various graphics APIs like Vulcan, DirectX and OpenGL. This is only possible if the underlying API is abstracted away and you are forced to use the interface of the respective engine. CrossForge solely uses OpenGL with a strong focus on compatibility with WebGL in order to be compatible with WebAssembly. Hence, the publication of your CrossForge projects on a website is a built-in feature and not just an option. This design allows you to use the available CrossForge modules, modify them, or completely replace them with you own OpenGL based implementation and GLSL Shaders. This flat design and reduced complexity makes the CrossForge framework perfect for education and research in computer graphics as well as for hobbyists. 
+There are a lot of very impressive open source graphics engines out there and most of them support various graphics APIs like Vulkan, DirectX and OpenGL. This is only possible if the underlying API is abstracted away and you are forced to use the interface of the respective engine. CrossForge solely uses OpenGL with a strong focus on compatibility with WebGL in order to be compatible with WebAssembly. Hence, the publication of your CrossForge projects on a website is a built-in feature and not just an option. This design allows you to use the available CrossForge modules, modify them, or completely replace them with you own OpenGL based implementation and GLSL Shaders. This flat design and reduced complexity makes the CrossForge framework perfect for education and research in computer graphics as well as for hobbyists. 
 
 # Feature List
 + Supported systems: Windows, Linux, and WebAssembly
