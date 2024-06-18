@@ -241,8 +241,6 @@ namespace CForge {
 		struct GLFWwindow* m_pWin;			///< Associated glfw window.
 	};//Keyboard
 
-	typedef std::shared_ptr<Keyboard> KeyboardPtr;
-
 	/**
 	* \brief Message that is send by the keyboard object.
 	*/

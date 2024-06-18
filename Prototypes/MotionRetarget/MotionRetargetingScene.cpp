@@ -1,13 +1,13 @@
 #include "MotionRetargetingScene.hpp"
 
-#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
-#include <Prototypes/GUI/ImGuiUtility.h>
 #include "UI/ImGuiStyle.hpp"
 #include "UI/IKSequencer.hpp"
 
 #include "IKSolver/IKChain.hpp"
 
-#include <GLFW/glfw3.h>
+#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
+#include <Prototypes/GUI/ImGuiUtility.h>
+#include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
 
 namespace ImGui {
 
@@ -72,8 +72,6 @@ void MotionRetargetingScene::clear() {
 	m_config.baseStore();
 
 	ExampleSceneBase::clear();
-
-	//m_EndEffectors.clear();
 
 	for (auto& EffTransforms : m_EffectorTransformSGNs) {
 		for (auto pSGN : EffTransforms.second) if (pSGN != nullptr) delete pSGN;
@@ -140,7 +138,7 @@ void MotionRetargetingScene::mainLoop() {
 	if (frameActionIdx < 3) { // render 1 frame after action to update ui
 		m_RenderWin.update();
 	} else {
-		glfwWaitEvents();
+		m_RenderWin.updateWait();
 		return;
 	}
 
@@ -150,7 +148,6 @@ void MotionRetargetingScene::mainLoop() {
 		m_IKController->update(60.0f / m_FPS);
 		m_IKCupdateSingle = false;
 	}
-	//updateEndEffectorMarkers(); //TODO(skade)
 
 	if (m_pAnimCurr) {
 		if (m_animAutoplay) {
@@ -163,37 +160,33 @@ void MotionRetargetingScene::mainLoop() {
 		}
 		//TODO(skade) reinitialisiere IK controller joint positions on animation keyframe change
 		m_IKController->updateBones(m_pAnimCurr);
-		//m_IKController->updateEndEffectorPoints();
 	}
 	
 	// Handle Picking and camera
 	if (!ImGui::IsAnyItemHovered() && !ImGui::IsAnyItemActive()) { // !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)
 		if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
-			std::vector<std::weak_ptr<IKTarget>> t = m_IKController->getTargets();
-			std::vector<std::weak_ptr<IPickable>> p(t.begin(),t.end());
 
 			if (!ImGuizmo::IsUsing()) {
+				std::vector<std::weak_ptr<IKTarget>> t = m_IKController->getTargets();
+				std::vector<std::weak_ptr<IPickable>> p(t.begin(),t.end());
 				m_picker.pick(p);
+				//m_guizmoMat = m_picker.m_guizmoMat;
+
+				//TODO(skade) JointPickable
+				p.clear();
+				std::vector<std::weak_ptr<JointPickable>> jp = m_IKController->getJointPickables();
+				p = std::vector<std::weak_ptr<IPickable>>(jp.begin(),jp.end());
+				m_picker.pick(p);
+				
 				m_guizmoMat = m_picker.m_guizmoMat;
 			}
-
-			//TODO(skade) JointPickable
-			//p.clear();
-			//std::vector<std::weak_ptr<JointPickable>> jp = m_IKController->getJointPickables();
-			//p = std::vector<std::weak_ptr<IPickable>>(jp.begin(),jp.end());
-			//m_picker.pick(p);
-			//m_guizmoMat = m_picker.m_guizmoMat;
-
-			//pickTarget();
-			//dragTarget(m_SelectedEffectorTarget);
 		} else
 			m_editCam.defaultCameraUpdate(&m_Cam, &m_RenderWin, 0.05f, .7f, 32.0f);
 
 		//if (m_useGuizmo && m_LastSelectedEffectorTarget != -1) {
-		if (m_useGuizmo && dynamic_cast<IKTarget*>(m_picker.getLastPick())) {
+		if (m_useGuizmo && m_picker.getLastPick())
 			m_guizmo.active(true);
-			//dragTarget(m_LastSelectedEffectorTarget);
-		} else
+		else
 			m_guizmo.active(false);
 
 		m_picker.update(m_guizmoMat);
@@ -254,17 +247,10 @@ void MotionRetargetingScene::initCharacter() {
 	m_IKActor->init(&M, m_IKController.get());
 
 	m_CharacterSGN.init(&m_RootSGN, m_IKActor.get());
-
-	//TODO(skade) remove/rewrite
-	m_IKStickActor.init(&M, m_IKController.get());
-	m_IKStickActorSGN.init(&m_RootSGN, &m_IKStickActor);
-	m_IKStickActorSGN.enable(true, false);
 	M.clear();
 }//initActors
 
 void MotionRetargetingScene::initEndEffectorMarkers() {
-	//m_EndEffectors = m_IKController->retrieveEndEffectors();
-
 	T3DMesh<float> M;
 
 	// end-effector actors
@@ -349,94 +335,7 @@ void MotionRetargetingScene::initEndEffectorMarkers() {
 	m_TargetAABB.init(&M);
 	m_TargetMarkerAABB = AlignedBox3f(M.aabb().min(), M.aabb().max());
 	M.clear();
-
-	//TODO(skade) cleanup and abstract
-	//for (int32_t i = 0; i < m_EndEffectors.size(); ++i) {
-	//	m_EffectorTransformSGNs.try_emplace(m_EndEffectors[i].segmentName);
-	//	m_EffectorGeomSGNs.try_emplace(m_EndEffectors[i].segmentName);
-	//	m_TargetTransformSGNs.try_emplace(m_EndEffectors[i].segmentName);
-	//	m_TargetGeomSGNs.try_emplace(m_EndEffectors[i].segmentName);
-
-	//	auto& EffectorTransforms = m_EffectorTransformSGNs.at(m_EndEffectors[i].segmentName);
-	//	auto& EffectorGeoms = m_EffectorGeomSGNs.at(m_EndEffectors[i].segmentName);
-	//	auto& TargetTransforms = m_TargetTransformSGNs.at(m_EndEffectors[i].segmentName);
-	//	auto& TargetGeoms = m_TargetGeomSGNs.at(m_EndEffectors[i].segmentName);
-
-	//	//TODO(skade) memory management
-	//	for (uint32_t i = 0; i < EffectorTransforms.size(); ++i) {
-	//		delete EffectorTransforms[i];
-	//	}
-	//	EffectorTransforms.clear();
-	//	for (uint32_t i = 0; i < EffectorGeoms.size(); ++i) {
-	//		delete EffectorGeoms[i];
-	//	}
-	//	EffectorGeoms.clear();
-	//	for (uint32_t i = 0; i < TargetTransforms.size(); ++i) {
-	//		delete TargetTransforms[i];
-	//	}
-	//	TargetTransforms.clear();
-	//	for (uint32_t i = 0; i < TargetGeoms.size(); ++i) {
-	//		delete TargetGeoms[i];
-	//	}
-	//	TargetGeoms.clear();
-
-	//	// assign end effector transforms and initialize geometry for every joint in joint chain
-	//	Eigen::Matrix3Xf EndEffectorPoints; //= m_EndEffectors[i].jointIK->pEndEffectorData->EEPosGlobal;
-	//	Eigen::Matrix3Xf TargetPoints;// = m_EndEffectors[i].jointIK->pEndEffectorData->TargetPosGlobal;
-	//	return;
-
-	//	for (int32_t j = 0; j < EndEffectorPoints.cols(); ++j) {
-	//		EffectorTransforms.push_back(new SGNTransformation());
-	//		EffectorGeoms.push_back(new SGNGeometry());
-	//		EffectorTransforms.back()->init(&m_EffectorVis, EndEffectorPoints.col(j));
-	//		
-	//		StaticActor* efac = &m_EffectorPos;
-
-	//		if (j == 0)
-	//			efac = &m_EffectorZ;
-	//		else if (j==EndEffectorPoints.cols()-1)
-	//			efac = &m_EffectorY;
-	//		else
-	//			efac = &m_EffectorX;
-
-	//		EffectorGeoms[j]->init(EffectorTransforms[j], efac);
-	//	}
-
-	//	for (int32_t j = 0; j < EndEffectorPoints.cols(); ++j) {
-	//		TargetTransforms.push_back(new SGNTransformation());
-	//		TargetGeoms.push_back(new SGNGeometry());
-	//		EffectorGeoms.back()->init(EffectorTransforms[j], &m_EffectorPos);
-	//		TargetTransforms.back()->init(&m_TargetVis, TargetPoints.col(j));
-	//		TargetGeoms.back()->init(TargetTransforms.back(), &m_TargetPos);
-	//	}
-
-	//	int32_t AABBIndex = EndEffectorPoints.cols()-1;
-
-	//	TargetTransforms[AABBIndex] = new SGNTransformation();
-	//	TargetGeoms[AABBIndex] = new SGNGeometry();
-
-	//	//TODO(skade)
-	//	//Vector3f AABBPos = m_EndEffectors[i]->TargetPoints.rowwise().sum();
-	//	//AABBPos /= m_EndEffectors[i]->TargetPoints.cols();
-
-	//	Vector3f AABBPos = TargetPoints.col(0);
-	//	
-	//	TargetTransforms[AABBIndex]->init(&m_TargetVis, AABBPos);
-	//	TargetGeoms[AABBIndex]->init(TargetTransforms[AABBIndex], &m_TargetAABB);
-	//	TargetGeoms[AABBIndex]->visualization(SGNGeometry::Visualization::VISUALIZATION_WIREFRAME);
-	//}
 }//initEndEffectorMarkers
-
-
-//void MotionRetargetingScene::updateEndEffectorMarkers() {
-//	for (int32_t i = 0; i < m_EndEffectors.size(); ++i) {
-//		auto& EffectorTransforms = m_EffectorTransformSGNs.at(m_EndEffectors[i].segmentName);
-//		Eigen::Matrix3Xf EndEffectorPoints = m_EndEffectors[i].jointIK->pEndEffectorData->EEPosGlobal;
-//		for (int32_t j = 0; j < EndEffectorPoints.cols(); ++j) {
-//			EffectorTransforms[j]->translation(EndEffectorPoints.col(j));
-//		}
-//	}
-//}//updateEndEffectorMarkers
 
 void MotionRetargetingScene::renderUIAnimation() {
 	if (!m_IKActor || !m_IKController)
@@ -455,13 +354,11 @@ void MotionRetargetingScene::renderUIAnimation() {
 		if (m_pAnimCurr && m_current_anim_item - 1 != m_pAnimCurr->AnimationID) { // Animation changed
 			m_IKController->destroyAnimation(m_pAnimCurr);
 			m_IKActor->activeAnimation(nullptr);
-			m_IKStickActor.activeAnimation(nullptr);
 			m_pAnimCurr = nullptr;
 		}
 		if (!m_pAnimCurr) { // create animation if not existing
 			m_pAnimCurr = m_IKController->createAnimation(m_current_anim_item-1,1.f,0.f);
 			m_IKActor->activeAnimation(m_pAnimCurr);
-			m_IKStickActor.activeAnimation(m_pAnimCurr);
 		}
 
 		T3DMesh<float>::SkeletalAnimation* anim = m_IKActor->getController()->animation(m_current_anim_item-1);
@@ -481,21 +378,8 @@ void MotionRetargetingScene::renderUIAnimation() {
 	else {
 		m_IKController->destroyAnimation(m_pAnimCurr);
 		m_IKActor->activeAnimation(nullptr);
-		m_IKStickActor.activeAnimation(nullptr);
 		m_pAnimCurr = nullptr;
 	}
-
-	//TODOf(skade) StickFigureActor
-	//bool sfaEnabled;
-	//m_IKStickActorSGN.enabled(nullptr, &sfaEnabled);
-	//ImGui::Checkbox("enable StickFigureActor",&sfaEnabled);
-	//if (sfaEnabled) {
-	//	m_CharacterSGN.enable(true, false);
-	//	m_IKStickActorSGN.enable(true, true);
-	//} else {
-	//	m_CharacterSGN.enable(true, true);
-	//	m_IKStickActorSGN.enable(true, false);
-	//}
 }
 
 void MotionRetargetingScene::renderUI() {
@@ -604,12 +488,6 @@ void MotionRetargetingScene::renderUI() {
 
 	{
 		ImGui::Begin("IK");
-		//TODO(skade) remove
-		//if (m_LastSelectedEffectorTarget != -1) {
-		//	IKController::SkeletalEndEffector pEndEffector = m_EndEffectors[m_LastSelectedEffectorTarget];
-		//	ImGui::Text("IK segmentName: %s",pEndEffector.segmentName.c_str());
-		//} else
-		//	ImGui::Text("IK segmentName none");
 		IKTarget* lp = dynamic_cast<IKTarget*>(m_picker.getLastPick());
 		if (lp) {
 			IKSegment* seg = m_IKController->getSegment(lp);
@@ -647,61 +525,9 @@ void MotionRetargetingScene::renderVisualizers() {
 		//glDisable(GL_DEPTH_TEST);
 		//glEnable(GL_BLEND);
 
-		//std::function<void(SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f parMat)> renderJoint;
-		//renderJoint = [&](SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f fromPar) {
-		//	//TODO(skade) appply sg node transform
-		//	const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
-		//	const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
-		//	const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
-		//	const Matrix4f JointTransform = T * R * S;
-		//	Matrix4f LocalTransform = fromPar * JointTransform;
+		m_IKController->renderJointPickables(&m_RenderDev);
 
-		//	Vector3f BoneVec; // vector to next bone
-		//	if (pJoint->Children.size() > 0)
-		//		BoneVec = m_IKController->getBone(pJoint->Children[0])->LocalPosition;
-		//	else
-		//		BoneVec = pJoint->LocalPosition;
-		//	float Length = BoneVec.norm(); // length to next bone
-
-		//	Quaternionf LR = Quaternionf::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
-		//	Matrix4f t = LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
-		//	
-		//	m_RenderDev.modelUBO()->modelMatrix(t);
-		//	m_JointVisActor.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
-		//	for (uint32_t i = 0; i < pJoint->Children.size(); ++i)
-		//		renderJoint(m_IKController->getBone(pJoint->Children[i]),LocalTransform);
-		//};
-		//renderJoint(m_IKController->getRoot(),Matrix4f::Identity());
-
-		for (uint32_t i = 0; i < m_IKController->boneCount(); i++) {
-			SkeletalAnimationController::SkeletalJoint* pJoint = m_IKController->getBone(i);
-			//TODO(skade) appply sg node transform
-			const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
-			const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
-			const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
-			const Matrix4f JointTransform = T * R * S;
-
-			Matrix4f fromPar = Matrix4f::Identity();
-			if (pJoint->Parent != -1)
-				fromPar = m_IKController->getBone(pJoint->Parent)->SkinningMatrix
-				          * m_IKController->getBone(pJoint->Parent)->OffsetMatrix.inverse();
-			Matrix4f LocalTransform = fromPar * JointTransform;
-
-			Vector3f BoneVec; // vector to next bone
-			if (pJoint->Children.size() > 0)
-				BoneVec = m_IKController->getBone(pJoint->Children[0])->LocalPosition;
-			else
-				BoneVec = pJoint->LocalPosition;
-			float Length = BoneVec.norm(); // length to next bone
-
-			Quaternionf LR = Quaternionf::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
-			Matrix4f t = LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
-			
-			m_RenderDev.modelUBO()->modelMatrix(t);
-			m_JointVisActor.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
-		}
 		//glDisable(GL_BLEND);
-
 		//glEnable(GL_DEPTH_TEST);
 	}
 	glDisable(GL_DEPTH_TEST);

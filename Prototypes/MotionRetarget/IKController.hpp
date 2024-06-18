@@ -18,6 +18,7 @@
 
 namespace CForge {
 using namespace Eigen;
+class RenderDevice;
 
 class IKController : public SkeletalAnimationController {
 public:
@@ -27,11 +28,6 @@ public:
 		IKSS_CCD_FABRIK,
 	} testIKslvSelect = IKSS_CCD_B;
 	SkeletalJoint* getRoot() { return m_pRoot; }
-
-	/**
-	 * \brief Returns reference to m_IKJoints.
-	 */
-	//std::vector<SkeletalEndEffector> retrieveEndEffectors(void);
 
 	IKController(void);
 	~IKController(void);
@@ -49,16 +45,11 @@ public:
 
 	SkeletalAnimationController::SkeletalJoint* getBone(uint32_t idx);
 	uint32_t boneCount();
-	void updateSkeletonValues(std::vector<SkeletalAnimationController::SkeletalJoint*>* pSkeleton);
-
-	//void translateTarget(std::string segmentName, Eigen::Vector3f Translation);
-	//Eigen::Matrix3Xf getTargetPoints(std::string segmentName);
 
 	/**
 	 * @brief Update IK Bone values to current animation frame.
 	 */
 	void updateBones(Animation* pAnim);
-	//void updateEndEffectorPoints();
 	std::vector<std::weak_ptr<IKTarget>> getTargets() {
 		return std::vector<std::weak_ptr<IKTarget>>(m_targets.begin(),m_targets.end());
 	};
@@ -72,6 +63,7 @@ public:
 			if (a.second.target == target)
 				return &a.second;
 		}
+		return nullptr;
 	}
 
 	/**
@@ -88,14 +80,16 @@ public:
 	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
 		return std::vector<std::weak_ptr<JointPickable>>(m_jointPickables.begin(),m_jointPickables.end());
 	};
+	void renderJointPickables(RenderDevice* pRenderDev);
 
 protected:
 	std::vector<std::shared_ptr<JointPickable>> m_jointPickables;
+	JointPickableMesh m_jointPickableMesh;
 	
 	void initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
 	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
-	void initEndEffectorPoints();
+	//void initEndEffectorPoints(); //TODO(skade) remove
 
 	//TODO(skade) remove
 	/**
@@ -106,29 +100,8 @@ protected:
 	void updateTargetPoints();
 	std::vector<std::shared_ptr<IKTarget>> m_targets;
 
-	//TODO(skade) move into CCDSolver
-	// CCD solver solving for whole chain targets
-	//void ikCCDglobal(std::string segmentName);
-
-	//TODO(skade) remove
-	//template<bool isForward>
-	//void ikCCD(std::string segmentName);
-
-	//float m_thresholdDist = 1e-6f;
-	//float m_thresholdPosChange = 1e-6f;
-
-	//int32_t m_MaxIterations = 50;
-
-	void rotateGaze();
-
-	//TODO(skade) remove 
-	//TODO(skade) EndEffectorData
-	//Eigen::Quaternionf computeUnconstrainedGlobalRotation(IKJoint* pJoint, EndEffectorData* pEffData);
-
-	//float m_thresholdDist = 1e-6f;
-	//float m_thresholdPosChange = 1e-6f;
-
-	//int32_t m_MaxIterations = 50;
+	//TODO(skade) rotate head
+	//void rotateGaze();
 };//IKController
 
 }//CForge

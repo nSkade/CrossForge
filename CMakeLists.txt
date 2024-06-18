@@ -78,6 +78,7 @@ endif()
 
 add_executable(CForgeSandbox 
 	SandboxMain.cpp
+	
 
 	# Hardware stuff (used with Raspberry Pi)
 	crossforge/Core/SGPIO.cpp
@@ -123,7 +124,6 @@ add_executable(CForgeSandbox
 
 	Prototypes/MotionRetarget/IKController.cpp
 	Prototypes/MotionRetarget/IKSkeletalActor.cpp
-	Prototypes/MotionRetarget/IKStickFigureActor.cpp
 
 	Prototypes/MotionRetarget/IKSolver/CCDSolver.cpp
 	Prototypes/MotionRetarget/IKSolver/FABRIKSolver.cpp
@@ -142,6 +142,7 @@ add_executable(CForgeSandbox
 	#Prototypes/MotionRetarget/JointLimits/SwingZTwistYLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
 
+	Prototypes/MotionRetarget/CMN/EigenFWD.cpp
 )
 
 #icon windows only
@@ -167,7 +168,14 @@ elseif(WIN32)
 		PRIVATE ${FFMPEG_LIBRARY_DIRS}
 	)
 
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -bigobj") # necessary?
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # -bigobj") # necessary?
+	if (MSVC)
+		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /d1reportTime")
+		#set_source_files_properties(
+		#	Prototypes/MotionRetarget/MotionRetargetingScene.cpp
+		#	PROPERTIES COMPILE_OPTIONS /d1reportTime
+		#)
+	endif()
 	target_link_libraries(CForgeSandbox 
 		PRIVATE crossforge
 		PRIVATE Pinocchio

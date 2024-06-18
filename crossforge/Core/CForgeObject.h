@@ -86,8 +86,6 @@ namespace CForge {
 		static uint64_t m_ObjCounter;	///< Static counter to assign unique IDs.
 	};//CForgeObject
 
-	typedef std::shared_ptr<CForgeObject> CForgeObjectPtr;	///< Smart pointer definition.
-
 	class SLogger;
 
 }//name-space

@@ -1,17 +1,15 @@
 #pragma once
 
 #include <Examples/exampleSceneBase.hpp>
-
-#include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
 #include <crossforge/Graphics/Actors/SkeletalActor.h>
 
-#include <Prototypes/MotionRetarget/UI/IKImGui.hpp>
+//TODO(skade) move gui outside
+//#include <Prototypes/MotionRetarget/UI/IKImGui.hpp>
 #include <Prototypes/MotionRetarget/UI/Guizmo.hpp>
 #include <Prototypes/MotionRetarget/UI/EditCamera.hpp>
 #include <Prototypes/MotionRetarget/Config/Config.hpp>
 
 #include "IKSkeletalActor.hpp"
-#include "IKStickFigureActor.hpp"
 #include "UI/Picking.hpp"
 
 namespace CForge {
@@ -20,7 +18,7 @@ class MotionRetargetingScene : public ExampleSceneBase {
 public:
 	MotionRetargetingScene(void) : m_picker(&m_RenderWin,&m_Cam) {
 		SLogger::instance()->printToConsole = true;
-		m_WindowTitle = "CForge Motion Retarget Editor";
+		m_WindowTitle = "CForge Motion Retarget";
 	}//Constructor
 
 	~MotionRetargetingScene(void) {
@@ -37,21 +35,14 @@ public:
 	void renderUIAnimation();
 
 private:
-	//void rayCast(Eigen::Vector3f* ro, Eigen::Vector3f* rd);
-	//TODO(skade) implement target bone
-	//void pickTarget();
-	//void dragTarget(int target);
-
 	void initCharacter();
 	void initEndEffectorMarkers();
-	//void updateEndEffectorMarkers();
 
 	/**
 	 * @brief Render Joints and Constraints
 	*/
 	void renderVisualizers();
 
-private:
 	SGNTransformation m_RootSGN;
 
 	// character & controller
@@ -61,16 +52,10 @@ private:
 
 	SGNGeometry m_CharacterSGN;
 
-	IKStickFigureActor m_IKStickActor;
-	SGNGeometry m_IKStickActorSGN;
-
 	StaticActor m_JointVisActor;
 
 	SkeletalAnimationController m_SkeletalController;
 	SkeletalActor m_SkeletalActor;
-	
-	// end-effector & target markers
-	//std::vector<IKController::SkeletalEndEffector> m_EndEffectors;
 
 	SGNTransformation m_EffectorVis;
 	std::map<std::string, std::vector<SGNTransformation*>> m_EffectorTransformSGNs;
@@ -84,10 +69,6 @@ private:
 
 	StaticActor m_TargetPos, m_TargetAABB;
 	AlignedBox3f m_TargetMarkerAABB;
-
-	//TODO(skade) comment
-	//int32_t m_SelectedEffectorTarget = -1; // index into m_EndEffectors vector; NOT id of joint inside m_CharacterController
-	//int32_t m_LastSelectedEffectorTarget = -1; // index into m_EndEffectors vector; NOT id of joint inside m_CharacterController
 
 	bool m_LMBDownLastFrame = false;
 	Vector3f m_DragStart = Vector3f::Zero();
@@ -111,7 +92,7 @@ private:
 
 	bool keyboardAnyKeyPressed();
 
-	IKImGui m_gui;
+	//IKImGui m_gui;
 	Guizmo m_guizmo;
 	Config m_config;
 	EditCamera m_editCam;

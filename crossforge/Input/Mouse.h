@@ -142,8 +142,6 @@ namespace CForge {
 		std::vector<bool> m_BtnState;	///< Array that tracks state of the mouse buttons.
 	};//Mouse
 
-	typedef std::shared_ptr<Mouse> MousePtr;
-
 }//name-space
 
 #endif 

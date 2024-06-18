@@ -1,5 +1,7 @@
 #include "Guizmo.hpp"
 
+#include <crossforge/Graphics/Camera/VirtualCamera.h>
+
 namespace CForge {
 	void Guizmo::setMat(Eigen::Matrix4f* mat) {
 		m_pMat = mat;

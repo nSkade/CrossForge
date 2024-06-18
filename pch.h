@@ -5,7 +5,14 @@
 #include <map>
 
 // lib
+
+// eigen
+#ifndef NDEBUG
+#define EIGEN_NO_DEBUG
+#define EIGEN_NO_STATIC_ASSERT
+#endif
 #include <Eigen/Eigen>
+
 #define JSON_DIAGNOSTICS 1
 #include <nlohmann/json.hpp>
 

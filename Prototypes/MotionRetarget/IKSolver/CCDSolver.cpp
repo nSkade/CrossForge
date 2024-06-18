@@ -86,6 +86,56 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 template void IKSolverCCD::solve<IKSolverCCD::BACKWARD>(std::string segmentName, IKController* pController);
 template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, IKController* pController);
 
+//void IKController::ikCCDglobal(const std::string segmentName) {
+//	std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
+//	EndEffectorData* pEffData = m_IKJoints[Chain[0]]->pEndEffectorData;
+//	Matrix3Xf LastEndEffectorPoints;
+//
+//	for (int32_t i = 0; i < m_MaxIterations; ++i) {
+//		LastEndEffectorPoints = pEffData->EEPosGlobal;
+//
+//		for (int32_t k = 0; k < Chain.size(); ++k) {
+//			SkeletalJoint* pCurrent = Chain[k];
+//			IKJoint* pCurrentIK = m_IKJoints[pCurrent];
+//
+//			// compute unconstrained global rotation that best aligns position and orientation of end effector with desired target values
+//			Quaternionf GlobalIncrement = computeUnconstrainedGlobalRotation(pCurrentIK, pEffData);
+//			Quaternionf NewGlobalRotation = GlobalIncrement * pCurrentIK->rotGlobal;
+//			
+//			// transform new global rotation to new local rotation
+//			Quaternionf NewLocalRotation;
+//			if (pCurrent == m_pRoot)
+//				NewLocalRotation = NewGlobalRotation;
+//			else
+//				NewLocalRotation = m_IKJoints[m_Joints[pCurrent->Parent]]->rotGlobal.conjugate() * NewGlobalRotation;
+//
+//			NewLocalRotation.normalize();
+//
+//			//TODO(skade)
+//			// constrain new local rotation if joint is not unconstrained
+//			//if (pCurrentIK->pLimits != nullptr)
+//			//	NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
+//
+//			// apply new local rotation to joint
+//			pCurrent->LocalRotation = NewLocalRotation;
+//
+//			// update kinematic chain
+//			forwardKinematics(pCurrent);
+//		}//for[each joint in chain]
+//
+//		// check for termination -> condition: end-effector has reached the targets position and orientation
+//		Matrix3Xf EffectorTargetDiff = pEffData->TargetPosGlobal - pEffData->EEPosGlobal;
+//		float DistError = EffectorTargetDiff.cwiseProduct(EffectorTargetDiff).sum() / float(EffectorTargetDiff.cols());
+//		if (DistError < m_thresholdDist)
+//			return;
+//
+//		Matrix3Xf EffectorPosDiff = pEffData->EEPosGlobal - LastEndEffectorPoints;
+//		float PosChangeError = EffectorPosDiff.cwiseProduct(EffectorPosDiff).sum() / float(EffectorPosDiff.cols());
+//		if (PosChangeError < m_thresholdPosChange)
+//			return;
+//	}//for[m_MaxIterations]
+//}//ikCCDglobal
+
 //Quaternionf IKSolverCCD::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
 //
 //	//TODO(skade) doesnt rotate joint to target, but takes whole chain into considertaiton

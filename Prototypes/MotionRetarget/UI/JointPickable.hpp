@@ -10,35 +10,27 @@
 
 namespace CForge {
 
-class SJointPickableMesh {
-public:
+struct JointPickableMesh {
 	EigenMesh eigenMesh;
 	StaticActor actor;
 	BoundingVolume bv;
 
-	SJointPickableMesh() { 
-		//TODO(skade) JointPickable
-		// actor deallocation in singleton not possible due to material manager
-		//T3DMesh<float> M;
-		//SAssetIO::load("MyAssets/ccd-ik/joint.obj", &M); //TODO(skade) use primitive shape factory instead
-		//eigenMesh = EigenMesh(M);
-		//actor.init(&M);
-		//M.computeAxisAlignedBoundingBox();
-		//bv.init(M.aabb());
+	JointPickableMesh() { 
+		T3DMesh<float> M;
+		SAssetIO::load("MyAssets/ccd-ik/joint.obj", &M); //TODO(skade) use primitive shape factory instead
+		eigenMesh = EigenMesh(M);
+		actor.init(&M);
+		M.computeAxisAlignedBoundingBox();
+		bv.init(M.aabb());
 	};
-
-	// singleton pattern https://stackoverflow.com/questions/1008019/how-do-you-implement-the-singleton-design-pattern
-public:
-	static SJointPickableMesh& instance() {
-		static SJointPickableMesh instance;
-		return instance;
-	}
-private:
-	SJointPickableMesh(SJointPickableMesh const&); // dont implement
-	void operator=(SJointPickableMesh const&); // dont implement
 };
 
 struct JointPickable : public IPickable {
+	JointPickable(JointPickableMesh* pMesh, SkeletalAnimationController::SkeletalJoint* pJoint) {
+		this->pMesh = pMesh;
+		this->pJoint = pJoint;
+	};
+
 	void pckMove(const Matrix4f& trans) {
 		if (!pJoint) return;
 		pJoint->LocalPosition = trans.block<3,1>(3,0);
@@ -55,10 +47,14 @@ struct JointPickable : public IPickable {
 		return t*r*s;
 	};
 	const BoundingVolume& pckBV() {
-		return SJointPickableMesh::instance().bv;
+		return pMesh->bv;
 	}
+	EigenMesh* pckEigenMesh() {
+		return &(pMesh->eigenMesh);
+	};
 
 	SkeletalAnimationController::SkeletalJoint* pJoint;
+	JointPickableMesh* pMesh;
 };
 
 }//CForge

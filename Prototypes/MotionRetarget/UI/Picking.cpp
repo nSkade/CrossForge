@@ -63,9 +63,14 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 		//TODOf(skade) check for distance in case on screenspace overlap of multiple aabb
 		if (hit) {
 			//TODOf(skade) implement mesh intersection test
-			//igl::ray_mesh_intersect()
-			pPick = pPobj;
-			break;
+			EigenMesh* pMesh = pPobj->pckEigenMesh();
+			if (pMesh) {
+				igl::Hit iglHit;
+				hit = igl::ray_mesh_intersect(ro,rd,pMesh->getDV(),pMesh->getDF(),iglHit);
+			} else {
+				pPick = pPobj;
+				break;
+			}
 		}
 	}
 	if (!pPick.expired()) {

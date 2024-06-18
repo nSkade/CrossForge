@@ -91,6 +91,11 @@ namespace CForge {
 		void update(void);
 
 		/**
+		* \brief Poll window and process events. Returns after input.
+		*/
+		void updateWait(void);
+
+		/**
 		* \brief Swaps buffers to display the generated image.
 		*/
 		void swapBuffers(void);

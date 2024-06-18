@@ -179,6 +179,10 @@ namespace CForge {
 		glfwPollEvents();
 	}//update
 
+	void GLWindow::updateWait(void) {
+		glfwWaitEvents();
+	}//update
+
 	void GLWindow::swapBuffers(void) {
 		glfwSwapBuffers((GLFWwindow*)m_pHandle);
 	}//swapBuffers
