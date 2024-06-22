@@ -167,15 +167,13 @@ void MotionRetargetingScene::mainLoop() {
 		if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
 
 			if (!ImGuizmo::IsUsing()) {
+				std::vector<std::weak_ptr<IPickable>> p;
 				std::vector<std::weak_ptr<IKTarget>> t = m_IKController->getTargets();
-				std::vector<std::weak_ptr<IPickable>> p(t.begin(),t.end());
+				p.assign(t.begin(),t.end());
 				m_picker.pick(p);
-				//m_guizmoMat = m_picker.m_guizmoMat;
 
-				//TODO(skade) JointPickable
-				p.clear();
 				std::vector<std::weak_ptr<JointPickable>> jp = m_IKController->getJointPickables();
-				p = std::vector<std::weak_ptr<IPickable>>(jp.begin(),jp.end());
+				p.assign(jp.begin(),jp.end());
 				m_picker.pick(p);
 				
 				m_guizmoMat = m_picker.m_guizmoMat;
@@ -525,7 +523,14 @@ void MotionRetargetingScene::renderVisualizers() {
 		//glDisable(GL_DEPTH_TEST);
 		//glEnable(GL_BLEND);
 
-		m_IKController->renderJointPickables(&m_RenderDev);
+		//TODO(skade) cleanup
+		//m_IKController->renderJointPickables(&m_RenderDev);
+		auto& joints = m_IKController->getJointPickables();
+		for (auto j : joints) {
+			auto jl = j.lock();
+			jl->update(Matrix4f::Identity());
+			jl->render(&m_RenderDev);
+		}
 
 		//glDisable(GL_BLEND);
 		//glEnable(GL_DEPTH_TEST);
@@ -541,7 +546,7 @@ void MotionRetargetingScene::renderVisualizers() {
 		
 		for (uint32_t i = 0; i < t.size(); ++i) {
 			//Box aabb = t[i]->bv.aabb();
-			m_RenderDev.modelUBO()->modelMatrix(t[i]->pckTrans());
+			m_RenderDev.modelUBO()->modelMatrix(t[i]->pckTransPickin());
 			m_TargetPos.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
 		}
 	}

@@ -23,8 +23,8 @@ void Picker::rayCast(Vector3f* ro, Vector3f* rd) {
 
 void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 	
-	Vector3f ro0, rd;
-	rayCast(&ro0, &rd);
+	Vector3f ro0, rd0;
+	rayCast(&ro0, &rd0);
 	std::weak_ptr<IPickable> pPick;
 	Matrix4f t = Matrix4f::Identity();
 
@@ -38,11 +38,13 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 		bool hit = false;
 
 		// simply apply obj Transform my inverse transforming ray pos
-		Matrix4f objTrans = pPobj->pckTrans()*pPobj->BVtrans;
-		objTrans = objTrans.inverse().eval(); // transform ray instead of bv //TODO(skade) eval because of alias (BVtrans?)
+		Matrix4f objTrans = pPobj->pckTransPickin();
+		objTrans = objTrans.inverse();
 
 		Vector4f ro04; ro04 << ro0,1.;
 		Vector3f ro = (objTrans*Vector4f(ro04)).head<3>();
+		Vector4f rd04; rd04 << rd0,0.;
+		Vector3f rd = (objTrans*Vector4f(rd04)).head<3>();
 
 		switch (bv.type()) {
 		case BoundingVolume::TYPE_AABB: {
@@ -67,14 +69,15 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 			if (pMesh) {
 				igl::Hit iglHit;
 				hit = igl::ray_mesh_intersect(ro,rd,pMesh->getDV(),pMesh->getDF(),iglHit);
-			} else {
-				pPick = pPobj;
-				break;
+				//if (!hit)
+				//	continue;
 			}
+			pPick = pPobj;
+			break;
 		}
 	}
 	if (!pPick.expired()) {
-		m_guizmoMat = pPick.lock().get()->pckTrans();
+		m_guizmoMat = pPick.lock().get()->pckTransGuizmo();
 
 		if (!m_pLastPick.expired())
 			m_pLastPick.lock().get()->pckDeselect();

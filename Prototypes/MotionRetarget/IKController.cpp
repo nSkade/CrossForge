@@ -158,10 +158,8 @@ void IKController::init(T3DMesh<float>* pMesh) {
 
 	pSMan->release();
 
-	for (uint32_t i=0;i<m_Joints.size();++i) {
-		m_jointPickables.emplace_back(std::make_shared<JointPickable>(&m_jointPickableMesh,m_Joints[i]));
-		//m_jointPickables.back()->BVtrans
-	}
+	for (uint32_t i=0;i<m_Joints.size();++i)
+		m_jointPickables.emplace_back(std::make_shared<JointPickable>(&m_jointPickableMesh,m_Joints[i],this));
 }
 
 // pMesh has to hold skeletal definition
@@ -529,6 +527,7 @@ uint32_t IKController::boneCount() {
 	return m_Joints.size();
 }
 
+//TODO(skade) not used anymore, keep hierarchy method for future ref
 void IKController::renderJointPickables(RenderDevice* pRenderDev) {
 #if 0 // from hierarchy
 	std::function<void(SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f parMat)> renderJoint;

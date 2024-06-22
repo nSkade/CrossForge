@@ -6,7 +6,7 @@
 #include <crossforge/Graphics/Shader/GLShader.h>
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
-#include "UI/JointPickable.hpp"
+#include "Animation/JointPickable.hpp"
 #include "Constraints/IKTarget.hpp"
 
 #include "IKSolver/CCDSolver.hpp"

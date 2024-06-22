@@ -12,7 +12,7 @@ namespace CForge {
 		clear();
 	}//Destructor
 
-	void IKSkeletalActor::init(T3DMesh<float>* pMesh, IKController *pController) {
+	void IKSkeletalActor::init(T3DMesh<float>* pMesh, IKController* pController) {
 		clear();
 		initBuffer(pMesh,false);
 

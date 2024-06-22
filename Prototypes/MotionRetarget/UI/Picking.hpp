@@ -21,10 +21,10 @@ public:
 	/**
 	 * @brief World space transform
 	*/
-	virtual Matrix4f pckTrans() = 0;
+	virtual Matrix4f pckTransGuizmo() = 0; // used for guizmo update
+	virtual Matrix4f pckTransPickin() = 0; // used for picking evaluation
 	virtual const BoundingVolume& pckBV() = 0;
 	virtual EigenMesh* pckEigenMesh() { return nullptr; };
-	Matrix4f BVtrans = Matrix4f::Identity();
 };
 
 /**
@@ -45,10 +45,9 @@ private:
 	void rayCast(Vector3f* ro, Vector3f* rd);
 	GLWindow* m_pWin;
 	VirtualCamera* m_pCam;
-	//TODO(skade) unsafe, object might get destroyed
+	//TODO(skade) check safety
 	std::weak_ptr<IPickable> m_pLastPick; // picked object
 	std::weak_ptr<IPickable> m_pCurrPick; // last clicked object
-	//Vector3f m_DragStart = Vector3f::Zero(); //TODO(skade) remove
 };
 
 }//CForge

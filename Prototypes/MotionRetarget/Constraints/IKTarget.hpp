@@ -15,6 +15,12 @@ struct IKTarget : public IPickable {
 		r.block<3,1>(0,3) = pos;
 		return r;
 	}
+	Matrix4f pckTransGuizmo() {
+		return pckTrans();
+	}
+	Matrix4f pckTransPickin() {
+		return pckTrans();
+	}
 	const BoundingVolume& pckBV() {
 		return bv;
 	}

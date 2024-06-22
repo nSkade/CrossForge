@@ -135,6 +135,8 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/UI/EditCamera.cpp
 	Prototypes/MotionRetarget/Config/Config.cpp
 
+	Prototypes/MotionRetarget/Animation/JointPickable.cpp
+
 	#Prototypes/MotionRetarget/JointLimits/JointLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/HingeLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/SwingXZTwistYLimits.cpp
@@ -286,7 +288,6 @@ add_library(Pinocchio SHARED
 	Thirdparty/Pinocchio/PinocchioTools.cpp
 )
 target_include_directories(Pinocchio PUBLIC "${CMAKE_SOURCE_DIR}/Thirdparty/Pinocchio")
-target_compile_options(Pinocchio PRIVATE -fPIC)
 add_compile_definitions(PINOCCHIO_EXPORTS)
 target_link_libraries(Pinocchio
 	PRIVATE Eigen3::Eigen
