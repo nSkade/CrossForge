@@ -70,6 +70,19 @@ namespace CForge{
         return Rval; 
     }
 
+    std::vector<int32_t> MeshConnection::getIsolatedFacesSubmesh(T3DMesh<float>* pMesh, int submeshIndex){
+        if(pMesh == nullptr || submeshIndex >= pMesh->submeshCount() || submeshIndex < 0) throw CForgeExcept("Nullpointer or Index out of range"); 
+
+        std::vector<int32_t> Rval; 
+        T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(submeshIndex); 
+
+        for(int i = 0; i < sub->Faces.size(); i++){
+            if(getAdjacentFacesSubmesh(pMesh, submeshIndex, i).size() == 0) Rval.push_back(i); 
+        }
+
+        return Rval;
+    }  
+
     std::vector<int32_t> MeshConnection::getNeighboringFacesSubmesh(T3DMesh<float>* pMesh, int submeshIndex, int faceIndex){
         // there are two different definitions of Adjacent: if they share an edge or just
         // a common vertex - the second one is also needed for the first one
@@ -245,6 +258,165 @@ namespace CForge{
         }
         if(count == 2) Rval = true; 
         return Rval;
-    }    
+    }   
 
+    float MeshConnection::getAreaFace(T3DMesh<float>* pMesh, int submeshIndex, int faceIndex){
+        if(pMesh == nullptr || submeshIndex >= pMesh->submeshCount() || submeshIndex < 0) throw CForgeExcept("Nullpointer or Index out of range"); 
+        T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(submeshIndex); 
+        if(faceIndex >= sub->Faces.size() || faceIndex < 0) throw CForgeExcept("faceIndex out of range"); 
+
+        T3DMesh<float>::Face f = sub->Faces[faceIndex];
+        Eigen::Vector3f v1 = pMesh->vertex(f.Vertices[0]);
+        Eigen::Vector3f v2 = pMesh->vertex(f.Vertices[1]);
+        Eigen::Vector3f v3 = pMesh->vertex(f.Vertices[2]);
+
+        // get the area of the triangle
+        Eigen::Vector3f e1 = v2 - v1;
+        Eigen::Vector3f e2 = v3 - v1;
+        float area = 0.5 * e1.cross(e2).norm();
+        return area;
+    }
+
+    float MeshConnection::getAreaSubmesh(T3DMesh<float>* pMesh, int submeshIndex){
+        if(pMesh == nullptr || submeshIndex >= pMesh->submeshCount() || submeshIndex < 0) throw CForgeExcept("Nullpointer or Index out of range"); 
+        T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(submeshIndex); 
+
+        float area = 0.0f; 
+        for(int i = 0; i < sub->Faces.size(); i++){
+            area += MeshConnection::getAreaFace(pMesh, submeshIndex, i); 
+        }
+        return area;
+    }
+
+    std::vector<T3DMesh<float>::Face> MeshConnection::getIsolatedFacesWholeMesh(T3DMesh<float>* pMesh){
+        if(pMesh == nullptr) throw CForgeExcept("Nullpointer"); 
+        std::vector<T3DMesh<float>::Face> Rval; 
+        for(int i = 0; i < pMesh->submeshCount(); i++){
+            std::vector<int32_t> isolatedFaces = getIsolatedFacesSubmesh(pMesh, i); 
+            T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(i); 
+            for(int j = 0; j < isolatedFaces.size(); j++){
+                Rval.push_back(sub->Faces[isolatedFaces[j]]); 
+            }
+        }
+        return Rval;
+    }
+
+    bool MeshConnection::areSameFace(T3DMesh<float>::Face f1, T3DMesh<float>::Face f2){
+        // test if two faces are the same
+        bool Rval = f1.Vertices[0] == f2.Vertices[0] && f1.Vertices[1] == f2.Vertices[1] && f1.Vertices[2] == f2.Vertices[2];
+        return Rval;
+    }
+
+    int MeshConnection::getFaceIndex(T3DMesh<float>* pMesh, int submeshIndex, T3DMesh<float>::Face face){
+        // get the index of a facevalue in a submesh
+        int Rval = -1; 
+
+        if(pMesh == nullptr || submeshIndex >= pMesh->submeshCount() || submeshIndex < 0) throw CForgeExcept("Nullpointer or Index out of range");
+        T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(submeshIndex);
+        for(int i = 0; i < sub->Faces.size(); i++){
+            if(areSameFace(sub->Faces[i], face)){
+                Rval = i; 
+                break;
+            }
+        }
+        return Rval;
+    }
+
+    T3DMesh<float> MeshConnection::splitMeshFromProxy(T3DMesh<float>* pMeshOrg, T3DMesh<float>* pMeshRegions, std::vector<std::vector<int32_t>> vertexMap){
+        if(pMeshOrg == nullptr || pMeshRegions == nullptr) throw CForgeExcept("Nullpointer");
+        T3DMesh<float> Rval;
+
+        // create a new T3DMesh with the same vertices and texture coordinates
+        // but split them up like the regionmesh
+
+        // get verticies & texture vertices
+        std::vector<Eigen::Vector3f> vertices; 
+        for(int i = 0; i < pMeshOrg->vertexCount(); i++){
+            vertices.push_back(pMeshOrg->vertex(i)); 
+        }
+        std::vector<Eigen::Vector3f> texturVerices; 
+        for(int i = 0; i < pMeshOrg->textureCoordinatesCount(); i++){
+            texturVerices.push_back(pMeshOrg->textureCoordinate(i)); 
+        }
+        Rval.vertices(&vertices);
+        Rval.textureCoordinates(&texturVerices);  
+
+        // a submesh can have multible materials which are empty, we just take the first none empty one
+        // this should hold the texture itself
+        int materialID = -1; 
+        T3DMesh<float>::Material *textureMaterial;    
+        for(int i = 0; i < pMeshOrg->materialCount(); i++){
+            T3DMesh<float>::Material *matOrg = pMeshOrg->getMaterial(i);
+            if(!matOrg->TexAlbedo.empty()){
+                textureMaterial = pMeshOrg->getMaterial(i); 
+                materialID = i; 
+                break; 
+            } 
+        }
+
+        // this is a necessary step, because later it is checked how many materials in total
+        // the mesh has and it needs one per submesh
+        for(int i = 0; i < pMeshRegions->submeshCount(); i++){
+            Rval.addMaterial(textureMaterial, true); 
+        }
+
+        // submehes of pMeshRegions
+        for(int i = 0; i < pMeshRegions->submeshCount(); i++){
+            T3DMesh<float>::Submesh *subRegions = pMeshRegions->getSubmesh(i); 
+            T3DMesh<float>::Submesh *newSub = new T3DMesh<float>::Submesh; 
+
+            // transfer the faces - that means get a new face, 
+            for(int faceIdx = 0; faceIdx < subRegions->Faces.size(); faceIdx++){
+                T3DMesh<float>::Face f = subRegions->Faces[faceIdx]; 
+                T3DMesh<float>::Face newFace; 
+                for(int j = 0; j < 3; j++){
+                    // vertex index of face
+                    // can put 0 there because the vertices are the same
+                    newFace.Vertices[j] = vertexMap[f.Vertices[j]][0]; 
+                }
+                newSub->Faces.push_back(newFace); 
+            }
+            newSub->Material = materialID; 
+            Rval.addSubmesh(newSub, true); 
+        }
+
+        return Rval;
+    }
+
+    void MeshConnection::copyMesh(T3DMesh<float>* pMeshOrg, T3DMesh<float>* pMeshCopy){
+        // a real copy function in the T3DMesh is missing 
+        
+        // we do not want to add anything but build it up from scratch
+        pMeshCopy->clear();
+
+        // copying the region mesh to m_RegionMesh
+			std::vector<Eigen::Vector3f> vertices;
+            std::vector<Eigen::Vector3f> textureCoordinates;
+			std::vector<T3DMesh<float>::Face> faces;
+			for(int i = 0; i < pMeshOrg->vertexCount(); i++){
+				vertices.push_back(pMeshOrg->vertex(i));
+			}
+			pMeshCopy->vertices(&vertices);
+            for(int i = 0; i < pMeshOrg->textureCoordinatesCount(); i++){
+                textureCoordinates.push_back(pMeshOrg->textureCoordinate(i));
+            }
+            pMeshCopy->textureCoordinates(&textureCoordinates);
+			for(int i = 0; i < pMeshOrg->submeshCount(); i++){
+				T3DMesh<float>::Submesh *sub = pMeshOrg->getSubmesh(i); 
+				std::vector<T3DMesh<float>::Face> faces;
+				faces = sub->Faces;
+
+                // through merging the mesh, it can be that the mesh has no faces
+                if(faces.empty()) continue;
+
+                pMeshCopy->addSubmesh(sub, true);	
+			}
+			for(int i = 0; i < pMeshOrg->materialCount(); i++){
+				T3DMesh<float>::Material *mat = pMeshOrg->getMaterial(i); 
+				pMeshCopy->addMaterial(mat, true);	
+			}
+			// copying end 
+
+    }
+    
 }//CForge

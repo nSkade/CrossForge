@@ -1,4 +1,5 @@
 #include "objImport.h"
+#include <crossforge/AssetIO/SAssetIO.h>
 #include <iostream>
 
 
@@ -170,5 +171,52 @@ namespace CForge{
         file << ret;
         
     }// exportAsObjFile
+
+    void objImportExport::exportSubmeshesAsObjFiles(std::vector<std::string> filenames, T3DMesh<float>* pMesh){
+        // this funciton exports each submesh as a separate obj file
+        if(pMesh == nullptr) throw CForgeExcept("Mesh is null");
+        if(filenames.size() != pMesh->submeshCount()){
+            filenames.clear();
+            for(int i = 0; i < pMesh->submeshCount(); i++){
+                filenames.push_back("submesh" + std::to_string(i) + ".obj");
+            }
+        } 
+        
+        std::vector<Eigen::Vector3f> vertices; 
+        for(int i = 0; i < pMesh->vertexCount(); i++){
+            vertices.push_back(pMesh->vertex(i));
+        }
+        std::vector<Eigen::Vector3f> textureCoordinates;
+        for(int i = 0; i < pMesh->textureCoordinatesCount(); i++){
+            textureCoordinates.push_back(pMesh->textureCoordinate(i));
+        }
+
+        T3DMesh<float> exportMesh; 
+        for(int i = 0; i < pMesh->submeshCount(); i++){
+            exportMesh.clear(); 
+            exportMesh.vertices(&vertices);
+            exportMesh.textureCoordinates(&textureCoordinates); 
+            T3DMesh<float>::Submesh *submesh = pMesh->getSubmesh(i);
+            std::vector<T3DMesh<float>::Face> faces = submesh->Faces;
+
+            // if we merge the mesh beforehand it can be that the mesh has no
+            // faces, so we just skip that mesh and proceed with the next one
+            if(faces.size() == 0) continue;
+
+            exportMesh.addSubmesh(submesh, true);
+
+            T3DMesh<float>::Material *material = pMesh->getMaterial(submesh->Material);
+            for(int i = 0; i < pMesh->submeshCount(); i++){
+                exportMesh.addMaterial(material, true);
+            }
+            
+
+            std::string filename = filenames[i];
+
+            // there can still be a problem with the material of the mesh 
+            // according to f3d: "material '' appears in OBJ but not MTL file?"
+            SAssetIO::store(filename, &exportMesh);
+        }
+    }
 
 }// namespace CForge

@@ -8,7 +8,7 @@ SET(CMAKE_BUILD_TYPE Debug)                     # Set the default build type to 
 
 # Forbid in-source builds.
 IF("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
-	MESSAGE(SEND_ERROR "In-source builds are not allowed. Use a different build directory.")
+    MESSAGE(SEND_ERROR "In-source builds are not allowed. Use a different build directory.")
 ENDIF("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
 
 # builds the crossforge library
@@ -31,41 +31,41 @@ option(INCLUDE_OPENCV "Include OpenCV in build" OFF)
 
 
 if(EMSCRIPTEN)
-	include(FetchContent)
-	
+    include(FetchContent)
+
 	### Eigen3
-	FetchContent_Declare(
-		tinyxml2 
-		GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
-		GIT_TAG 9.0.0
-	)
-	FetchContent_MakeAvailable(tinyxml2)
+    FetchContent_Declare(
+        tinyxml2 
+        GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
+        GIT_TAG 9.0.0
+    )
+    FetchContent_MakeAvailable(tinyxml2)
 
 	# nlohmann-json
-	FetchContent_Declare(
-		nlohmann_json
-		GIT_REPOSITORY https://github.com/nlohmann/json.git
-	)
-	FetchContent_MakeAvailable(nlohmann_json)
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
 
 	# tinygltf
-	FetchContent_Declare(
-		tinygltf 
-		URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.8.2.zip
-	)
-	FetchContent_MakeAvailable(tinygltf)
-	include_directories(${tinygltf_SOURCE_DIR}/)
+    FetchContent_Declare(
+        tinygltf 
+        URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.8.2.zip
+    )
+    FetchContent_MakeAvailable(tinygltf)
+    include_directories(${tinygltf_SOURCE_DIR}/)
 
-	FetchContent_Declare(
-		imgui
-		URL https://github.com/ocornut/imgui/archive/refs/tags/v1.89.4.zip
-	)
-	FetchContent_MakeAvailable(imgui)
-	include_directories(${imgui_SOURCE_DIR}/)
-	include_directories(${imgui_SOURCE_DIR}/backends)
+    FetchContent_Declare(
+        imgui
+        URL https://github.com/ocornut/imgui/archive/refs/tags/v1.89.4.zip
+    )
+    FetchContent_MakeAvailable(imgui)
+    include_directories(${imgui_SOURCE_DIR}/)
+    include_directories(${imgui_SOURCE_DIR}/backends)
 
 
-	set(CMAKE_EXECUTABLE_SUFFIX .html)
+    set(CMAKE_EXECUTABLE_SUFFIX .html)
 else()
 # Additional packages not alreday included in the core library
 FIND_PACKAGE(tinyxml2 CONFIG REQUIRED)	# support for xml loading, storing, and processing
@@ -74,187 +74,193 @@ FIND_PACKAGE(imgui CONFIG REQUIRED) # dear-imgui
 find_package(imguizmo  CONFIG REQUIRED)
 FIND_PACKAGE(JPEG REQUIRED)
 FIND_PACKAGE(libjpeg-turbo)
-FIND_PACKAGE(FFMPEG REQUIRED)
+    FIND_PACKAGE(FFMPEG REQUIRED)
 FIND_PACKAGE(nlohmann_json CONFIG REQUIRED) # support for json loading, storing, and processing
 
 FIND_PACKAGE(jsoncpp CONFIG REQUIRED) #TODO: if does not work, remove
 endif()
 
+# Add Python find_package
+find_package(Python3 REQUIRED COMPONENTS Development)
+
 add_executable(CForgeSandbox 
-	SandboxMain.cpp
+    SandboxMain.cpp
 
-	# Hardware stuff (used with Raspberry Pi)
-	crossforge/Core/SGPIO.cpp
-	Prototypes/Hardware/I2C.cpp 
-	Prototypes/Hardware/MPU6050.cpp
-	Prototypes/Hardware/RotaryEncoder.cpp
+    # Hardware stuff (used with Raspberry Pi)
+    crossforge/Core/SGPIO.cpp
+    Prototypes/Hardware/I2C.cpp 
+    Prototypes/Hardware/MPU6050.cpp
+    Prototypes/Hardware/RotaryEncoder.cpp
 
-	# Camera related
-	Prototypes/Camera/PhotoFinish.cpp
-	Prototypes/Camera/StripPhoto.cpp 
-	Prototypes/Camera/VideoRecorder.cpp
-	Prototypes/Camera/VideoPlayer.cpp
-	Prototypes/Camera/CameraCapture.cpp
-	Prototypes/Multimedia/SMediaDeviceManager.cpp
-	Prototypes/Multimedia/CameraDevice.cpp
-	Prototypes/Multimedia/FFMPEG.cpp
-	
-	# Misc
-	Prototypes/Assets/GLTFIO/GLTFIOutil.cpp
-	Prototypes/Assets/GLTFIO/GLTFIOread.cpp
-	Prototypes/Assets/GLTFIO/GLTFIOwrite.cpp
-	Prototypes/Assets/GLTFIO/GLTFIO.cpp
-	Prototypes/MeshProcessing/SurfaceSampler.cpp
-	Prototypes/Graphics/GLRenderbuffer.cpp
-	"Prototypes/GUI/ImGuiUtility.cpp"
-	
+    # Camera related
+    Prototypes/Camera/PhotoFinish.cpp
+    Prototypes/Camera/StripPhoto.cpp 
+    Prototypes/Camera/VideoRecorder.cpp
+    Prototypes/Camera/VideoPlayer.cpp
+    Prototypes/Camera/CameraCapture.cpp
+    Prototypes/Multimedia/SMediaDeviceManager.cpp
+    Prototypes/Multimedia/CameraDevice.cpp
+    Prototypes/Multimedia/FFMPEG.cpp
+    
+    # Misc
+    Prototypes/Assets/GLTFIO/GLTFIOutil.cpp
+    Prototypes/Assets/GLTFIO/GLTFIOread.cpp
+    Prototypes/Assets/GLTFIO/GLTFIOwrite.cpp
+    Prototypes/Assets/GLTFIO/GLTFIO.cpp
+    Prototypes/MeshProcessing/SurfaceSampler.cpp
+    Prototypes/Graphics/GLRenderbuffer.cpp
+    "Prototypes/GUI/ImGuiUtility.cpp"
+    
 
-	# Subprojects
-	# B02 Demonstrator
-	Subprojects/B02Demonstrator/AdaptiveSkeletalActor.cpp
-	# Dual IMU
-	Subprojects/DualIMU/IMUCameraController.cpp
+    # Subprojects
+    # B02 Demonstrator
+    Subprojects/B02Demonstrator/AdaptiveSkeletalActor.cpp
+    # Dual IMU
+    Subprojects/DualIMU/IMUCameraController.cpp
 
-	# Other
-	Prototypes/Actor/LODActor.cpp
-	"Prototypes/Actor/SLOD.cpp"
-	"Prototypes/Actor/LODHandler.cpp"
-	"Prototypes/Actor/UBOInstancedData.cpp"
-	"Prototypes/MeshProcessing/MeshDecimate.cpp"
+    # Other
+    Prototypes/Actor/LODActor.cpp
+    "Prototypes/Actor/SLOD.cpp"
+    "Prototypes/Actor/LODHandler.cpp"
+    "Prototypes/Actor/UBOInstancedData.cpp"
+    "Prototypes/MeshProcessing/MeshDecimate.cpp"
 
-	"Prototypes/SMPLTexturing/SpacePartition.cpp"
-	"Prototypes/SMPLTexturing/ICP.cpp"
-	"Prototypes/HalfEdge/HalfEdge.cpp"
+    "Prototypes/SMPLTexturing/SpacePartition.cpp"
+    "Prototypes/SMPLTexturing/ICP.cpp"
+    "Prototypes/HalfEdge/HalfEdge.cpp"
 
-	# taken from: https://github.com/cstew2/asicp
-	"Prototypes/asicp/asicp.cxx"
-	"Prototypes/asicp/asopa.cxx"
-	"Prototypes/asicp/pca.cxx"
-	"Prototypes/asicp/rotation.cxx"
+    # taken from: https://github.com/cstew2/asicp
+    "Prototypes/asicp/asicp.cxx"
+    "Prototypes/asicp/asopa.cxx"
+    "Prototypes/asicp/pca.cxx"
+    "Prototypes/asicp/rotation.cxx"
 
-	# json read
-	"Prototypes/JsonBone/JsonBoneRead.cpp"
+    # json read
+    "Prototypes/JsonBone/JsonBoneRead.cpp"
 
-	# read Obj
-	"Prototypes/objImport/objImport.cpp"
+    # read Obj
+    "Prototypes/objImport/objImport.cpp"
 
-	Prototypes/SkeletonConvertion.cpp
+    Prototypes/SkeletonConvertion.cpp
 
-	Prototypes/PNGimport/pngImport.cpp
-	Prototypes/SMPLTexturing/MeshConnection.cpp
+    Prototypes/PNGimport/pngImport.cpp
+    Prototypes/SMPLTexturing/MeshConnection.cpp
 
-	#Inverse Kinematics Prototype
-	Prototypes/InverseKinematics/InverseKinematicsController.cpp
-	Prototypes/InverseKinematics/IKSkeletalActor.cpp
-	Prototypes/InverseKinematics/IKStickFigureActor.cpp
-	Prototypes/InverseKinematics/JointLimits/JointLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/HingeLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingXZTwistYLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingXTwistYLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingZTwistYLimits.cpp
-	Prototypes/InverseKinematics/JointLimits/SwingXYTwistZLimits.cpp
+    #Inverse Kinematics Prototype
+    Prototypes/InverseKinematics/InverseKinematicsController.cpp
+    Prototypes/InverseKinematics/IKSkeletalActor.cpp
+    Prototypes/InverseKinematics/IKStickFigureActor.cpp
+    Prototypes/InverseKinematics/JointLimits/JointLimits.cpp
+    Prototypes/InverseKinematics/JointLimits/HingeLimits.cpp
+    Prototypes/InverseKinematics/JointLimits/SwingXZTwistYLimits.cpp
+    Prototypes/InverseKinematics/JointLimits/SwingXTwistYLimits.cpp
+    Prototypes/InverseKinematics/JointLimits/SwingZTwistYLimits.cpp
+    Prototypes/InverseKinematics/JointLimits/SwingXYTwistZLimits.cpp
 )
 
 if(EMSCRIPTEN)
-	target_link_Libraries(CForgeSandbox
-		tinyxml2
-		nlohmann_json
-		crossforge
-	)
-	set_target_properties(CForgeSandbox PROPERTIES LINK_FLAGS "${LINK_FLAGS} ${Optimization_Flag} -sEXIT_RUNTIME=1 -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sUSE_WEBGL2=1 -fwasm-exceptions -sUSE_GLFW=3 -sUSE_ZLIB=1 -sUSE_LIBPNG=1 -sUSE_LIBJPEG=1 --preload-file Assets --preload-file Shader --preload-file MyAssets")
+    target_link_Libraries(CForgeSandbox
+        tinyxml2
+        nlohmann_json
+        crossforge
+    )
+    set_target_properties(CForgeSandbox PROPERTIES LINK_FLAGS "${LINK_FLAGS} ${Optimization_Flag} -sEXIT_RUNTIME=1 -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sUSE_WEBGL2=1 -fwasm-exceptions -sUSE_GLFW=3 -sUSE_ZLIB=1 -sUSE_LIBPNG=1 -sUSE_LIBJPEG=1 --preload-file Assets --preload-file Shader --preload-file MyAssets")
 
 elseif(WIN32)
-	target_include_directories(CForgeSandbox 
-		PRIVATE ${JPEG_INCLUDE_DIR}
-		PRIVATE ${FFMPEG_INCLUDE_DIRS}
-	)
+    target_include_directories(CForgeSandbox 
+        PRIVATE ${JPEG_INCLUDE_DIR}
+        PRIVATE ${FFMPEG_INCLUDE_DIRS}
+    )
 
-	target_link_directories(CForgeSandbox
-		PRIVATE ${FFMPEG_LIBRARY_DIRS}
-	)
+    target_link_directories(CForgeSandbox
+        PRIVATE ${FFMPEG_LIBRARY_DIRS}
+    )
 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -bigobj") # necessary?
-	target_link_libraries(CForgeSandbox 
-		PRIVATE crossforge
-		PRIVATE Pinocchio
-		PRIVATE glfw 
-		PRIVATE glad::glad
-		ws2_32
-		PRIVATE tinyxml2::tinyxml2
-		PRIVATE nlohmann_json::nlohmann_json
-		PRIVATE imgui::imgui
-		PRIVATE imguizmo::imguizmo
-		PRIVATE ${FFMPEG_LIBRARIES}
-		${FREETYPE_LIBRARIES}
-	)
-	
+    target_link_libraries(CForgeSandbox 
+        PRIVATE crossforge
+        PRIVATE Pinocchio
+        PRIVATE glfw 
+        PRIVATE glad::glad
+        ws2_32
+        PRIVATE tinyxml2::tinyxml2
+        PRIVATE nlohmann_json::nlohmann_json
+        PRIVATE imgui::imgui
+        PRIVATE imguizmo::imguizmo
+        PRIVATE ${FFMPEG_LIBRARIES}
+        ${FREETYPE_LIBRARIES}
+        PRIVATE Python3::Python
+    )
+    
 elseif(__arm__)
-	target_link_libraries(CForgeSandbox 
-		PRIVATE crossforge
-		PRIVATE glfw
-		PRIVATE glad::glad
-		PRIVATE tinyxml2::tinyxml2
-		PRIVATE nlohmann_json::nlohmann_json
-		PRIVATE imgui::imgui
+    target_link_libraries(CForgeSandbox 
+        PRIVATE crossforge
+        PRIVATE glfw
+        PRIVATE glad::glad
+        PRIVATE tinyxml2::tinyxml2
+        PRIVATE nlohmann_json::nlohmann_json
+        PRIVATE imgui::imgui
 #		PRIVATE assimp
-		PRIVATE gpiod
-		PRIVATE dl
-		)
+        PRIVATE gpiod
+        PRIVATE dl
+        PRIVATE Python3::Python
+        )
 elseif(UNIX)
-	target_include_directories(CForgeSandbox 
-	PRIVATE ${JPEG_INCLUDE_DIR}
-	PRIVATE ${FFMPEG_INCLUDE_DIRS}
-	)
+    target_include_directories(CForgeSandbox 
+    PRIVATE ${JPEG_INCLUDE_DIR}
+    PRIVATE ${FFMPEG_INCLUDE_DIRS}
+    )
 
-	target_link_directories(CForgeSandbox
-		PRIVATE ${FFMPEG_LIBRARY_DIRS}
-	)
+    target_link_directories(CForgeSandbox
+        PRIVATE ${FFMPEG_LIBRARY_DIRS}
+    )
 
-	target_link_libraries(CForgeSandbox 
-		PRIVATE crossforge
-		PRIVATE glfw
-		PRIVATE glad::glad
-		PRIVATE tinyxml2::tinyxml2
-		PRIVATE nlohmann_json::nlohmann_json
-		PRIVATE imgui::imgui
-		PRIVATE dl
-		PRIVATE ${FFMPEG_LIBRARIES}
-		${FREETYPE_LIBRARIES}
-		${OpenCV_LIBS}
-		PRIVATE nlohmann_json::nlohmann_json
-		PRIVATE JsonCpp::JsonCpp
-		PRIVATE Pinocchio
-		# PRIVATE libpng 
-		)
+    target_link_libraries(CForgeSandbox 
+        PRIVATE crossforge
+        PRIVATE glfw
+        PRIVATE glad::glad
+        PRIVATE tinyxml2::tinyxml2
+        PRIVATE nlohmann_json::nlohmann_json
+        PRIVATE imgui::imgui
+        PRIVATE dl
+        PRIVATE ${FFMPEG_LIBRARIES}
+        ${FREETYPE_LIBRARIES}
+        ${OpenCV_LIBS}
+        PRIVATE nlohmann_json::nlohmann_json
+        PRIVATE JsonCpp::JsonCpp
+        PRIVATE Pinocchio
+        PRIVATE Python3::Python
+        # PRIVATE libpng 
+        )
 endif()
 
 #copy shaders
 add_custom_command(
-	TARGET CForgeSandbox PRE_BUILD 
-	COMMAND ${CMAKE_COMMAND} -E copy_directory
-	${CMAKE_SOURCE_DIR}/crossforge/Shader
-	${CMAKE_CURRENT_BINARY_DIR}/Shader
+    TARGET CForgeSandbox PRE_BUILD 
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/crossforge/Shader
+    ${CMAKE_CURRENT_BINARY_DIR}/Shader
 )
 add_custom_command(
-	TARGET CForgeSandbox PRE_BUILD 
-	COMMAND ${CMAKE_COMMAND} -E copy_directory 
-	${CMAKE_SOURCE_DIR}/Prototypes/Shader 
-	${CMAKE_CURRENT_BINARY_DIR}/Shader
+    TARGET CForgeSandbox PRE_BUILD 
+    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    ${CMAKE_SOURCE_DIR}/Prototypes/Shader 
+    ${CMAKE_CURRENT_BINARY_DIR}/Shader
 )
 
 #copy assets
 add_custom_command(
-	TARGET CForgeSandbox PRE_BUILD 
-	COMMAND ${CMAKE_COMMAND} -E copy_directory 
-	${CMAKE_SOURCE_DIR}/Assets
-	${CMAKE_CURRENT_BINARY_DIR}/Assets
+    TARGET CForgeSandbox PRE_BUILD 
+    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    ${CMAKE_SOURCE_DIR}/Assets
+    ${CMAKE_CURRENT_BINARY_DIR}/Assets
 )
 
 add_custom_command(
-	TARGET CForgeSandbox PRE_BUILD 
-	COMMAND ${CMAKE_COMMAND} -E copy_directory 
-	${CMAKE_SOURCE_DIR}/MyAssets
-	${CMAKE_CURRENT_BINARY_DIR}/MyAssets
+    TARGET CForgeSandbox PRE_BUILD 
+    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    ${CMAKE_SOURCE_DIR}/MyAssets
+    ${CMAKE_CURRENT_BINARY_DIR}/MyAssets
 )
 
 
@@ -262,38 +268,38 @@ if(EMSCRIPTEN)
 set(APP_FILES CForgeSandbox.html CForgeSandbox.js CForgeSandbox.wasm CForgeSandbox.data)
 foreach(i ${APP_FILES})
 add_custom_command(
-	TARGET CForgeSandbox POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy 
-	${CMAKE_CURRENT_BINARY_DIR}/${i}
-	${CMAKE_CURRENT_BINARY_DIR}/App/${i}
+    TARGET CForgeSandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy 
+    ${CMAKE_CURRENT_BINARY_DIR}/${i}
+    ${CMAKE_CURRENT_BINARY_DIR}/App/${i}
 )
 endforeach(i)
 endif(EMSCRIPTEN)
 
 add_library(Pinocchio SHARED
-	Thirdparty/Pinocchio/refinement.cpp
-	Thirdparty/Pinocchio/attachment.cpp
-	Thirdparty/Pinocchio/pinocchioApi.cpp
-	Thirdparty/Pinocchio/Pinocchio.cpp
-	Thirdparty/Pinocchio/discretization.cpp
-	Thirdparty/Pinocchio/mesh.cpp
-	Thirdparty/Pinocchio/embedding.cpp
-	Thirdparty/Pinocchio/graphutils.cpp
-	Thirdparty/Pinocchio/matrix.cpp
-	Thirdparty/Pinocchio/lsqSolver.cpp
-	Thirdparty/Pinocchio/indexer.cpp
-	Thirdparty/Pinocchio/intersector.cpp
-	Thirdparty/Pinocchio/skeleton.cpp
-	
-	Thirdparty/Pinocchio/PinocchioTools.cpp
-	
+    Thirdparty/Pinocchio/refinement.cpp
+    Thirdparty/Pinocchio/attachment.cpp
+    Thirdparty/Pinocchio/pinocchioApi.cpp
+    Thirdparty/Pinocchio/Pinocchio.cpp
+    Thirdparty/Pinocchio/discretization.cpp
+    Thirdparty/Pinocchio/mesh.cpp
+    Thirdparty/Pinocchio/embedding.cpp
+    Thirdparty/Pinocchio/graphutils.cpp
+    Thirdparty/Pinocchio/matrix.cpp
+    Thirdparty/Pinocchio/lsqSolver.cpp
+    Thirdparty/Pinocchio/indexer.cpp
+    Thirdparty/Pinocchio/intersector.cpp
+    Thirdparty/Pinocchio/skeleton.cpp
+    
+    Thirdparty/Pinocchio/PinocchioTools.cpp
+    
 )
 target_include_directories(Pinocchio PUBLIC "${CMAKE_SOURCE_DIR}/Thirdparty/Pinocchio")
 target_compile_options(Pinocchio PRIVATE -fPIC)
 add_compile_definitions(PINOCCHIO_EXPORTS)
 target_link_libraries(Pinocchio
-	PRIVATE Eigen3::Eigen
-	PRIVATE crossforge
+    PRIVATE Eigen3::Eigen
+    PRIVATE crossforge
 )
 
 # Set global property (all targets are impacted)
@@ -301,6 +307,6 @@ set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 set_property(TARGET CForgeSandbox PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 
 target_precompile_headers(CForgeSandbox PRIVATE
-	pch.h
+    pch.h
 )
 
