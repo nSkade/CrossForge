@@ -36,8 +36,8 @@ public:
 	void pick(std::vector<std::weak_ptr<IPickable>> objects);
 	void update(Matrix4f trans);
 	IPickable* getLastPick() {
-		if (!m_pLastPick.expired())
-			return m_pLastPick.lock().get();
+		if (auto lp = m_pLastPick.lock())
+			return lp.get();
 		return nullptr;
 	};
 	Matrix4f m_guizmoMat = Matrix4f::Identity();
@@ -45,7 +45,6 @@ private:
 	void rayCast(Vector3f* ro, Vector3f* rd);
 	GLWindow* m_pWin;
 	VirtualCamera* m_pCam;
-	//TODO(skade) check safety
 	std::weak_ptr<IPickable> m_pLastPick; // picked object
 	std::weak_ptr<IPickable> m_pCurrPick; // last clicked object
 };

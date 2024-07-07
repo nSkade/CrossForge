@@ -30,11 +30,13 @@
 //#include "Prototypes/TestScenes/CameraCaptureTestScene.hpp"
 //#include "Prototypes/TestScenes/TransparencyTestScene.hpp"
 //#include "Prototypes/TestScenes/FileDialogTestScene.hpp"
+//#define ActiveScene FileDialogTestScene
 //#include "Prototypes/TestScenes/BackgroundRemovalTestScene.hpp"
 
-#include "Prototypes/MotionRetarget/MotionRetargetingScene.hpp"
-#define ActiveScene MotionRetargetingScene
-//#include "Prototypes/TestScenes/AutoRiggingTestScene.hpp"
+#include "Prototypes/MotionRetarget/MotionRetargetScene.hpp"
+#define ActiveScene MotionRetargetScene
+//#include "Prototypes/MotionRetarget/AutoRiggingTestScene.hpp"
+//#define ActiveScene AutoRiggingTestScene
 
 //#include "Subprojects/DualIMU/IMUInputDeviceTestScene.hpp"
 //#include "Subprojects/B02Demonstrator/B02DemonstratorScene.hpp"
@@ -59,13 +61,10 @@ using namespace Eigen;
 //#define ActiveScene AssetGLTFTestScene
 //#define ActiveScene CameraCaptureTestScene
 //#define ActiveScene TransparencyTestScene
-//#define ActiveScene FileDialogTestScene
 //#define ActiveScene BackgroundRemovalTestScene
 
 //#define ActiveScene ImuInputDeviceTestScene
 //#define ActiveScene B02DemonstratorScene
-
-//#define ActiveScene AutoRiggingTestScene
 
 ActiveScene* pScene = nullptr;
 

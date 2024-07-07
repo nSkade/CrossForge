@@ -2,7 +2,7 @@
 
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
-#include <Prototypes/MotionRetarget/UI/Picking.hpp>
+#include <Prototypes/MotionRetarget/Animation/Picking.hpp>
 
 #include <crossforge/Math/CForgeMath.h>
 #include <crossforge/AssetIO/SAssetIO.h>
@@ -23,6 +23,8 @@ struct JointPickableMesh {
 	BoundingVolume bv;
 
 	JointPickableMesh();
+	void setOpacity(float opacity);
+	float getOpacity();
 };
 
 class JointPickable : public IPickable {

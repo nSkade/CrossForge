@@ -9,16 +9,26 @@ namespace CForge {
 using namespace Eigen;
 
 JointPickableMesh::JointPickableMesh() {
-	T3DMesh<float> M;
-	SAssetIO::load("MyAssets/ccd-ik/joint.obj", &M); //TODO(skade) use primitive shape factory instead
-	eigenMesh = EigenMesh(M);
-	M.computeAxisAlignedBoundingBox();
-	bv.init(M.aabb());
+	T3DMesh<float> mesh;
+	SAssetIO::load("MyAssets/ccd-ik/joint.obj", &mesh); //TODO(skade) use primitive shape factory instead
+	eigenMesh = EigenMesh(mesh);
+	mesh.getMaterial(0)->Color.w() = .75;
+	mesh.computeAxisAlignedBoundingBox();
+	bv.init(mesh.aabb());
 
-	actor.init(&M);
+	actor.init(&mesh);
 
-	M.getMaterial(0)->Color = Vector4f(227./255,142./255,48./255,1.f);
-	actorSel.init(&M);
+	mesh.getMaterial(0)->Color = Vector4f(227./255,142./255,48./255,1.);
+	actorSel.init(&mesh);
+}
+
+void JointPickableMesh::setOpacity(float opacity) {
+	Vector4f color = actor.material(0)->color();
+	color.w() = opacity;
+	actor.material(0)->color(color);
+}
+float JointPickableMesh::getOpacity() {
+	return actor.material(0)->color().w();
 }
 
 void JointPickable::update(Matrix4f sgnT) {
@@ -56,7 +66,7 @@ void JointPickable::pckMove(const Matrix4f& trans) {
 	// extract new rotations from matrix
 	//TODO(skade) unify place with init rest pose
 	            //function that computes pos scale rot from mat4
-	Matrix4f t = m_fromPar.inverse() * trans;
+	Matrix4f t = m_fromPar.inverse() * trans; //TODO(skade) order correct
 	Vector3f pos = t.block<3,1>(0,3);
 	Vector3f scale = Vector3f(t.block<3,1>(0,0).norm(),
 	                          t.block<3,1>(0,1).norm(),
@@ -73,9 +83,12 @@ void JointPickable::pckMove(const Matrix4f& trans) {
 	m_pJoint->LocalRotation.normalize();
 };
 void JointPickable::render(RenderDevice* pRD) {
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	pRD->modelUBO()->modelMatrix(m_transform);
 	m_pMesh->actor.render(pRD,
 						Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
+	glDisable(GL_BLEND);
 	if (m_picked) {
 		glCullFace(GL_FRONT);
 		pRD->modelUBO()->modelMatrix(m_transform * CForgeMath::scaleMatrix(Vector3f(1.,1.3,1.3)));

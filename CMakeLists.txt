@@ -120,7 +120,8 @@ add_executable(CForgeSandbox
 	Prototypes/SkeletonConvertion.cpp
 
 	#Inverse Kinematics Prototype
-	Prototypes/MotionRetarget/MotionRetargetingScene.cpp
+	"Prototypes/MotionRetarget/MotionRetargetScene.cpp"
+	"Prototypes/MotionRetarget/MotionRetargetUI.cpp"
 
 	Prototypes/MotionRetarget/IKController.cpp
 	Prototypes/MotionRetarget/IKSkeletalActor.cpp
@@ -129,8 +130,8 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/IKSolver/FABRIKSolver.cpp
 
 	Prototypes/MotionRetarget/CMN/EigenMesh.cpp
-	Prototypes/MotionRetarget/UI/Picking.cpp
-	Prototypes/MotionRetarget/UI/IKImGui.cpp
+	"Prototypes/MotionRetarget/Animation/Picking.cpp"
+	
 	Prototypes/MotionRetarget/UI/Guizmo.cpp
 	Prototypes/MotionRetarget/UI/EditCamera.cpp
 	Prototypes/MotionRetarget/Config/Config.cpp
@@ -174,7 +175,7 @@ elseif(WIN32)
 	if (MSVC)
 		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /d1reportTime")
 		#set_source_files_properties(
-		#	Prototypes/MotionRetarget/MotionRetargetingScene.cpp
+		#	Prototypes/MotionRetarget/MotionRetargetScene.cpp
 		#	PROPERTIES COMPILE_OPTIONS /d1reportTime
 		#)
 	endif()

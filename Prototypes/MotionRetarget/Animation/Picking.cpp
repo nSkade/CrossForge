@@ -30,6 +30,7 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 
 	for (int32_t i = 0; i < objects.size(); ++i) {
 		std::shared_ptr<IPickable> pPobj = objects[i].lock();
+		if (!pPobj) continue;
 
 		float T0 = m_pCam->nearPlane();
 		float T1 = m_pCam->farPlane();
@@ -65,23 +66,23 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 		//TODOf(skade) check for distance in case on screenspace overlap of multiple aabb
 		if (hit) {
 			//TODOf(skade) implement mesh intersection test
-			EigenMesh* pMesh = pPobj->pckEigenMesh();
-			if (pMesh) {
+			if (EigenMesh* pMesh = pPobj->pckEigenMesh()) {
 				igl::Hit iglHit;
 				hit = igl::ray_mesh_intersect(ro,rd,pMesh->getDV(),pMesh->getDF(),iglHit);
-				//if (!hit)
-				//	continue;
+				if (!hit)
+					continue;
 			}
 			pPick = pPobj;
 			break;
 		}
 	}
-	if (!pPick.expired()) {
-		m_guizmoMat = pPick.lock().get()->pckTransGuizmo();
 
-		if (!m_pLastPick.expired())
-			m_pLastPick.lock().get()->pckDeselect();
-		pPick.lock().get()->pckSelect();
+	if (auto p = pPick.lock()) {
+		m_guizmoMat = p.get()->pckTransGuizmo();
+
+		if (auto lp = m_pLastPick.lock())
+			lp.get()->pckDeselect();
+		p.get()->pckSelect();
 
 		m_pLastPick = pPick;
 		m_pCurrPick = pPick;
@@ -89,8 +90,8 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 	else {
 		// deselect only after pick was miss again
 		if (m_pCurrPick.expired()) {
-			if (!m_pLastPick.expired())
-				m_pLastPick.lock().get()->pckDeselect();
+			if (auto lp = m_pLastPick.lock())
+				lp.get()->pckDeselect();
 			m_pLastPick.reset();
 		}
 		m_pCurrPick.reset();
@@ -98,11 +99,9 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 }
 
 void Picker::update(Matrix4f trans) {
-	if (m_pLastPick.expired())
-		return;
-
 	m_guizmoMat = trans;
-	m_pLastPick.lock().get()->pckMove(trans);
+	if (auto lp = m_pLastPick.lock())
+		lp.get()->pckMove(trans);
 }
 
 }//CForge

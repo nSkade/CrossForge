@@ -28,8 +28,8 @@ void EditCamera::setCamProj(VirtualCamera* pCamera, GLWindow* pRWin) {
 void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin,
                                      const float MovementSpeed, const float RotationSpeed, const float SpeedScale) {
 
-	if (nullptr == pCamera) throw NullpointerExcept("pCamera");
-	if (nullptr == pRWin) throw NullpointerExcept("pKeyboard");
+	if (!pCamera) throw NullpointerExcept("pCamera");
+	if (!pRWin) throw NullpointerExcept("pKeyboard");
 
 	using namespace Eigen;
 

@@ -17,32 +17,30 @@
 \****************************************************************************/
 #pragma once
 
-#include "../../crossforge/AssetIO/SAssetIO.h"
-#include "../../crossforge/Graphics/Shader/SShaderManager.h"
-#include "../../crossforge/Graphics/STextureManager.h"
+#include <crossforge/AssetIO/SAssetIO.h>
+#include <crossforge/Graphics/Shader/SShaderManager.h>
+#include <crossforge/Graphics/Textures/STextureManager.h>
 
-#include "../../crossforge/Graphics/GLWindow.h"
-#include "../../crossforge/Math/CForgeMath.h"
-#include "../../crossforge/Graphics/RenderDevice.h"
+#include <crossforge/Graphics/GLWindow.h>
+#include <crossforge/Math/CForgeMath.h>
+#include <crossforge/Graphics/RenderDevice.h>
 
-#include "../../crossforge/Graphics/Lights/DirectionalLight.h"
-#include "../../crossforge/Graphics/Lights/PointLight.h"
+#include <crossforge/Graphics/Lights/DirectionalLight.h>
+#include <crossforge/Graphics/Lights/PointLight.h>
 
-#include "../../crossforge/Graphics/SceneGraph/SceneGraph.h"
-#include "../../crossforge/Graphics/SceneGraph/SGNGeometry.h"
-#include "../../crossforge/Graphics/SceneGraph/SGNTransformation.h"
+#include <crossforge/Graphics/SceneGraph/SceneGraph.h>
+#include <crossforge/Graphics/SceneGraph/SGNGeometry.h>
+#include <crossforge/Graphics/SceneGraph/SGNTransformation.h>
 
-#include "../../crossforge/Graphics/Actors/StaticActor.h"
-#include "../../crossforge/Graphics/Actors/SkeletalActor.h"
+#include <crossforge/Graphics/Actors/StaticActor.h>
+#include <crossforge/Graphics/Actors/SkeletalActor.h>
 
-#include "../../Examples/exampleSceneBase.hpp"
+#include <Examples/exampleSceneBase.hpp>
 
-//#include "../AutoRig.hpp"
+#include <thirdparty/Pinocchio/PinocchioTools.hpp>
+#include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
 
-#include "../../thirdparty/Pinocchio/PinocchioTools.hpp"
-#include "../Assets/GLTFIO/GLTFIO.hpp"
-
-#include "Prototypes/SkeletonConvertion.hpp"
+#include <Prototypes/SkeletonConvertion.hpp>
 
 #include <filesystem>
 #include <stdio.h>
@@ -91,8 +89,6 @@ namespace CForge {
 
 			gladLoadGL();
 			
-			GLTFIO gltfio;
-			
 			// load skydome and a textured cube
 			T3DMesh<float> M;
 			StaticActor Skydome;
@@ -114,11 +110,11 @@ namespace CForge {
 			SAssetIO::load("MyAssets/ExampleScenes/Eric_Anim.fbx", &MB);
 
 			//SAssetIO::load("MyAssets/ExampleScenes/Eric_Anim.fbx", &M);
-			//gltfio.load("MyAssets/ExampleScenes/eric.gltf",&M);
-			//gltfio.load("MyAssets/ExampleScenes/CesiumMan/glTF/CesiumMan.gltf",&M);
-			gltfio.load("MyAssets/ccd-ik/ces/CesiumMan.gltf", &M);
+			//GLTFIO::load("MyAssets/ExampleScenes/eric.gltf",&M);
+			//GLTFIO::load("MyAssets/ExampleScenes/CesiumMan/glTF/CesiumMan.gltf",&M);
+			GLTFIO::load("MyAssets/ccd-ik/ces/CesiumMan.gltf", &M);
 			M.computePerVertexNormals();
-			//gltfio.store("MyAssets/AssetOut/out_ces.gltf",&M);
+			//GLTFIO::store("MyAssets/AssetOut/out_ces.gltf",&M);
 			//exit(0);
 
 			setMeshShader(&M, 0.7f, 0.04f);
@@ -210,12 +206,12 @@ namespace CForge {
 			//AssetIO::store(outNameFBX, &M);
 			
 			std::string outName = "MyAssets/AssetOut/out" + modelName + "3.gltf";
-			gltfio.store(outName,&MT);
+			GLTFIO::store(outName,&MT);
 #endif
 			//__debugbreak();
 			//exit(0);
 			//std::string outNameEric = "MyAssets/AssetOut/eric.gltf";
-			//gltfio.store(outNameEric,&M);
+			//GLTFIO::store(outNameEric,&M);
 			//*/
 			//AutoRigger autoRigger; // for sphere visualisation
 			//autoRigger.init(&MT,M.getBone(0));
@@ -339,7 +335,7 @@ namespace CForge {
 				SkeletonConverter::collectBones(&MTbones,MT.rootBone());
 				for (uint32_t i = 0; i < MTbones.size(); ++i) {
 					Eigen::Quaternionf rot;
-					m_RenderDev.modelUBO()->modelMatrix(CForgeMath::scaleMatrix(Eigen::Vector3f(10.,10.,10.))*MTbones[i]->OffsetMatrix.inverse()*CForgeMath::scaleMatrix(Eigen::Vector3f(.01,.1,.01)));
+					m_RenderDev.modelUBO()->modelMatrix(CForgeMath::scaleMatrix(Eigen::Vector3f(10.,10.,10.))*MTbones[i]->InvBindPoseMatrix.inverse()*CForgeMath::scaleMatrix(Eigen::Vector3f(.01,.1,.01)));
 					boneVis.render(&m_RenderDev,rot,Eigen::Vector3f(),Eigen::Vector3f());
 				}
 				glColorMask(true,true,true,true);
@@ -358,7 +354,7 @@ namespace CForge {
 					Eigen::Matrix4f rep = Eigen::Matrix4f::Identity();
 					T3DMesh<float>::Bone* cbr = cb;
 					while (cbr->pParent) {
-						rep = rep*cbr->OffsetMatrix;
+						rep = rep*cbr->InvBindPoseMatrix;
 						cbr = cbr->pParent;
 					}
 					

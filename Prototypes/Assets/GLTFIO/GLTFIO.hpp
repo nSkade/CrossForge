@@ -28,47 +28,85 @@
 
 namespace CForge {
 
-	/**
-	 * \class GLTFIO
-	 * \brief Export and Import gltf files.
-	*/
-	class GLTFIO : public GLTFIOutil {
-	public:
-		GLTFIO(void);
-		~GLTFIO(void);
+/**
+ * \class GLTFIO
+ * \brief Export and Import gltf files.
+*/
+class GLTFIO : public GLTFIOutil {
+public:
+	static GLTFIO& instance() {
+		static GLTFIO instance;
+		return instance;
+	}
+	static void load(const std::string Filepath, T3DMesh<float>* pMesh) {
+		instance().loadIntern(Filepath,pMesh);
+		instance().clearInternal();
+	}
+	static void store(const std::string Filepath, const T3DMesh<float>* pMesh) {
+		instance().storeIntern(Filepath,pMesh);
+		instance().clearInternal();
+	}
 
-		void load(const std::string Filepath, T3DMesh<float>* pMesh);
-		void store(const std::string Filepath, const T3DMesh<float>* pMesh);
+	//TODOf(skade) for SAssetIO, but probably problem with this beeing singleton?
+	//void release(void);
+	static bool accepted(const std::string Filepath, I3DMeshIO::Operation Op);
 
-		void release(void);
-		static bool accepted(const std::string Filepath, I3DMeshIO::Operation Op);
+private:
+	void clearInternal() {
+		m_filePath = "";
 
-	protected:
-		std::string m_filePath;
-
-		tinygltf::Model m_model;
-		T3DMesh<float>* m_pMesh;
-		const T3DMesh<float>* m_pCMesh;
+		m_model = tinygltf::Model();
+		m_pMesh = nullptr;
+		m_pCMesh = nullptr; //TODO(skade)
 		// Data for every primitive is stored in a separate vector.
 
-		std::vector<Eigen::Matrix<float, 3, 1>> m_coord;
-		std::vector<Eigen::Matrix<float, 3, 1>> m_normal;
-		std::vector<Eigen::Matrix<float, 3, 1>> m_tangent;
-		std::vector<Eigen::Matrix<float, 2, 1>> m_texCoord;
-		std::vector<Eigen::Matrix<float, 4, 1>> m_color;
-		std::vector<Eigen::Matrix<float, 4, 1>> m_joint;
-		std::vector<Eigen::Matrix<float, 4, 1>> m_weight;
+		m_coord.clear();
+		m_normal.clear();
+		m_tangent.clear();
+		m_texCoord.clear();
+		m_color.clear();
+		m_joint.clear();
+		m_weight.clear();
 
-		std::vector<std::pair<int32_t, int32_t>> m_primitiveIndexRanges;
+		m_primitiveIndexRanges.clear();
+		m_offsets.clear(); //TODO(skade) type
+		m_materialIndex = 0; //TODO(skade) type
+	};
+	void loadIntern(const std::string Filepath, T3DMesh<float>* pMesh);
+	void storeIntern(const std::string Filepath, const T3DMesh<float>* pMesh);
 
-		std::vector<unsigned long> m_offsets;
-		unsigned long m_materialIndex;
+	//TODO(skade) remove singleton status, keep load store static and remove members
+	std::string m_filePath = "";
+
+	tinygltf::Model m_model;
+	T3DMesh<float>* m_pMesh = nullptr;
+	T3DMesh<float>* m_pCMesh = nullptr; //TODO(skade)
+	// Data for every primitive is stored in a separate vector.
+
+	std::vector<Eigen::Matrix<float, 3, 1>> m_coord;
+	std::vector<Eigen::Matrix<float, 3, 1>> m_normal;
+	std::vector<Eigen::Matrix<float, 3, 1>> m_tangent;
+	std::vector<Eigen::Matrix<float, 2, 1>> m_texCoord;
+	std::vector<Eigen::Matrix<float, 4, 1>> m_color;
+	std::vector<Eigen::Matrix<float, 4, 1>> m_joint;
+	std::vector<Eigen::Matrix<float, 4, 1>> m_weight;
+
+	std::vector<std::pair<int32_t, int32_t>> m_primitiveIndexRanges;
+	std::vector<unsigned long> m_offsets; //TODO(skade) type
+	unsigned long m_materialIndex = 0; //TODO(skade) type
 
 
-		std::vector<int> getMeshIndexByCrossForgeVertexIndex(int index);
+	std::vector<int> getMeshIndexByCrossForgeVertexIndex(int index);
 
-		int getNodeIndexByName(const std::string& name);
+	int getNodeIndexByName(const std::string& name);
 
+	GLTFIO() {};
+public:
+	GLTFIO(GLTFIO const&) = delete;
+	void operator=(GLTFIO const&) = delete;
+
+private:
+//TODO(skade) move elsewhere
 #pragma region accessor_read
 		template<class T>
 		void readBuffer(unsigned char* pBuffer, const int element_count, const int offset, const int component_count, const bool is_matrix, const int stride, std::vector<T>* pData) {
@@ -401,6 +439,6 @@ namespace CForge {
 
 		void writeSkeletalAnimations();
 #pragma endregion
-	};//GLTFIO
+};//GLTFIO
 
 }//CForge

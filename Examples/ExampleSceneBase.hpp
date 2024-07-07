@@ -50,8 +50,7 @@
 #include <glad/glad.h>
 #endif
 
-//TODO(skade) for icon
-#include <crossforge/AssetIO/StbImageIO.h>
+#include <crossforge/AssetIO/StbImageIO.h> // used for loading Icon
 
 using namespace Eigen;
 using namespace std;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Prototypes/MotionRetarget/UI/Picking.hpp>
+#include <Prototypes/MotionRetarget/Animation/Picking.hpp>
 
 namespace CForge {
 using namespace Eigen;

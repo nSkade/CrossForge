@@ -16,7 +16,7 @@ private:
 	Matrix4f* m_pMat = nullptr;
 	bool m_objectPicked = false;
 	const VirtualCamera* m_pCam = nullptr;
-	ImGuizmo::MODE m_CurrentGizmoMode = ImGuizmo::LOCAL;
+	ImGuizmo::MODE m_CurrentGizmoMode = ImGuizmo::WORLD;
 	ImGuizmo::OPERATION m_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
 	bool m_useSnap = false;
 	Vector3f m_snapTrans = Vector3f(1.f,1.f,1.f);

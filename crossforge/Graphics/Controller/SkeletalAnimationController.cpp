@@ -139,9 +139,14 @@ namespace CForge {
 		// keyframes and join names have to match
 		for (uint32_t i = 0; i < pAnimation->Keyframes.size(); ++i) {
 			int32_t JointID = jointIDFromName(pAnimation->Keyframes[i]->BoneName);
-			if (JointID < 0) continue;
-			while (pAnim->Keyframes.size() <= JointID) pAnim->Keyframes.push_back(new T3DMesh<float>::BoneKeyframes());
-			(*pAnim->Keyframes[JointID]) = (*pAnimation->Keyframes[i]);
+			if (JointID < 0)
+				continue;
+			
+			while (pAnim->Keyframes.size() <= JointID)
+				pAnim->Keyframes.push_back(new T3DMesh<float>::BoneKeyframes());
+			
+			// copy bone keyframes
+			*(pAnim->Keyframes[JointID]) = *(pAnimation->Keyframes[i]);
 			pAnim->Keyframes[JointID]->BoneID = JointID;
 		}
 
@@ -177,7 +182,11 @@ namespace CForge {
 			auto* pKeyFrame = pAnim->Keyframes[i];
 			for (auto& k : pKeyFrame->Timestamps) k /= pAnim->SamplesPerSecond;
 		}//for[all keyframes]
+		
+		//TODO(skade) duration sometimes not set?
 		pAnim->Duration = pAnim->Keyframes[0]->Timestamps[pAnim->Keyframes[0]->Timestamps.size()-1];
+		
+		//TODO(skade)
 		// now we count the sample per second
 		auto Timestamps = pAnim->Keyframes[0]->Timestamps;
 		pAnim->SamplesPerSecond = 0;
@@ -205,7 +214,7 @@ namespace CForge {
 		pRval->t = Offset;
 		pRval->Finished = false;
 		pRval->Duration = m_SkeletalAnimations[AnimationID]->Duration;
-		pRval->TicksPerSecond = m_SkeletalAnimations[AnimationID]->SamplesPerSecond;
+		pRval->SamplesPerSecond = m_SkeletalAnimations[AnimationID]->SamplesPerSecond;
 		pRval->LastTimestamp = CForgeSimulation::simulationTime();
 		Animation* pTemp = pRval;
 		for (uint32_t i = 0; i < m_ActiveAnimations.size(); ++i) {

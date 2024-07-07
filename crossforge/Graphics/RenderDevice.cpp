@@ -441,7 +441,15 @@ namespace CForge {
 			if (m_Config.UseGBuffer) {
 				m_GBuffer.bind();
 				glViewport(m_Viewport[RENDERPASS_GEOMETRY].Position.x(), m_Viewport[RENDERPASS_GEOMETRY].Position.y(), m_Viewport[RENDERPASS_GEOMETRY].Size.x(), m_Viewport[RENDERPASS_GEOMETRY].Size.y());
-				if (ClearBuffer) glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				//if (ClearBuffer) glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				//TODO(skade)
+				if (ClearBuffer) {
+					glClear(GL_DEPTH_BUFFER_BIT);
+					GLfloat zero[4] = {.0,.0,.0,.1};
+					glClearBufferfv(GL_COLOR,GBuffer::Component::COMP_ALBEDO,m_clearColor);
+					glClearBufferfv(GL_COLOR,GBuffer::Component::COMP_NORMAL,zero);
+					glClearBufferfv(GL_COLOR,GBuffer::Component::COMP_POSITION,zero);
+				}
 				glCullFace(GL_BACK);
 			}
 		}break;
@@ -498,7 +506,12 @@ namespace CForge {
 			glCullFace(GL_BACK);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glViewport(m_Viewport[RENDERPASS_FORWARD].Position.x(), m_Viewport[RENDERPASS_FORWARD].Position.y(), m_Viewport[RENDERPASS_FORWARD].Size.x(), m_Viewport[RENDERPASS_FORWARD].Size.y());
-			if (ClearBuffer) glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			if (ClearBuffer) {
+				//TODO(skade)
+				glClearColor(m_clearColor[0],m_clearColor[1],m_clearColor[2],m_clearColor[3]);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glClearColor(0,0,0,0);
+			}
 		}break;
 		default: break;
 		}

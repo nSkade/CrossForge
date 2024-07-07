@@ -24,12 +24,13 @@ namespace CForge {
 		m_pAnimationController = nullptr;
 	}//clear
 
+	//TODO(skade)
 	void IKSkeletalActor::release(void) {
 		delete this;
 	}//release
 
 	void IKSkeletalActor::render(RenderDevice* pRDev, Eigen::Quaternionf Rotation, Eigen::Vector3f Translation, Eigen::Vector3f Scale) {
-		if (nullptr == pRDev) throw NullpointerExcept("pRDev");
+		if (!pRDev) throw NullpointerExcept("pRDev");
 		
 		m_pAnimationController->applyAnimation(m_pActiveAnimation,true);
 		
@@ -37,14 +38,14 @@ namespace CForge {
 
 			switch (pRDev->activePass()) {
 			case RenderDevice::RENDERPASS_SHADOW: {
-				if (nullptr == i->pShaderShadowPass) continue;
+				if (!(i->pShaderShadowPass)) continue;
 				pRDev->activeShader(m_pAnimationController->shadowPassShader());
 				uint32_t BindingPoint = pRDev->activeShader()->uboBindingPoint(GLShader::DEFAULTUBO_BONEDATA);
 				if (BindingPoint != GL_INVALID_INDEX) m_pAnimationController->ubo()->bind(BindingPoint);
 			}
 				break;
 			case RenderDevice::RENDERPASS_GEOMETRY: {
-				if (nullptr == i->pShaderGeometryPass) continue;
+				if (!(i->pShaderGeometryPass)) continue;
 
 				pRDev->activeShader(i->pShaderGeometryPass);
 				uint32_t BindingPoint = pRDev->activeShader()->uboBindingPoint(GLShader::DEFAULTUBO_BONEDATA);
@@ -54,7 +55,7 @@ namespace CForge {
 			}
 				break;
 			case RenderDevice::RENDERPASS_FORWARD: {
-				if (nullptr == i->pShaderForwardPass) continue;
+				if (!(i->pShaderForwardPass)) continue;
 
 				pRDev->activeShader(i->pShaderForwardPass);
 				uint32_t BindingPoint = pRDev->activeShader()->uboBindingPoint(GLShader::DEFAULTUBO_BONEDATA);

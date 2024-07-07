@@ -9,8 +9,8 @@ namespace CForge {
 /**
  * @brief Interface for Joint Constraints, applied during IK.
 */
-class IConstraint {
-	virtual void apply(IKController::IKSegment* seg, SkeletalAnimationController::SkeletalJoint* cJoint);
-};//IConstraint
+//class IConstraint {
+//	virtual void apply(IKController::IKSegment* seg, SkeletalAnimationController::SkeletalJoint* cJoint);
+//};//IConstraint
 
 }//CForge

@@ -24,20 +24,7 @@ using namespace tinygltf;
 
 namespace CForge {
 
-	GLTFIO::GLTFIO(void) {
-		m_pMesh = nullptr;
-
-		m_materialIndex = 0;
-
-		m_filePath = "";
-	}//Constructor
-
-	GLTFIO::~GLTFIO(void) {
-
-	}//Destructor
-
-
-	void GLTFIO::load(const std::string Filepath, T3DMesh<float>* pMesh) {
+	void GLTFIO::loadIntern(const std::string Filepath, T3DMesh<float>* pMesh) {
 		this->m_pMesh = pMesh;
 
 		m_coord.clear();
@@ -60,11 +47,22 @@ namespace CForge {
 		std::string err;
 		std::string warn;
 
-		bool res = loader.LoadASCIIFromFile(&m_model, &err, &warn, Filepath);
+		size_t extIdx = Filepath.rfind('.');
+		std::string ext = Filepath.substr(extIdx,Filepath.length()-extIdx); //TODO(skade) linux slash
+		bool isBinary = ext==".glb";
+
+		bool res;
+		if (isBinary)
+			res = loader.LoadBinaryFromFile(&m_model,&err,&warn,Filepath);
+		else
+			res = loader.LoadASCIIFromFile(&m_model, &err, &warn, Filepath);
 		//TODO look for glb in filepath and load binary instead.
 
-		if (warn.size()) std::cout << "tinygltf warning: " << warn << std::endl;
-		if (err.size()) std::cout << "tinygltf error: " << err << std::endl;
+		//TODO(skade) log
+		if (warn.size())
+			std::cerr << "tinygltf warning: " << warn << std::endl;
+		if (err.size())
+			std::cerr << "tinygltf error: " << err << std::endl;
 
 		for (int i = 0; i < m_model.accessors.size(); i++) {
 
@@ -127,12 +125,14 @@ namespace CForge {
 				break;
 			}
 
-			std::cout << "Accessor " << i << " type: " << type << " offset: " << m_model.accessors[i].byteOffset << std::endl;
+			//TODO(skade)
+			//std::cout << "Accessor " << i << " type: " << type << " offset: " << m_model.accessors[i].byteOffset << std::endl;
 		}
 
-		for (int i = 0; i < m_model.bufferViews.size(); i++) {
-			std::cout << "BufferView offset: " << m_model.bufferViews[i].byteOffset << std::endl;
-		}
+		//TODO(skade)
+		//for (int i = 0; i < m_model.bufferViews.size(); i++) {
+		//	std::cout << "BufferView offset: " << m_model.bufferViews[i].byteOffset << std::endl;
+		//}
 
 		readNodes();
 
@@ -149,9 +149,7 @@ namespace CForge {
 	}//load
 
 
-	void GLTFIO::store(const std::string Filepath, const T3DMesh<float>* pMesh) {
-		this->m_pCMesh = pMesh;
-
+	void GLTFIO::storeIntern(const std::string Filepath, const T3DMesh<float>* pMesh) {
 		Model emptyModel;
 		m_model = emptyModel;
 
@@ -192,14 +190,13 @@ namespace CForge {
 		writer.WriteGltfSceneToFile(&m_model, Filepath, false, false, true, false);
 	}//store
 
-
-	void GLTFIO::release(void) {
-		delete this;
-	}//release
-
+	//TODOf(skade) for SAssetIO
 	bool GLTFIO::accepted(const std::string Filepath, I3DMeshIO::Operation Op) {
 		return (Filepath.find(".glb") != std::string::npos || Filepath.find(".gltf") != std::string::npos);
 	}//accepted
+	//void GLTFIO::release(void) {
+	//	delete this;
+	//}//release
 
 }//CForge
 

@@ -27,11 +27,11 @@ namespace CForge {
 	class CFORGE_API SkeletalAnimationController: public CForgeObject {
 	public:
 		struct Animation {
-			int32_t AnimationID;
-			float Speed;
+			int32_t AnimationID;   // m_SkeletalAnimations index
+			float Speed;           // playback speed
 			float Duration;
-			float t; //current
-			float TicksPerSecond;
+			float t;               // current timestep
+			float SamplesPerSecond;
 			int64_t LastTimestamp;
 			bool Finished;
 		};

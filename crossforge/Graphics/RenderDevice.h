@@ -119,6 +119,8 @@ namespace CForge {
 		void viewport(RenderPass Pass, Viewport VP);
 		Viewport viewport(RenderPass Pass)const;
 
+		//TODO(skade)
+		float m_clearColor[4] = {.0,.0,.0,.0}; // clear color used for lighting and forward pass
 	protected:
 		struct ActiveLight {
 			ILight* pLight;

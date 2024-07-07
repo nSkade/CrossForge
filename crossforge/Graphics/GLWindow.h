@@ -241,7 +241,9 @@ namespace CForge {
 		*/
 		bool isMouseCursorHidden(void)const;
 
-		//TODO(skade) brief
+		/**
+		 * \brief Sets glfw window Icon using rgba values 8 bit per channel.
+		*/
 		void setIcon(int width, int height, uint8_t* data);
 	private:
 

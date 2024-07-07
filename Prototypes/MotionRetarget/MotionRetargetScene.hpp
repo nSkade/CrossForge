@@ -4,24 +4,24 @@
 #include <crossforge/Graphics/Actors/SkeletalActor.h>
 
 //TODO(skade) move gui outside
-//#include <Prototypes/MotionRetarget/UI/IKImGui.hpp>
 #include <Prototypes/MotionRetarget/UI/Guizmo.hpp>
 #include <Prototypes/MotionRetarget/UI/EditCamera.hpp>
 #include <Prototypes/MotionRetarget/Config/Config.hpp>
 
 #include "IKSkeletalActor.hpp"
-#include "UI/Picking.hpp"
+#include "Animation/Picking.hpp"
+#include "UI/ViewManipulate.hpp"
 
 namespace CForge {
 
-class MotionRetargetingScene : public ExampleSceneBase {
+class MotionRetargetScene : public ExampleSceneBase {
 public:
-	MotionRetargetingScene(void) : m_picker(&m_RenderWin,&m_Cam) {
+	MotionRetargetScene(void) : m_picker(&m_RenderWin,&m_Cam) {
 		SLogger::instance()->printToConsole = true;
 		m_WindowTitle = "CForge Motion Retarget";
 	}//Constructor
 
-	~MotionRetargetingScene(void) {
+	~MotionRetargetScene(void) {
 		clear();
 	}//Destructor
 
@@ -30,12 +30,9 @@ public:
 	void mainLoop() override;
 	void initCameraAndLights(bool CastShadows = true);
 
-	//TODO(skade) put in seperate class
-	void renderUI();
-	void renderUIAnimation();
-
 private:
 	void initCharacter();
+	void initCesiumMan();
 	void initEndEffectorMarkers();
 
 	/**
@@ -43,26 +40,56 @@ private:
 	*/
 	void renderVisualizers();
 
-	SGNTransformation m_RootSGN;
+	//TODOf(skade) put in seperate class
+	void initUI();
+	void cleanUI();
+	void renderUI();
+	void renderUI_menuBar();
+	void renderUI_animation();
+	void renderUI_Sequencer();
+	void renderUI_tools();
+	void renderUI_ik();
 
-	// character & controller
-	std::unique_ptr<IKSkeletalActor> m_IKActor;
-	std::unique_ptr<IKController> m_IKController;
+	/**
+	 * @brief loading logic for primary actor
+	*/
+	void loadCharPrim(std::string path);
+	void storeCharPrim(std::string path);
+
+	bool keyboardAnyKeyPressed();
+	void defaultKeyboardUpdate(Keyboard* pKeyboard);
+
+private:
+	//TODO(skade) implement multiple entities
+	///**
+	// * @brief compacts info regarding single character
+	//*/
+	//struct CharEntity {
+	//	IKSkeletalActor actor;
+	//	IKController controller;
+	//	T3DMesh<float> mesh;
+	//	SGNGeometry sgnGeo;
+	//	SGNTransformation sgnTrans;
+	//	//TODO(skade) function to apply transformation on mesh data
+	//};
+	//std::vector<CharEntity> m_charEntities;
+
+	SGNTransformation m_sgnRoot;
+
+	// primary character & controller
+	std::unique_ptr<StaticActor> m_StaticActorPrim; //TODO(skade)
+	std::unique_ptr<IKSkeletalActor> m_IKActorPrim;
+	std::unique_ptr<IKController> m_IKControllerPrim;
+	std::unique_ptr<T3DMesh<float>> m_MeshCharPrim; // primary character Mesh
+	SGNGeometry m_sgnCharPrim;
+
+	// secondary character //TODO(skade)
+
 	int m_current_anim_item = 0;
 
-	SGNGeometry m_CharacterSGN;
-
-	StaticActor m_JointVisActor;
-
-	SkeletalAnimationController m_SkeletalController;
-	SkeletalActor m_SkeletalActor;
-
-	SGNTransformation m_EffectorVis;
 	std::map<std::string, std::vector<SGNTransformation*>> m_EffectorTransformSGNs;
 	std::map<std::string, std::vector<SGNGeometry*>> m_EffectorGeomSGNs;
 	StaticActor m_EffectorPos, m_EffectorX, m_EffectorY, m_EffectorZ;
-
-	SGNTransformation m_TargetVis;
 	
 	std::map<std::string, std::vector<SGNTransformation*>> m_TargetTransformSGNs;
 	std::map<std::string, std::vector<SGNGeometry*>> m_TargetGeomSGNs;
@@ -71,16 +98,14 @@ private:
 	AlignedBox3f m_TargetMarkerAABB;
 
 	bool m_LMBDownLastFrame = false;
-	Vector3f m_DragStart = Vector3f::Zero();
+	bool m_exitCalled = false;
 
-	//TODO(skade) sort
+	//TODO(skade) sort & put in options struct
 	bool m_IKCupdate = false;
 	bool m_IKCupdateSingle = false;
-	bool m_useGuizmo = true;
 	bool m_renderDebugGrid = true;
 	float m_gridSize = 3.f;
-	bool m_visualizeJoints = true;
-	bool m_showEffector = true;
+	bool m_showJoints = true;
 	bool m_showTarget = true;
 	bool m_guizmoViewManipChanged = false;
 	Matrix4f m_guizmoMat = Matrix4f::Identity();
@@ -90,14 +115,12 @@ private:
 	SkeletalAnimationController::Animation* m_pAnimCurr = nullptr; //TODO(skade) rename
 	int m_animAutoplay = false;
 
-	bool keyboardAnyKeyPressed();
-
-	//IKImGui m_gui;
 	Guizmo m_guizmo;
 	Config m_config;
 	EditCamera m_editCam;
 	Picker m_picker;
-};//MotionRetargetingScene
+	ViewManipulate m_viewManipulate;
+};//MotionRetargetScene
 
 }//CForge
 

@@ -86,6 +86,40 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 template void IKSolverCCD::solve<IKSolverCCD::BACKWARD>(std::string segmentName, IKController* pController);
 template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, IKController* pController);
 
+//struct EndEffectorData { // X corresponds to entry from end-effector to root
+//	Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
+//	Eigen::Matrix3Xf EEPosGlobal;     // current global joint positions
+//	Eigen::Matrix3Xf TargetPosGlobal; // target global joint positions
+//};
+
+//TODO(skade) rewrite
+//void IKController::rotateGaze(void) {
+//	Vector3f EPos = m_pHead->pEndEffectorData->EEPosGlobal.col(0);
+//	Vector3f TPos = m_pHead->pEndEffectorData->TargetPosGlobal.col(0);
+//	Vector3f CurrentDir = (EPos - m_pHead->posGlobal).normalized();
+//	Vector3f TargetDir = (TPos - m_pHead->posGlobal).normalized();
+//
+//	if (std::abs(1.0f - CurrentDir.dot(TargetDir) > 1e-6f)) {
+//		// compute unconstrained global rotation to align both directional vectors in world space
+//		Quaternionf GlobalIncrement;
+//		GlobalIncrement.setFromTwoVectors(CurrentDir, TargetDir);
+//		Quaternionf NewGlobalRotation = GlobalIncrement * m_pHead->rotGlobal;
+//		
+//		// transform new global rotation to new local rotation
+//		Quaternionf NewLocalRotation = (m_pHead == m_pRoot) ? NewGlobalRotation : m_pHead->pParent->rotGlobal.conjugate() * NewGlobalRotation;
+//		NewLocalRotation.normalize();
+//
+//		// constrain new local rotation if joint is not unconstrained
+//		if (m_pHead->pLimits != nullptr) NewLocalRotation = m_pHead->pLimits->constrain(NewLocalRotation);
+//
+//		// apply new local rotation to joint 
+//		m_pHead->LocalRotation = NewLocalRotation;
+//
+//		// compute new global joint rotation and apply to gaze direction
+//		forwardKinematics(m_pHead);
+//	}
+//}//rotateGaze
+
 //void IKController::ikCCDglobal(const std::string segmentName) {
 //	std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
 //	EndEffectorData* pEffData = m_IKJoints[Chain[0]]->pEndEffectorData;
@@ -136,22 +170,25 @@ template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, 
 //	}//for[m_MaxIterations]
 //}//ikCCDglobal
 
+//TODOf(skade) target for every joint
 //Quaternionf IKSolverCCD::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
 //
-//	//TODO(skade) doesnt rotate joint to target, but takes whole chain into considertaiton
+//	//TODO(skade) doesnt simply rotate joint to target, but takes whole chain into considertaiton
+//	           // every joint has its own target, find best rotation to reduce error
 //
 //	//TODO: combine points of multiple end effectors and targets into 2 point clouds to compute CCD rotation for multiple end effectors?
 //	Matrix3Xf EndEffectorPoints = pEffData->EEPosGlobal.colwise() - pJoint->GlobalPosition; // current local joint position
 //	Matrix3Xf TargetPoints = pEffData->TargetPosGlobal.colwise() - pJoint->GlobalPosition;  // target local joint position
 //
-//#if 0
+//#if 1
 //	// compute matrix W
-//	Matrix3f W = TargetPoints * EndEffectorPoints.transpose();
+//	Matrix3f W = TargetPoints * EndEffectorPoints.transpose(); // only take first 3 points from eef to root
 //
 //	// compute singular value decomposition
 //	JacobiSVD<Matrix3f> SVD(W, ComputeFullU | ComputeFullV);
 //	Matrix3f U = SVD.matrixU();
 //	Matrix3f V = SVD.matrixV();
+//
 //
 //	// compute rotation
 //	Matrix3f R = U * V.transpose();
@@ -167,7 +204,7 @@ template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, 
 //	// S =	1	Syx	Syy	Syz
 //	//		2	Szx	Szy	Szz
 //	//		
-//	Matrix3f S = EndEffectorPoints * TargetPoints.transpose();
+//	Matrix3f S = EndEffectorPoints * TargetPoints.transpose(); // only take first 3 points from eff to root
 //
 //	//
 //	// N = 

@@ -63,9 +63,9 @@ namespace CForge {
 		if (m_objectPicked && m_pMat) {
 			float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 			ImGuizmo::DecomposeMatrixToComponents((*m_pMat).data(), matrixTranslation, matrixRotation, matrixScale);
-			ImGui::InputFloat3("Tr", matrixTranslation);
-			ImGui::InputFloat3("Rt", matrixRotation);
-			ImGui::InputFloat3("Sc", matrixScale);
+			ImGui::DragFloat3("Tr", matrixTranslation,0.01);
+			ImGui::DragFloat3("Rt", matrixRotation,0.1);
+			ImGui::DragFloat3("Sc", matrixScale,0.01);
 			ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, (*m_pMat).data());
 		}
 
@@ -75,13 +75,13 @@ namespace CForge {
 			switch (m_CurrentGizmoOperation)
 			{
 			case ImGuizmo::TRANSLATE:
-				ImGui::InputFloat3("Snap", m_snapTrans.data());
+				ImGui::DragFloat3("Snap", m_snapTrans.data(),0.01);
 				break;
 			case ImGuizmo::ROTATE:
-				ImGui::InputFloat("Angle Snap", m_snapRot.data());
+				ImGui::DragFloat("Angle Snap", m_snapRot.data(),0.1);
 				break;
 			case ImGuizmo::SCALE:
-				ImGui::InputFloat("Scale Snap", m_snapScale.data());
+				ImGui::DragFloat("Scale Snap", m_snapScale.data(),0.01);
 				break;
 			}
 		}

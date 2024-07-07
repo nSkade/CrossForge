@@ -109,6 +109,20 @@ namespace CForge {
 		*/
 		static std::string readTextFile(const std::string Filepath);
 
+		//TODO(skade) brief + move in cpp
+		static bool accepted(const std::string Filepath, I3DMeshIO::Operation op) {
+			for (auto p : instance()->m_ModelIOPlugins)
+				if (p.pInstance->accepted(Filepath,op))
+					return true;
+			return false;
+		}
+		static bool accepted(const std::string Filepath, I2DImageIO::Operation op) {
+			for (auto p : instance()->m_ImageIOPlugins)
+				if (p.pInstance->accepted(Filepath,op))
+					return true;
+			return false;
+		}
+
 	protected:
 		/**
 		* \brief Constructor

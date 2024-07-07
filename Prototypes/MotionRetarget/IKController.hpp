@@ -46,10 +46,8 @@ public:
 	SkeletalAnimationController::SkeletalJoint* getBone(uint32_t idx);
 	uint32_t boneCount();
 
-	/**
-	 * @brief Update IK Bone values to current animation frame.
-	 */
-	void updateBones(Animation* pAnim);
+	//TODO(skade) remove, unnused
+	//void updateBones(Animation* pAnim);
 	std::vector<std::weak_ptr<IKTarget>> getTargets() {
 		return std::vector<std::weak_ptr<IKTarget>>(m_targets.begin(),m_targets.end());
 	};
@@ -58,7 +56,7 @@ public:
 	};
 
 	//TODO(skade) find better solution
-	IKSegment* getSegment(IKTarget* target) {
+	IKChain* getIKChain(IKTarget* target) {
 		for (auto& a : m_JointChains) {
 			if (a.second.target == target)
 				return &a.second;
@@ -73,8 +71,8 @@ public:
 
 	std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
 
-	//TODOf(skade) name included here and in IKSegment, improve SPOT
-	std::map<std::string,IKSegment> m_JointChains;
+	//TODOf(skade) name included here and in IKChain, improve SPOT
+	std::map<std::string,IKChain> m_JointChains;
 	IKSolverCCD m_iksCCD;
 	std::vector<IKSolverFABRIK> m_iksFABRIK;
 	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
@@ -82,14 +80,16 @@ public:
 	};
 	void renderJointPickables(RenderDevice* pRenderDev);
 
-protected:
+	void setJointOpacity(float opacity) { m_jointPickableMesh.setOpacity(opacity); };
+	float getJointOpacity() { return m_jointPickableMesh.getOpacity(); };
+	
+private:
 	std::vector<std::shared_ptr<JointPickable>> m_jointPickables;
 	JointPickableMesh m_jointPickableMesh;
 	
 	void initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
 	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
-	//void initEndEffectorPoints(); //TODO(skade) remove
 
 	//TODO(skade) remove
 	/**
