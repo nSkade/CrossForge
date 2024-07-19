@@ -28,6 +28,7 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 	std::weak_ptr<IPickable> pPick;
 	Matrix4f t = Matrix4f::Identity();
 
+	//TODO(skade) rewrite for single object check only and abstract for vector
 	for (int32_t i = 0; i < objects.size(); ++i) {
 		std::shared_ptr<IPickable> pPobj = objects[i].lock();
 		if (!pPobj) continue;
@@ -72,22 +73,39 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 				if (!hit)
 					continue;
 			}
-			pPick = pPobj;
+			m_pPick = pPobj;
 			break;
 		}
 	}
+}
 
-	if (auto p = pPick.lock()) {
-		m_guizmoMat = p.get()->pckTransGuizmo();
+void Picker::start() {
+	m_pPick.reset();
+}
 
-		if (auto lp = m_pLastPick.lock())
-			lp.get()->pckDeselect();
-		p.get()->pckSelect();
+void Picker::resolve() {
+	if (auto p = m_pPick.lock()) {
+		//TODO(skade) remove
+		//m_guizmoMat = p.get()->pckTransGuizmo();
+		//if (auto lp = m_pLastPick.lock())
+		//	lp.get()->pckDeselect();
+		//p.get()->pckSelect();
 
-		m_pLastPick = pPick;
-		m_pCurrPick = pPick;
-	}
-	else {
+		//m_pLastPick = m_pPick;
+		//m_pCurrPick = m_pPick;
+		
+		auto lp = m_pLastPick.lock();
+		if (p.get() != lp.get()) {
+			if (p) {
+				m_guizmoMat = p.get()->pckTransGuizmo();
+				p.get()->pckSelect();
+			}
+			if (lp)
+				lp.get()->pckDeselect();
+		}
+		m_pLastPick = m_pPick;
+		m_pCurrPick = m_pPick;
+	} else {
 		// deselect only after pick was miss again
 		if (m_pCurrPick.expired()) {
 			if (auto lp = m_pLastPick.lock())
@@ -96,6 +114,12 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 		}
 		m_pCurrPick.reset();
 	}
+}
+
+void Picker::reset() {
+	m_pPick.reset();
+	m_pCurrPick.reset();
+	m_pLastPick.reset();
 }
 
 void Picker::update(Matrix4f trans) {

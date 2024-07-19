@@ -94,7 +94,5 @@ namespace CForge {
 			if (ImGui::RadioButton("World", m_CurrentGizmoMode == ImGuizmo::WORLD))
 				m_CurrentGizmoMode = ImGuizmo::WORLD;
 		}
-
-		ImGui::Checkbox("Render Debug Cube",&m_renderDebugCube);
 	}
 }//CForge

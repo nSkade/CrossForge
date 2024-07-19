@@ -346,8 +346,9 @@ void IKController::buildKinematicChain(std::string name, std::string rootName, s
 void IKController::initTargetPoints() {
 	clearTargetPoints();
 	for (auto& c : m_JointChains) {
+		m_targets.emplace_back(std::make_shared<IKTarget>());
+		IKTarget* nt = m_targets.back().get();
 		IKJoint* eff = m_IKJoints[c.second.joints[0]];
-		IKTarget* nt = new IKTarget();
 
 		nt->pos = eff->posGlobal;
 		BoundingVolume bv;
@@ -357,7 +358,6 @@ void IKController::initTargetPoints() {
 		nt->bv = bv;
 		
 		c.second.target = nt;
-		m_targets.emplace_back(std::shared_ptr<IKTarget>(nt));
 	}
 }//initTargetPoints
 
@@ -367,6 +367,7 @@ void IKController::clearTargetPoints() {
 	m_targets.clear();
 }
 
+//TODO(skade)
 void IKController::updateTargetPoints() {
 	for (auto& c : m_JointChains) {
 		IKJoint* eff = m_IKJoints[c.second.joints[0]];
@@ -411,7 +412,7 @@ void IKController::applyAnimation(Animation* pAnim, bool UpdateUBO) {
 
 		//TODO(skade) no chains except
 		forwardKinematics(m_pRoot);
-		updateTargetPoints();
+		updateTargetPoints(); //TODO(skade) target points need to be trackable to other animation (controllers?)
 	} else {
 		transformSkeleton(m_pRoot, Matrix4f::Identity());
 	}

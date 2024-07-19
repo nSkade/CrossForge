@@ -10,6 +10,8 @@
 #include <GLFW/glfw3.h>
 //TODO(skade)
 
+#include <imgui_stdlib.h>
+
 namespace ImGui {
 
 auto ComboStr = [](const char* label, int* current_item, const std::vector<std::string>& items, int items_count, int height_in_items = -1)
@@ -56,24 +58,10 @@ void MotionRetargetScene::renderUI() {
 	ImGuiUtility::newFrame();
 	ImGuizmo::BeginFrame();
 	ImGuiViewport* igViewPort = ImGui::GetMainViewport();
-
-	//TODOf(skade) improvable dockbar/
-	//ImGui::DockSpace(ImGui::GetID("ig_dock_main"),ImVec2(0.,0.),ImGuiDockNodeFlags_None);
 	ImGui::DockSpaceOverViewport(igViewPort,ImGuiDockNodeFlags_PassthruCentralNode);
 
-	//m_gui.render(); //TODO(skade) move into other class?
-
 	renderUI_menuBar();
-
-	{
-		ImGui::Begin("Outliner");
-		//TODO(skade) abstract to scenegraph
-		
-		//TODO(skade) make Modal window for joint matching?
-		
-		ImGui::End();
-	}
-
+	renderUI_Outliner();
 	renderUI_animation();
 	renderUI_Sequencer();
 	renderUI_tools();
@@ -92,33 +80,67 @@ void MotionRetargetScene::renderUI() {
 	//}
 }//renderUI
 
+//TODO(skade) cleanup
+void MotionRetargetScene::renderUI_Outliner() {
+	std::function<void(CharEntity* c, IKController::SkeletalJoint* joint)> renderJointNode;
+	renderJointNode = [&](CharEntity* c, IKController::SkeletalJoint* joint) {
+		if (!joint)
+			return;
+		if (ImGui::TreeNode(joint->Name.c_str())) {
+			for (uint32_t i=0;i<joint->Children.size();++i)
+				renderJointNode(c,c->controller->getBone(joint->Children[i]));
+			ImGui::TreePop();
+		}
+	};
 
+	ImGui::Begin("Outliner");
+	//TODO(skade) make selectable
+	for (uint32_t i=0;i<m_charEntities.size();++i) {
+		auto c = m_charEntities[i];
+		if (!c)
+			continue;
+		if (ImGui::TreeNode(c->name.c_str())) {
+			if (ImGui::TreeNode("Armature")) {
+				renderJointNode(c.get(),c->controller->getRoot());
+				ImGui::TreePop();
+			}
+			ImGui::TreePop();
+		}
+	}
+	
+	//TODO(skade) make Modal window for joint matching?
+	
+	ImGui::End();
+}
+
+//TODO(skade)
 void MotionRetargetScene::renderUI_animation() {
 	ImGui::Begin("Animation");
-	if (!m_IKActorPrim || !m_IKControllerPrim) {
+	auto c = m_charEntityPrim.lock();
+
+	if (!c || !c->actor.get()) {
 		ImGui::End();
 		return;
 	}
 
 	std::vector<std::string> items;
 	items.push_back("none");
-	for (uint32_t i=0;i<m_IKActorPrim->getController()->animationCount();++i) {
-		items.push_back(m_IKActorPrim->getController()->animation(i)->Name);
-	}
-	ImGui::ComboStr("select animation",&m_current_anim_item,items,items.size());
+	for (uint32_t i=0;i<c->controller->animationCount();++i)
+		items.push_back(c->controller->animation(i)->Name);
+	ImGui::ComboStr("select animation",&c->animIdx,items,items.size());
 
-	if (m_current_anim_item > 0) { // anim selected
-		if (m_pAnimCurr && m_current_anim_item - 1 != m_pAnimCurr->AnimationID) { // Animation changed
-			m_IKControllerPrim->destroyAnimation(m_pAnimCurr);
-			m_IKActorPrim->activeAnimation(nullptr);
-			m_pAnimCurr = nullptr;
+	if (c->animIdx > 0) { // anim selected
+		if (c->pAnimCurr && c->animIdx - 1 != c->pAnimCurr->AnimationID) { // Animation changed
+			c->controller->destroyAnimation(c->pAnimCurr);
+			c->actor->activeAnimation(nullptr);
+			c->pAnimCurr = nullptr;
 		}
-		if (!m_pAnimCurr) { // create animation if not existing
-			m_pAnimCurr = m_IKControllerPrim->createAnimation(m_current_anim_item-1,1.f,0.f);
-			m_IKActorPrim->activeAnimation(m_pAnimCurr);
+		if (!c->pAnimCurr) { // create animation if not existing
+			c->pAnimCurr = c->controller->createAnimation(c->animIdx-1,1.f,0.f);
+			c->actor->activeAnimation(c->pAnimCurr);
 		}
 
-		T3DMesh<float>::SkeletalAnimation* anim = m_IKActorPrim->getController()->animation(m_current_anim_item-1);
+		T3DMesh<float>::SkeletalAnimation* anim = c->actor->getController()->animation(c->animIdx-1);
 		ImGui::Text("Duration: %f",anim->Duration);
 		ImGui::Text("SamplesPerSecond: %f",anim->SamplesPerSecond);
 		if(ImGui::Button("Play")) {
@@ -128,15 +150,15 @@ void MotionRetargetScene::renderUI_animation() {
 			if(ImGui::Button("Stop")) {
 				m_animAutoplay = false;
 			}
-			//ImGui::InputScalar("animSpeed", ImGuiDataType_Float, &(m_pAnimCurr->Speed));
-			ImGui::DragFloat("animSpeed", &(m_pAnimCurr->Speed), 0.01f);
+			//ImGui::InputScalar("animSpeed", ImGuiDataType_Float, &(c->pAnimCurr->Speed));
+			ImGui::DragFloat("animSpeed", &(c->pAnimCurr->Speed), 0.01f);
 		}
-		ImGui::Text("pAnim->t: %f",m_pAnimCurr->t);
+		ImGui::Text("pAnim->t: %f",c->pAnimCurr->t);
 	}
 	else {
-		m_IKControllerPrim->destroyAnimation(m_pAnimCurr);
-		m_IKActorPrim->activeAnimation(nullptr);
-		m_pAnimCurr = nullptr;
+		c->controller->destroyAnimation(c->pAnimCurr);
+		c->actor->activeAnimation(nullptr);
+		c->pAnimCurr = nullptr;
 	}
 	ImGui::End();
 }
@@ -159,16 +181,20 @@ void MotionRetargetScene::renderUI_Sequencer() {
 		init = true;
 	}
 
+	int animFrameCurr = 0;
 	mySequence.myItems.clear();
-	if (m_pAnimCurr) {
-		int animFrameCount = m_pAnimCurr->Duration * m_pAnimCurr->SamplesPerSecond;
-		//int animFrameCount = m_IKControllerPrim->animation(m_pAnimCurr->AnimationID)->Keyframes[0]->Positions.size(); //TODO(skade)
-		animFrameCount -= 1; // visualizer is inclusive
-		mySequence.myItems.push_back(MySequence::MySequenceItem{0,0,animFrameCount,false});
+	if (auto c = m_charEntityPrim.lock()) {
+		if (c->pAnimCurr) {
+			int animFrameCount = c->pAnimCurr->Duration * c->pAnimCurr->SamplesPerSecond;
+			//int animFrameCount = c->controller->animation(c->pAnimCurr->AnimationID)->Keyframes[0]->Positions.size(); //TODO(skade)
+			animFrameCount -= 1; // visualizer is inclusive
+			mySequence.myItems.push_back(MySequence::MySequenceItem{0,0,animFrameCount,false});
+			animFrameCurr = c->animFrameCurr;
+		}
 	}
 
 	ImGui::PushItemWidth(130);
-	ImGui::InputInt("Frame \t\t", &m_animFrameCurr);
+	ImGui::InputInt("Frame \t\t", &animFrameCurr);
 	ImGui::SameLine();
 	ImGui::InputInt("Min \t\t", &mySequence.mFrameMin);
 	ImGui::SameLine();
@@ -179,7 +205,7 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	static int selectedEntry = -1;
 	static int firstFrame = 0;
 	static bool expanded = true;
-	Sequencer(&mySequence, &m_animFrameCurr, &expanded, &selectedEntry, &firstFrame,
+	Sequencer(&mySequence, &animFrameCurr, &expanded, &selectedEntry, &firstFrame,
 	          ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL |
 	          ImSequencer::SEQUENCER_COPYPASTE | ImSequencer::SEQUENCER_CHANGE_FRAME);
 	
@@ -204,17 +230,12 @@ void MotionRetargetScene::renderUI_menuBar() {
 				if (ImGui::MenuItem("GLTF", ".gltf, .glb")) {
 					//TODO(skade) name
 					std::string path = UserDialog::OpenFile("load primary char", "gltf", "*.gltf *.glb");
-					loadCharPrim(path);
+					loadCharPrim(path,true);
 				}
 				if (ImGui::MenuItem("Assimp")) {
 					//TODO(skade) list assimp types
 					std::string path = UserDialog::OpenFile("load primary char", "assimp");
-
-					if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
-						m_MeshCharPrim = std::make_unique<T3DMesh<float>>();
-						SAssetIO::load(path,m_MeshCharPrim.get());
-						initCharacter();
-					}
+					loadCharPrim(path,false);
 				}
 				ImGui::EndMenu();
 			}
@@ -222,14 +243,12 @@ void MotionRetargetScene::renderUI_menuBar() {
 				if (ImGui::MenuItem("GLTF", ".gltf, .glb")) {
 					//TODO(skade) name
 					std::string path = UserDialog::SaveFile("store primary char", "gltf", "*.gltf *.glb");
-					storeCharPrim(path);
+					storeCharPrim(path,true);
 				}
 				if (ImGui::MenuItem("Assimp")) {
 					//TODO(skade) list assimp types
 					std::string path = UserDialog::SaveFile("store primary char", "assimp");
-
-					if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
-						SAssetIO::store(path,m_MeshCharPrim.get());
+					storeCharPrim(path,false);
 				}
 				ImGui::EndMenu();
 			}
@@ -324,7 +343,67 @@ void MotionRetargetScene::renderUI_menuBar() {
 				initCesiumMan();
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("Tools")) {
+			if (ImGui::MenuItem("Reset Camera")) {
+				Vector3f c = Vector3f(.5,0.,-.5);
+				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
+			}
+			if (ImGui::MenuItem("Preferences"))
+				m_showPopPreferences = true;
+			
+			ImGui::EndMenu();
+		}
 		ImGui::EndMainMenuBar();
+
+		//TODO(skade) modal, popup prompt (e.g. delete?
+		{
+			// Always center this window when appearing
+			//ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+			//ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			
+			//if (m_showPopPreferences)
+			//	ImGui::OpenPopup("Preferences Popup");
+
+			//if (ImGui::BeginPopupModal("Preferences Popup",0,ImGuiWindowFlags_AlwaysAutoResize)) {
+			//	ImGui::Text("hi there");
+			//	//ImGui::CloseButton()
+
+			//	if (ImGui::Button("Close")) {
+			//		m_showPopPreferences = false;
+			//		ImGui::CloseCurrentPopup();
+			//	}
+			//	ImGui::EndPopup();
+			//}
+		}
+
+		if (m_showPopPreferences) {
+			ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
+			if (!ImGui::Begin("Preferences", &m_showPopPreferences)) {
+				ImGui::End();
+				return;
+			}
+
+			ImGui::Text("ImGuizmo");
+			ImGui::Separator();
+			ImGui::Text("Grid");
+			ImGui::Checkbox("Render Debug Grid",&m_renderDebugGrid);
+			ImGui::InputScalar("Grid Size",ImGuiDataType_Float,&m_gridSize);
+			ImGui::Separator();
+			ImGui::Text("Debug");
+			ImGui::Checkbox("Render Debug Cube",&m_guizmo.m_renderDebugCube);
+			ImGui::Separator();
+			ImGui::Separator();
+			ImGui::Checkbox(m_cesStartupStr.c_str(),&m_cesStartup);
+
+			if (ImGui::BeginPopupContextItem()) { //TODO(skade)
+				if (ImGui::MenuItem("Close"))
+					m_showPopPreferences = false;
+				ImGui::EndPopup();
+			}
+
+			ImGui::End();
+		}
 	}
 }//renderUI_menuBar
 
@@ -333,19 +412,21 @@ void MotionRetargetScene::renderUI_tools() {
 	//TODOf(skade) settings tab
 	if (ImGui::CollapsingHeader("Visualizers", ImGuiTreeNodeFlags_None)) {
 		ImGui::Checkbox("Show Joints", &m_showJoints);
-		if (m_IKControllerPrim) {
-			static float jpoPrev = m_IKControllerPrim.get()->getJointOpacity();
-			static float jpo = jpoPrev;
-			ImGui::DragFloat("Joint Opacity",&jpo,.005,0.,1.);
-			if (jpo != jpoPrev) {
-				m_IKControllerPrim.get()->setJointOpacity(jpo);
-				jpoPrev = jpo;
+
+		if (auto c = m_charEntityPrim.lock()) {
+			//TODO(skade)
+			if (c->controller) {
+				static float jpoPrev = c->controller.get()->getJointOpacity();
+				static float jpo = jpoPrev;
+				ImGui::DragFloat("Joint Opacity",&jpo,.005,0.,1.);
+				if (jpo != jpoPrev) {
+					c->controller.get()->setJointOpacity(jpo);
+					jpoPrev = jpo;
+				}
 			}
 		}
 
 		ImGui::Checkbox("Show Targets", &m_showTarget);
-		ImGui::Checkbox("Render Debug Grid",&m_renderDebugGrid);
-		ImGui::InputScalar("Grid Size",ImGuiDataType_Float,&m_gridSize);
 
 		//TODO(skade)
 		//if (m_FPSLabelActive)
@@ -380,8 +461,11 @@ void MotionRetargetScene::renderUI_tools() {
 		m_guizmoViewManipChanged = false;
 	m_Cam.cameraMatrix(cameraMat);
 
-	if (m_renderDebugGrid)
+	if (m_renderDebugGrid) {
+		//TODOf(skade) rotate grid when ortographic view depending on largest cam view vector component
+//		if (m_Cam.)
 		ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix.data(), m_gridSize);
+	}
 
 	ImGui::End();
 }
@@ -389,27 +473,76 @@ void MotionRetargetScene::renderUI_tools() {
 void MotionRetargetScene::renderUI_ik() {
 	ImGui::Begin("IK");
 
-	if (m_IKControllerPrim) {
-		IKTarget* lp = dynamic_cast<IKTarget*>(m_picker.getLastPick());
-		if (lp) {
-			IKChain* chain = m_IKControllerPrim->getIKChain(lp);
-			assert(chain);
-			ImGui::Text("IK segmentName: %s",chain->name.c_str());
-		} else
-			ImGui::Text("IK segmentName none");
+	//TODO(skade)
+	if (auto c = m_charEntityPrim.lock()) {
+		if (c->controller) {
+			std::shared_ptr<IKTarget> lp = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock());
+			if (lp) {
+				IKChain* chain = c->controller->getIKChain(lp.get());
+				assert(chain);
+				ImGui::Text("IK segmentName: %s",chain->name.c_str());
+			} else
+				ImGui::Text("IK segmentName none");
 
-		std::vector<std::string> items = {
-			"IKSS_CCD_F",
-			"IKSS_CCD_B",
-			"IKSS_CCD_FABRIK"
-		};
-		int currItem = m_IKControllerPrim->testIKslvSelect;
-		ImGui::ComboStr("ik method",&currItem,items,items.size());
-		m_IKControllerPrim->testIKslvSelect = static_cast<IKController::TestIKslvSelect>(currItem);
+			std::vector<std::string> items = {
+				"IKSS_CCD_F",
+				"IKSS_CCD_B",
+				"IKSS_CCD_FABRIK"
+			};
+			int currItem = c->controller->testIKslvSelect;
+			ImGui::ComboStr("ik method",&currItem,items,items.size());
+			c->controller->testIKslvSelect = static_cast<IKController::TestIKslvSelect>(currItem);
 
-		ImGui::Checkbox("enable IK",&m_IKCupdate);
-		if (ImGui::Button("singleIK"))
-			m_IKCupdateSingle = true;
+			ImGui::Checkbox("enable IK",&m_IKCupdate);
+			if (ImGui::Button("singleIK"))
+				m_IKCupdateSingle = true;
+		}
+
+		//TODO(skade) ik chain editor
+		std::vector<IKChain*> ikChains;
+		//static std::vector<std::string> items = { "AAAA", "BBBB", "CCCC", "DDDD"};
+		std::vector<std::string> items;
+		if (c->controller) {
+			ikChains = c->controller->getIKChains();
+			for (uint32_t i=0;i<ikChains.size();++i)
+				items.emplace_back(ikChains[i]->name);
+		}
+
+		static int item_current_idx = 0; // Here we store our selection data as an index.
+		if (ImGui::BeginListBox("IK Chains")) {
+			for (int n = 0; n < items.size(); n++) {
+				const bool is_selected = (item_current_idx == n);
+				if (ImGui::Selectable(items[n].c_str(), is_selected))
+					item_current_idx = n;
+
+				std::string item = items[n];
+				if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
+					int n_next = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
+					if (n_next >= 0 && n_next < items.size()) {
+						items[n] = items[n_next];
+						items[n_next] = item;
+						ImGui::ResetMouseDragDelta();
+					}
+				}
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndListBox();
+		}
+		if (ImGui::Button("add chain")) {
+			std::string newName;
+			ImGui::BeginPopup("test");
+			ImGui::InputText("chain name",&newName);
+			if (newName != "")
+				items.push_back(newName);
+			ImGui::EndPopup();
+		}
+		if (ImGui::Button("delete selected chain")) {
+			items.erase(items.begin()+item_current_idx);
+			item_current_idx = 0;
+		}
 	}
 
 	ImGui::End();

@@ -12,6 +12,8 @@
 #include "Animation/Picking.hpp"
 #include "UI/ViewManipulate.hpp"
 
+#include "CMN/MRMutil.hpp"
+
 namespace CForge {
 
 class MotionRetargetScene : public ExampleSceneBase {
@@ -32,6 +34,8 @@ public:
 
 private:
 	void initCharacter();
+	struct CharEntity;
+	void initCharacter(std::weak_ptr<CharEntity> charEntity);
 	void initCesiumMan();
 	void initEndEffectorMarkers();
 
@@ -39,12 +43,14 @@ private:
 	 * @brief Render Joints and Constraints
 	*/
 	void renderVisualizers();
+	void renderVisualizers(CharEntity* c);
 
 	//TODOf(skade) put in seperate class
 	void initUI();
 	void cleanUI();
 	void renderUI();
 	void renderUI_menuBar();
+	void renderUI_Outliner();
 	void renderUI_animation();
 	void renderUI_Sequencer();
 	void renderUI_tools();
@@ -53,39 +59,56 @@ private:
 	/**
 	 * @brief loading logic for primary actor
 	*/
-	void loadCharPrim(std::string path);
-	void storeCharPrim(std::string path);
+	void loadCharPrim(std::string path, bool useGLTFIO);
+	void storeCharPrim(std::string path, bool useGLTFIO);
 
 	bool keyboardAnyKeyPressed();
 	void defaultKeyboardUpdate(Keyboard* pKeyboard);
 
 private:
 	//TODO(skade) implement multiple entities
-	///**
-	// * @brief compacts info regarding single character
-	//*/
-	//struct CharEntity {
-	//	IKSkeletalActor actor;
-	//	IKController controller;
-	//	T3DMesh<float> mesh;
-	//	SGNGeometry sgnGeo;
-	//	SGNTransformation sgnTrans;
-	//	//TODO(skade) function to apply transformation on mesh data
-	//};
-	//std::vector<CharEntity> m_charEntities;
+	/**
+	 * @brief compacts info regarding single character
+	*/
+	struct CharEntity : public IPickable {
+		std::string name;
+		T3DMesh<float> mesh;
+		SGNGeometry sgn;
+		std::unique_ptr<StaticActor> actorStatic;
+		std::unique_ptr<IKSkeletalActor> actor;
+		std::unique_ptr<IKController> controller;
+
+		int animIdx = 0;
+		int animFrameCurr = 0;
+		SkeletalAnimationController::Animation* pAnimCurr = nullptr;
+
+		//TODO(skade) function to apply transformation on mesh data
+		void pckMove(const Matrix4f& trans) {
+			Vector3f p,s; Quaternionf r;
+			MRMutil::deconstructMatrix(trans,&p,&r,&s);
+			sgn.position(p);
+			sgn.rotation(r);
+			sgn.scale(s);
+		};
+		Matrix4f pckTransGuizmo() {
+			return MRMutil::buildTransformation(sgn);
+		}; // used for guizmo update
+		Matrix4f pckTransPickin() {
+			return MRMutil::buildTransformation(sgn);
+		}; // used for picking evaluation
+		BoundingVolume bv;
+		const BoundingVolume& pckBV() {
+			bv.init(mesh.aabb());
+			return bv; 
+		};
+	};
+	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
+	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity
+
+	// Anim Gui
+	int m_animAutoplay = false;
 
 	SGNTransformation m_sgnRoot;
-
-	// primary character & controller
-	std::unique_ptr<StaticActor> m_StaticActorPrim; //TODO(skade)
-	std::unique_ptr<IKSkeletalActor> m_IKActorPrim;
-	std::unique_ptr<IKController> m_IKControllerPrim;
-	std::unique_ptr<T3DMesh<float>> m_MeshCharPrim; // primary character Mesh
-	SGNGeometry m_sgnCharPrim;
-
-	// secondary character //TODO(skade)
-
-	int m_current_anim_item = 0;
 
 	std::map<std::string, std::vector<SGNTransformation*>> m_EffectorTransformSGNs;
 	std::map<std::string, std::vector<SGNGeometry*>> m_EffectorGeomSGNs;
@@ -110,16 +133,17 @@ private:
 	bool m_guizmoViewManipChanged = false;
 	Matrix4f m_guizmoMat = Matrix4f::Identity();
 
-	// Anim Gui
-	int m_animFrameCurr = 0;
-	SkeletalAnimationController::Animation* m_pAnimCurr = nullptr; //TODO(skade) rename
-	int m_animAutoplay = false;
-
 	Guizmo m_guizmo;
 	Config m_config;
 	EditCamera m_editCam;
 	Picker m_picker;
 	ViewManipulate m_viewManipulate;
+
+	// preferences //TODO(skade) pair in struct
+	bool m_showPopPreferences = false;
+	bool m_cesStartup = false;
+	std::string m_cesStartupStr = "load cesium man on startup";
+
 };//MotionRetargetScene
 
 }//CForge

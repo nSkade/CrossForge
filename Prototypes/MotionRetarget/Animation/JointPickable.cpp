@@ -2,6 +2,7 @@
 
 #include <Prototypes/MotionRetarget/IKController.hpp>
 #include <crossforge/Graphics/RenderDevice.h>
+#include <crossforge/AssetIO/SAssetIO.h>
 
 #include <glad/glad.h>
 
@@ -58,7 +59,7 @@ void JointPickable::update(Matrix4f sgnT) {
 	//TODO sgnT
 	m_transform = m_sgnT * LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
 	if (!m_picked)
-		m_transformGuizmo = LocalTransform;
+		m_transformGuizmo = m_sgnT * LocalTransform;
 }
 void JointPickable::pckMove(const Matrix4f& trans) {
 	if (!m_pJoint) return;
@@ -66,7 +67,8 @@ void JointPickable::pckMove(const Matrix4f& trans) {
 	// extract new rotations from matrix
 	//TODO(skade) unify place with init rest pose
 	            //function that computes pos scale rot from mat4
-	Matrix4f t = m_fromPar.inverse() * trans; //TODO(skade) order correct
+	// 
+	Matrix4f t = m_fromPar.inverse() * m_sgnT.inverse() * trans; //TODO(skade) order correct
 	Vector3f pos = t.block<3,1>(0,3);
 	Vector3f scale = Vector3f(t.block<3,1>(0,0).norm(),
 	                          t.block<3,1>(0,1).norm(),
@@ -75,7 +77,7 @@ void JointPickable::pckMove(const Matrix4f& trans) {
 	rotScale.row(0) = scale;
 	rotScale.row(1) = scale;
 	rotScale.row(2) = scale;
-	Quaternionf rot = Quaternionf(t.block<3,3>(0,0).cwiseQuotient(rotScale)); 
+	Quaternionf rot = Quaternionf(t.block<3,3>(0,0).cwiseQuotient(rotScale));
 
 	m_pJoint->LocalPosition = pos;
 	m_pJoint->LocalScale = scale; //m_pJoint->LocalScale;

@@ -55,6 +55,13 @@ public:
 		*targets = m_targets;
 	};
 
+	std::vector<IKChain*> getIKChains() {
+		std::vector<IKChain*> ret;
+		for (auto& a : m_JointChains)
+			ret.emplace_back(&a.second);
+		return ret; 
+	}
+	
 	//TODO(skade) find better solution
 	IKChain* getIKChain(IKTarget* target) {
 		for (auto& a : m_JointChains) {
@@ -69,6 +76,7 @@ public:
 	*/
 	void forwardKinematics(SkeletalJoint* pJoint);
 
+	//TODO(skade) smart ptr
 	std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
 
 	//TODOf(skade) name included here and in IKChain, improve SPOT
@@ -78,6 +86,7 @@ public:
 	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
 		return std::vector<std::weak_ptr<JointPickable>>(m_jointPickables.begin(),m_jointPickables.end());
 	};
+	
 	void renderJointPickables(RenderDevice* pRenderDev);
 
 	void setJointOpacity(float opacity) { m_jointPickableMesh.setOpacity(opacity); };

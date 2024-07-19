@@ -5,7 +5,6 @@
 #include <Prototypes/MotionRetarget/Animation/Picking.hpp>
 
 #include <crossforge/Math/CForgeMath.h>
-#include <crossforge/AssetIO/SAssetIO.h>
 #include <crossforge/Graphics/Actors/StaticActor.h>
 //#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
 

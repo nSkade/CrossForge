@@ -9,9 +9,6 @@ struct IKJoint {
 	Eigen::Vector3f posGlobal;
 	Eigen::Quaternionf rotGlobal;
 
-	IKJoint* pParent;
-	std::vector<IKJoint*> pChilds;
-
 	//TODO(skade) target pos needs to be handled by iksolver
 	//std::vector<IKTarget> TargetPosGlobal; // Global target Positions the Joint tries to reach
 
@@ -28,6 +25,9 @@ struct IKChain {
 	std::string name;
 	std::vector<SkeletalAnimationController::SkeletalJoint*> joints; // front() is end-effector joint
 	IKTarget* target;
+
+	IKJoint* pRoot;
+	std::vector<IKJoint*> pEndEff;
 };
 
 //TODO(skade)

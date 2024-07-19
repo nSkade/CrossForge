@@ -4,8 +4,10 @@
 
 #include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
 #include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
+#include <crossforge/AssetIO/SAssetIO.h>
 
 #include <fstream>
+#include <filesystem>
 
 namespace CForge {
 
@@ -21,14 +23,14 @@ void MotionRetargetScene::init() {
 	//initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
 	initFPSLabel();
 	initSkybox();
-	initCharacter(); // initialize character & animation controller
 	initEndEffectorMarkers(); // initialize end-effector & target markers
 	
-	LineOfText* pKeybindings = new LineOfText();
-	pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement:(Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text");
-	m_HelpTexts.push_back(pKeybindings);
-	pKeybindings->color(0.0f, 0.0f, 0.0f, 1.0f);
-	m_DrawHelpTexts = false;
+	//TODO(skade)
+	//LineOfText* pKeybindings = new LineOfText();
+	//pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement:(Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text");
+	//m_HelpTexts.push_back(pKeybindings);
+	//pKeybindings->color(0.0f, 0.0f, 0.0f, 1.0f);
+	//m_DrawHelpTexts = false;
 
 	// check whether a GL error occurred
 	std::string GLError = "";
@@ -37,11 +39,10 @@ void MotionRetargetScene::init() {
 
 	initUI();
 	
-	//TODOf(skade) better clear color
-	//	glClearColor(.3f,.3f,.3f,.0f);
-	m_RenderDev.m_clearColor[0] = .2 * 10;
-	m_RenderDev.m_clearColor[1] = .2 * 10;
-	m_RenderDev.m_clearColor[2] = .2 * 10;
+	//TODOf(skade) better clear color impl
+	m_RenderDev.m_clearColor[0] = .1 * 10;
+	m_RenderDev.m_clearColor[1] = .1 * 10;
+	m_RenderDev.m_clearColor[2] = .1 * 10;
 	m_RenderWin.position(0,31);
 	m_RenderWin.size(1920,1009);
 
@@ -49,12 +50,17 @@ void MotionRetargetScene::init() {
 	m_config.load(&m_Cam);
 	m_config.load("m_editCam.m_CamIsProj", &m_editCam.m_CamIsProj);
 	m_config.load(&m_RenderWin);
+	m_config.load(m_cesStartupStr.c_str(), &m_cesStartup);
 	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
+
+	if (m_cesStartup)
+		initCesiumMan();
 }//initialize
 
 void MotionRetargetScene::clear() {
 	m_config.store(m_Cam);
 	m_config.store("m_editCam.m_CamIsProj", m_editCam.m_CamIsProj);
+	m_config.store(m_cesStartupStr.c_str(), m_cesStartup);
 	m_config.baseStore();
 
 	ExampleSceneBase::clear();
@@ -108,6 +114,7 @@ void MotionRetargetScene::initCameraAndLights(bool CastShadows) {
 
 
 void MotionRetargetScene::mainLoop() {
+	//TODO(skade) split brackets into function
 
 	updateFPS(); //TODOf(skade) improve deltaTime
 
@@ -117,13 +124,21 @@ void MotionRetargetScene::mainLoop() {
 		static bool frameAction = true;
 		frameAction = keyboardAnyKeyPressed() || m_IKCupdate || m_animAutoplay
 					  || ImGui::IsAnyItemHovered()
-					  || ImGuizmo::IsUsing() || m_guizmoViewManipChanged;  //TODO(skade) guizmo viewManipulate not correct
+					  || ImGuizmo::IsUsing() || m_guizmoViewManipChanged;
+		// need to render on window resize
+		static Vector2i winRes;
+		Vector2i winResNew;
+		winResNew.x() = m_RenderWin.width();
+		winResNew.y() = m_RenderWin.height();
+		if (winRes != winResNew)
+			frameAction = true;
+		winRes = winResNew;
 
 		// View Manipulate from imguizmo
 		frameAction |= m_viewManipulate.isInside(m_RenderWin.mouse()->position());
 
 		frameActionIdx = frameAction ? 0 : frameActionIdx+1;
-		if (frameActionIdx < 3) { // render 1 frame after action to update ui
+		if (frameActionIdx < 4) { // render 1 frame after action to update ui
 			m_RenderWin.update();
 		} else {
 			m_RenderWin.updateWait();
@@ -134,76 +149,104 @@ void MotionRetargetScene::mainLoop() {
 	m_SG.update(60.0f / m_FPS);
 
 	if (m_IKCupdate || m_IKCupdateSingle) {
-		m_IKControllerPrim->update(60.0f / m_FPS);
+		for (uint32_t i=0;i<m_charEntities.size();++i)
+			m_charEntities[i]->controller->update(60.0f / m_FPS);
 		m_IKCupdateSingle = false;
 	}
 
-	if (m_pAnimCurr) {
+	for (uint32_t i=0;i<m_charEntities.size();++i) {
+		auto c = m_charEntities[i];
+		if (!c->pAnimCurr)
+			continue;
 		//m_pAnimCurr->Speed = 1./60.; //TODO(skade)
 		//m_pAnimCurr->Duration = 2000.; //TODO(skade) unused when applied?
 
+		auto* pA = c->pAnimCurr;
 		if (m_animAutoplay) {
-			m_animFrameCurr = m_pAnimCurr->t*m_pAnimCurr->SamplesPerSecond;
-			m_pAnimCurr->t += 1./m_FPS * m_pAnimCurr->Speed;
-			if (m_pAnimCurr->t > m_pAnimCurr->Duration) //TODO(skade) duration sometimes not max
-				m_pAnimCurr->t = 0.;
+			c->animFrameCurr = pA->t * pA->SamplesPerSecond;
+			pA->t += 1./m_FPS * pA->Speed;
+			if (pA->t > pA->Duration) //TODO(skade) duration sometimes not max
+				pA->t = 0.;
 		} else
-			m_pAnimCurr->t = m_animFrameCurr / m_pAnimCurr->SamplesPerSecond;
+			pA->t = c->animFrameCurr / pA->SamplesPerSecond;
+	}
+
+	if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_DELETE,true)) {
+		if (auto p = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
+			m_sgnRoot.removeChild(&p->sgn);
+
+			auto pos = std::find(m_charEntities.begin(),m_charEntities.end(),p);
+			if (pos != m_charEntities.end())
+				m_charEntities.erase(pos);
+
+			m_picker.reset();
+		}
 	}
 	
-	// Handle Picking and camera
-	if (!ImGui::IsAnyItemHovered() && !ImGui::IsAnyItemActive()) {
-		//TODO(skade) docking fullscreen viewport sets this to true // && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-		if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
+	bool hoveredImgui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+	{ // Handle Picking
+		if (!hoveredImgui) {
+			if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
 
-			if (!ImGuizmo::IsUsing()) {
-				std::vector<std::weak_ptr<IPickable>> p;
+				if (!ImGuizmo::IsUsing()) {
+					std::vector<std::weak_ptr<IPickable>> p;
+					m_picker.start();
+					for (uint32_t i=0;i<m_charEntities.size();++i) {
+						//TODO(skade)
+						p.clear(); p.push_back(m_charEntities[i]);
+						m_picker.pick(p);
+						if (m_showTarget) {
+							std::vector<std::weak_ptr<IKTarget>> t = m_charEntities[i]->controller->getTargets();
+							p.assign(t.begin(),t.end());
+							m_picker.pick(p);
+						}
+						if (m_showJoints) {
+							std::vector<std::weak_ptr<JointPickable>> jp = m_charEntities[i]->controller->getJointPickables();
+							p.assign(jp.begin(),jp.end());
+							m_picker.pick(p);
+						}
+					}
 
-				//TODO(skade) ikc prim to other func
-				if (m_IKControllerPrim) {
-					if (m_showTarget) {
-						std::vector<std::weak_ptr<IKTarget>> t = m_IKControllerPrim->getTargets();
-						p.assign(t.begin(),t.end());
-						m_picker.pick(p);
-					}
-					if (m_showJoints) {
-						std::vector<std::weak_ptr<JointPickable>> jp = m_IKControllerPrim->getJointPickables();
-						p.assign(jp.begin(),jp.end());
-						m_picker.pick(p);
-					}
+					m_picker.resolve();
+					m_guizmoMat = m_picker.m_guizmoMat;
+					if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock()))
+						m_charEntityPrim = e;
 				}
-				
-				m_guizmoMat = m_picker.m_guizmoMat;
 			}
-		} else
-			m_editCam.defaultCameraUpdate(&m_Cam, &m_RenderWin, 0.05f, .7f, 32.0f);
 
-		if (m_picker.getLastPick())
-			m_guizmo.active(true);
-		else
-			m_guizmo.active(false);
+			if (auto lp = m_picker.getLastPick().lock())
+				m_guizmo.active(true);
+			else
+				m_guizmo.active(false);
+		}
+		m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
+		m_picker.update(m_guizmoMat);
 	}
-	m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
-	m_picker.update(m_guizmoMat);
 
-	// Render Scene
-	m_RenderDev.activePass(RenderDevice::RENDERPASS_SHADOW, &m_Sun);
-	m_RenderDev.activeCamera(const_cast<VirtualCamera*>(m_Sun.camera()));
-	m_SG.render(&m_RenderDev);
-	
-	m_RenderDev.activePass(RenderDevice::RENDERPASS_GEOMETRY);
-	m_RenderDev.activeCamera(&m_Cam);
-	m_SG.render(&m_RenderDev);
 
-	m_RenderDev.activePass(RenderDevice::RENDERPASS_LIGHTING);
-	
-	m_RenderDev.activePass(RenderDevice::RENDERPASS_FORWARD, nullptr, false);
+	{ // View and Rendering
+		m_editCam.defaultCameraUpdate(&m_Cam, &m_RenderWin, !hoveredImgui, 0.05f, .7f, 32.0f);
+		m_viewManipulate.update(m_RenderWin.mouse()->position(),m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT),!ImGui::IsDragDropActive());
 
-	// Render UI
-	renderVisualizers();
-	renderUI();
+		// Render Scene
+		m_RenderDev.activePass(RenderDevice::RENDERPASS_SHADOW, &m_Sun);
+		m_RenderDev.activeCamera(const_cast<VirtualCamera*>(m_Sun.camera()));
+		m_SG.render(&m_RenderDev);
+		
+		m_RenderDev.activePass(RenderDevice::RENDERPASS_GEOMETRY);
+		m_RenderDev.activeCamera(&m_Cam);
+		m_SG.render(&m_RenderDev);
 
-	m_RenderWin.swapBuffers();
+		m_RenderDev.activePass(RenderDevice::RENDERPASS_LIGHTING);
+		
+		m_RenderDev.activePass(RenderDevice::RENDERPASS_FORWARD, nullptr, false);
+
+		// Render UI
+		renderVisualizers();
+		renderUI();
+
+		m_RenderWin.swapBuffers();
+	}
 	
 	m_config.store(m_RenderWin);
 	defaultKeyboardUpdate(m_RenderWin.keyboard());
@@ -211,38 +254,36 @@ void MotionRetargetScene::mainLoop() {
 		m_RenderWin.closeWindow();
 }//mainLoop
 
-void MotionRetargetScene::initCharacter() {
-	if (!m_MeshCharPrim) {
-		SLogger::log("MotionRetargetin: initCharacter: no mesh loaded");
-		return;
-	}
+void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
+	std::shared_ptr<CharEntity> c = charEntity.lock();
+	T3DMesh<float>* mesh = &(c->mesh);
+	setMeshShader(mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
+	mesh->computePerVertexNormals(); //TODO(skade) remove
+	c->controller = std::make_unique<IKController>();
+	if (mesh->rootBone()) {
+		c->controller->init(mesh);
 
-	setMeshShader(m_MeshCharPrim.get(), 0.7f, 0.04f); //TODO(skade) check not modified export
-	m_MeshCharPrim->computePerVertexNormals(); //TODO(skade) remove
-	m_IKControllerPrim = std::make_unique<IKController>();
-//	m_IKControllerPrim->init(m_MeshCharPrim.get(), "MyAssets/ccd-ik/ces/SkeletonConfig.json");
-	if (m_MeshCharPrim.get()->rootBone()) {
-		m_IKControllerPrim->init(m_MeshCharPrim.get());
+		for (uint32_t i = 0; i < mesh->skeletalAnimationCount(); ++i) {
+			if (mesh->getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
+				c->controller->addAnimationData(mesh->getSkeletalAnimation(i));
+		}
+		c->actor = std::make_unique<IKSkeletalActor>();
+		c->actor->init(mesh, c->controller.get());
 
-		for (uint32_t i=0;i<m_MeshCharPrim->skeletalAnimationCount();++i)
-			m_IKControllerPrim->addAnimationData(m_MeshCharPrim->getSkeletalAnimation(i));
-		m_IKActorPrim = std::make_unique<IKSkeletalActor>();
-		m_IKActorPrim->init(m_MeshCharPrim.get(), m_IKControllerPrim.get());
-
-		m_sgnCharPrim.init(&m_sgnRoot, m_IKActorPrim.get());
+		c->sgn.init(&m_sgnRoot, c->actor.get());
 	}
 	else {
-		m_StaticActorPrim = std::make_unique<StaticActor>();
-		m_StaticActorPrim->init(m_MeshCharPrim.get());
-		m_sgnCharPrim.init(&m_sgnRoot, m_StaticActorPrim.get());
+		c->actorStatic = std::make_unique<StaticActor>();
+		c->actorStatic->init(mesh);
+		c->sgn.init(&m_sgnRoot, c->actorStatic.get());
 	}
 
 	// autoscale
-	m_MeshCharPrim.get()->computeAxisAlignedBoundingBox();
-	Box aabb = m_MeshCharPrim.get()->aabb();
-	Vector3f scale = Vector3f(2.,2.,2.)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
-	m_sgnCharPrim.scale(scale);
-}//initActors
+	mesh->computeAxisAlignedBoundingBox();
+	Box aabb = mesh->aabb();
+	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
+	c->sgn.scale(scale);
+}
 
 void MotionRetargetScene::initCesiumMan() {
 	std::string path ="MyAssets/ccd-ik/CesiumMan/glTF/CesiumMan.gltf"; 
@@ -251,10 +292,38 @@ void MotionRetargetScene::initCesiumMan() {
 		SLogger::log("initCesiumMan: not available");
 		return;
 	}
+	std::string pathIKConfig ="MyAssets/ccd-ik/ces0/SkeletonConfig.json"; 
+	f = std::ifstream(pathIKConfig.c_str());
+	if (!f.good()) {
+		SLogger::log("config file missing");
+		return;
+	}
 	
-	m_MeshCharPrim = std::make_unique<T3DMesh<float>>();
-	GLTFIO::load(path, m_MeshCharPrim.get());
-	initCharacter();
+	m_charEntities.emplace_back(std::make_unique<CharEntity>());
+	std::shared_ptr<CharEntity> c = m_charEntities.back();
+	GLTFIO::load(path, &c->mesh);
+	{
+		c->name = std::filesystem::path(path).filename().string();
+		setMeshShader(&c->mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
+		c->mesh.computePerVertexNormals(); //TODO(skade) remove
+		c->controller = std::make_unique<IKController>();
+		c->controller->init(&c->mesh, pathIKConfig);
+
+		for (uint32_t i = 0; i < c->mesh.skeletalAnimationCount(); ++i) {
+			if (c->mesh.getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
+				c->controller->addAnimationData(c->mesh.getSkeletalAnimation(i));
+		}
+		c->actor = std::make_unique<IKSkeletalActor>();
+		c->actor->init(&c->mesh, c->controller.get());
+
+		c->sgn.init(&m_sgnRoot, c->actor.get());
+
+		// autoscale
+		c->mesh.computeAxisAlignedBoundingBox();
+		Box aabb = c->mesh.aabb();
+		Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
+		c->sgn.scale(scale);
+	}
 }
 
 void MotionRetargetScene::initEndEffectorMarkers() {
@@ -345,41 +414,59 @@ void MotionRetargetScene::initEndEffectorMarkers() {
 }//initEndEffectorMarkers
 
 //TODO(skade)
-void MotionRetargetScene::loadCharPrim(std::string path) {
-	if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
-		m_MeshCharPrim = std::make_unique<T3DMesh<float>>();
-		GLTFIO::load(path,m_MeshCharPrim.get());
-		initCharacter();
+void MotionRetargetScene::loadCharPrim(std::string path, bool useGLTFIO) {
+	if (useGLTFIO) {
+		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
+			m_charEntities.emplace_back(std::make_shared<CharEntity>());
+			auto c = m_charEntities.back();
+			GLTFIO::load(path,&c->mesh);
+			c->name = std::filesystem::path(path).filename().string();
+			initCharacter(c);
+		}
+	}
+	else {
+		if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
+			m_charEntities.emplace_back(std::make_shared<CharEntity>());
+			auto c = m_charEntities.back();
+			c->name = std::filesystem::path(path).filename().string();
+			SAssetIO::load(path,&c->mesh);
+			initCharacter(c);
+		}
 	}
 }
-void MotionRetargetScene::storeCharPrim(std::string path) {
-	if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
-		GLTFIO::store(path,m_MeshCharPrim.get());
-}
-
-void MotionRetargetScene::renderVisualizers() {
-	if (!m_IKControllerPrim)
+void MotionRetargetScene::storeCharPrim(std::string path, bool useGLTFIO) {
+	auto c = m_charEntityPrim.lock();
+	if (!c)
 		return;
 
+	if (useGLTFIO) {
+		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
+			GLTFIO::store(path,&c.get()->mesh);
+	}
+	else {
+		if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
+			SAssetIO::store(path,&c.get()->mesh);
+	}
+}
+void MotionRetargetScene::renderVisualizers() {
+	for (uint32_t i=0;i<m_charEntities.size();++i)
+		renderVisualizers(m_charEntities[i].get());
+}
+
+//TODO(skade) cleanup
+void MotionRetargetScene::renderVisualizers(CharEntity* c) {
+	Vector3f pos; Quaternionf rot; Vector3f scale;
+	c->sgn.buildTansformation(&pos,&rot,&scale);
+	Matrix4f t = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	if (m_showJoints) { //TODO(skade) put in function
 		//glDisable(GL_DEPTH_TEST);
 		//glEnable(GL_BLEND);
 
-		//TODO(skade) cleanup
-		//m_IKController->renderJointPickables(&m_RenderDev);
-		
-		auto& joints = m_IKControllerPrim->getJointPickables();
+		auto& joints = c->controller->getJointPickables();
 		for (auto j : joints) {
 			if (auto jl = j.lock()) {
-				Vector3f pos;
-				Quaternionf rot;
-				Vector3f scale;
-				m_sgnCharPrim.buildTansformation(&pos,&rot,&scale);
-				
-				//TODO(skade)
-				//Matrix4f t = Matrix4f::Identity();
-				Matrix4f t = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
+				//TODOf(skade) option to seperate skeleton with translation for visualization
 				
 				jl->update(t);
 				jl->render(&m_RenderDev);
@@ -392,26 +479,30 @@ void MotionRetargetScene::renderVisualizers() {
 	glDisable(GL_DEPTH_TEST);
 	//glEnable(GL_BLEND); //TODOf(skade) change blendmode in active material forward pass
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	if (m_showTarget) {
-		std::vector<std::shared_ptr<IKTarget>> t;
-		m_IKControllerPrim->getTargets(&t);
+		std::vector<std::shared_ptr<IKTarget>> tar;
+		c->controller->getTargets(&tar);
 		
-		for (uint32_t i = 0; i < t.size(); ++i) {
+		for (uint32_t i = 0; i < tar.size(); ++i) {
+			//TODO(skade) clean sgnT update loc
+			tar[i]->update(t);
+			
 			//Box aabb = t[i]->bv.aabb();
-			m_RenderDev.modelUBO()->modelMatrix(t[i]->pckTransPickin());
+			m_RenderDev.modelUBO()->modelMatrix(tar[i]->pckTransPickin());
 			m_TargetPos.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
 		}
 	}
 
 	//TODO(skade)
 	// render fabrik points
-	for (uint32_t j=0;j<m_IKControllerPrim->m_iksFABRIK.size();++j) {
-		std::vector<Vector3f> fbrkPoints = m_IKControllerPrim->m_iksFABRIK[j].fbrkPoints;
+	for (uint32_t j=0;j<c->controller->m_iksFABRIK.size();++j) {
+		std::vector<Vector3f> fbrkPoints = c->controller->m_iksFABRIK[j].fbrkPoints;
 		for (uint32_t i = 0; i < fbrkPoints.size(); ++i) {
-			Eigen::Matrix4f cubeTransform = CForgeMath::translationMatrix(fbrkPoints[i]);
+			Matrix4f cubeTransform = CForgeMath::translationMatrix(fbrkPoints[i]);
 			float r = .5;
-			Eigen::Matrix4f cubeScale = CForgeMath::scaleMatrix(Eigen::Vector3f(r,r,r)*1.0f);
-			m_RenderDev.modelUBO()->modelMatrix(cubeTransform*cubeScale);
+			Matrix4f cubeScale = CForgeMath::scaleMatrix(Vector3f(r,r,r)*1.0f);
+			m_RenderDev.modelUBO()->modelMatrix(t*cubeTransform*cubeScale);
 			bool cmr = (i+1) & 1;
 			bool cmg = (i+1) & 2;
 			bool cmb = (i+1) & 4;
@@ -428,7 +519,7 @@ void MotionRetargetScene::renderVisualizers() {
 			StaticActor a; a.init(&M);
 			
 			//glColorMask(cmr,cmg,cmb,1);
-			a.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
+			a.render(&m_RenderDev,Quaternionf::Identity(),Vector3f(),Vector3f(1.f,1.f,1.f));
 			//glColorMask(1,1,1,1);
 		}
 	}
@@ -456,8 +547,13 @@ void MotionRetargetScene::defaultKeyboardUpdate(Keyboard* pKeyboard) {
 		m_RenderWin.vsync(true);
 	}
 
-	if (pKeyboard->keyPressed(Keyboard::KEY_ESCAPE))
+	if (pKeyboard->keyPressed(Keyboard::KEY_ESCAPE,true)) {
+		if (m_showPopPreferences) {
+			m_showPopPreferences = false;
+			return;
+		}
 		m_exitCalled = true;
+	}
 }
 
 bool MotionRetargetScene::keyboardAnyKeyPressed() {

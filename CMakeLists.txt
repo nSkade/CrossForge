@@ -146,7 +146,7 @@ add_executable(CForgeSandbox
 	#Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
 
 	Prototypes/MotionRetarget/CMN/EigenFWD.cpp
-)
+ "Prototypes/MotionRetarget/CMN/MRMutil.cpp")
 
 #icon windows only
 if (WIN32)
