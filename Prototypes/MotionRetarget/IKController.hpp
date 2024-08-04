@@ -7,14 +7,14 @@
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
 #include "Animation/JointPickable.hpp"
-#include "Constraints/IKTarget.hpp"
+#include "IK/IKTarget.hpp"
 
-#include "IKSolver/CCDSolver.hpp"
-#include "IKSolver/FABRIKSolver.hpp"
+#include "IK/Solver/CCDSolver.hpp"
+#include "IK/Solver/FABRIKSolver.hpp"
 
 //#include "JointLimits/HingeLimits.h"
 
-#include "IKSolver/IKChain.hpp"
+#include "IK/IKArmature.hpp"
 
 namespace CForge {
 using namespace Eigen;
@@ -22,11 +22,6 @@ class RenderDevice;
 
 class IKController : public SkeletalAnimationController {
 public:
-	enum TestIKslvSelect {
-		IKSS_CCD_F,
-		IKSS_CCD_B,
-		IKSS_CCD_FABRIK,
-	} testIKslvSelect = IKSS_CCD_B;
 	SkeletalJoint* getRoot() { return m_pRoot; }
 
 	IKController(void);
@@ -48,25 +43,33 @@ public:
 
 	//TODO(skade) remove, unnused
 	//void updateBones(Animation* pAnim);
-	std::vector<std::weak_ptr<IKTarget>> getTargets() {
-		return std::vector<std::weak_ptr<IKTarget>>(m_targets.begin(),m_targets.end());
-	};
-	void getTargets(std::vector<std::shared_ptr<IKTarget>>* targets) {
-		*targets = m_targets;
-	};
 
-	std::vector<IKChain*> getIKChains() {
-		std::vector<IKChain*> ret;
-		for (auto& a : m_JointChains)
-			ret.emplace_back(&a.second);
-		return ret; 
-	}
-	
-	//TODO(skade) find better solution
-	IKChain* getIKChain(IKTarget* target) {
-		for (auto& a : m_JointChains) {
-			if (a.second.target == target)
-				return &a.second;
+	//TODO(skade) remove?
+	//TODO(skade) make ptr ref
+	//std::vector<IKChain>& getIKChains() {
+	//	//std::vector<IKChain*> ret;
+	//	//for (auto& a : getJointChains())
+	//	//	ret.emplace_back(&a);
+	//	//	//ret.emplace_back(&a.second);
+	//	//return ret; 
+	//}
+	//TODO(skade) decouple targets from chains, remove
+	//IKChain* getIKChain(IKTarget* target) {
+	//	for (auto& a : getJointChains()) {
+	//		//if (a.second.target == target)
+	//		//	return &a.second;
+	//		if (a.target == target)
+	//			return &a;
+	//	}
+	//	return nullptr;
+	//}
+
+	IKChain* getIKChain(std::string name) {
+		for (auto& a : getJointChains()) {
+			//if (a.second.target == target)
+			//	return &a.second;
+			if (a.name == name)
+				return &a;
 		}
 		return nullptr;
 	}
@@ -75,29 +78,60 @@ public:
 	 * @brief Computes global position and rotation of joints of the skeletal hierarchy.
 	*/
 	void forwardKinematics(SkeletalJoint* pJoint);
+	void forwardKinematics() { forwardKinematics(m_pRoot); };
 
 	//TODO(skade) smart ptr
-	std::map<SkeletalJoint*,IKJoint*> m_IKJoints; // extends m_Joints
+	std::map<SkeletalJoint*,IKJoint> m_IKJoints; // extends m_Joints
 
-	//TODOf(skade) name included here and in IKChain, improve SPOT
-	std::map<std::string,IKChain> m_JointChains;
-	IKSolverCCD m_iksCCD;
-	std::vector<IKSolverFABRIK> m_iksFABRIK;
-	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
-		return std::vector<std::weak_ptr<JointPickable>>(m_jointPickables.begin(),m_jointPickables.end());
+	std::vector<IKChain>& getJointChains() { return m_ikArmature.m_jointChains; };
+
+	IKArmature m_ikArmature;
+
+	std::vector<std::vector<Vector3f>> getFABRIKpoints() {
+		std::vector<std::vector<Vector3f>> ret;
+		for (IKChain& ikc : m_ikArmature.m_jointChains) {
+			if (IKSolverFABRIK* iks = dynamic_cast<IKSolverFABRIK*>(ikc.ikSolver.get())) {
+				ret.push_back(iks->fbrkPoints);
+			}
+		}
+		return ret;
 	};
-	
-	void renderJointPickables(RenderDevice* pRenderDev);
 
-	void setJointOpacity(float opacity) { m_jointPickableMesh.setOpacity(opacity); };
-	float getJointOpacity() { return m_jointPickableMesh.getOpacity(); };
+	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
+		std::vector<std::weak_ptr<JointPickable>> ret;
+		for (auto j : m_jointPickables)
+			ret.push_back(j.second);
+		return ret;
+	};
+	std::weak_ptr<JointPickable> getJointPickable(SkeletalJoint* joint) {
+		return m_jointPickables[joint];
+	}
 	
+	//TODO(skade) unused, doc conversion method
+	//void renderJointPickables(RenderDevice* pRenderDev);
+	
+	std::vector<std::shared_ptr<IKTarget>> m_targets;
 private:
-	std::vector<std::shared_ptr<JointPickable>> m_jointPickables;
+	std::map<SkeletalJoint*,std::shared_ptr<JointPickable>> m_jointPickables;
 	JointPickableMesh m_jointPickableMesh;
 	
-	void initJointProperties(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
+	//TODO(skade) cleanup
+	/**
+	 * @brief Initializes IKJoints
+	*/
+	void initJointProperties(T3DMesh<float>* pMesh);
+
+	//TODO(skade) store armature as json
+
+	// Json interface
+
+	void initConstraints(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
+
+	//TODO(skade) unify with chain editor func
+	/**
+	 * @brief Builds new IKChain from names and places them into getJointChains()
+	*/
 	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
 
 	//TODO(skade) remove
@@ -106,8 +140,11 @@ private:
 	*/
 	void initTargetPoints();
 	void clearTargetPoints();
+
+	/**
+	 * @brief update target points from corresponding current animation joint positions.
+	*/
 	void updateTargetPoints();
-	std::vector<std::shared_ptr<IKTarget>> m_targets;
 
 	//TODO(skade) rotate head
 	//void rotateGaze();

@@ -3,6 +3,7 @@
 #include "IIKSolver.hpp"
 
 namespace CForge {
+using namespace Eigen;
 
 class IKSolverFABRIK : public IIKSolver {
 public:

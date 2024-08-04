@@ -13,6 +13,16 @@ include("crossforge/CrossForgeBuild.cmake")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /LTCG}")
+
+# incremental linking
+set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "/INCREMENTAL:YES")
+#set(CMAKE_SHARED_LINKER_FLAGS "/INCREMENTAL:YES")
+
+#TODO(skade) time build
+#if(CMAKE_GENERATOR MATCHES "Ninja")
+#  set(CMAKE_NINJA_FLAGS "-d explain -d timing")
+#endif()
 
 # create required directories if non existent 
 file(MAKE_DIRECTORY "MyAssets")
@@ -126,8 +136,9 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/IKController.cpp
 	Prototypes/MotionRetarget/IKSkeletalActor.cpp
 
-	Prototypes/MotionRetarget/IKSolver/CCDSolver.cpp
-	Prototypes/MotionRetarget/IKSolver/FABRIKSolver.cpp
+	"Prototypes/MotionRetarget/IK/Solver/CCDSolver.cpp"
+	"Prototypes/MotionRetarget/IK/Solver/FABRIKSolver.cpp"
+	"Prototypes/MotionRetarget/IK/IKArmature.cpp"
 
 	Prototypes/MotionRetarget/CMN/EigenMesh.cpp
 	"Prototypes/MotionRetarget/Animation/Picking.cpp"
@@ -146,7 +157,15 @@ add_executable(CForgeSandbox
 	#Prototypes/MotionRetarget/JointLimits/SwingXYTwistZLimits.cpp
 
 	Prototypes/MotionRetarget/CMN/EigenFWD.cpp
- "Prototypes/MotionRetarget/CMN/MRMutil.cpp")
+	"Prototypes/MotionRetarget/CMN/MRMutil.cpp"
+	"Prototypes/MotionRetarget/UI/LineBox.cpp"
+)
+
+#TODO(skade) optimize gltfio TODO debug
+#set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOutil.cpp PROPERTIES COMPILE_FLAGS -O2)
+#set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOread.cpp PROPERTIES COMPILE_FLAGS -O2)
+#set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOwrite.cpp PROPERTIES COMPILE_FLAGS -O2)
+#set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIO.cpp PROPERTIES COMPILE_FLAGS -O2)
 
 #icon windows only
 if (WIN32)

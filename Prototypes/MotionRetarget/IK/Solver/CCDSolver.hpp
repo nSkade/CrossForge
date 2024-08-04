@@ -11,9 +11,7 @@ public:
 	enum CCDtype {
 		BACKWARD,
 		FORWARD,
-	};
-
-	template<CCDtype type>
+	} m_type = BACKWARD;
 	void solve(std::string segmentName, IKController* pController);
 
 	//TODO(skade) fix or remove

@@ -13,6 +13,7 @@
 #include "UI/ViewManipulate.hpp"
 
 #include "CMN/MRMutil.hpp"
+#include "UI/LineBox.hpp"
 
 namespace CForge {
 
@@ -51,10 +52,13 @@ private:
 	void renderUI();
 	void renderUI_menuBar();
 	void renderUI_Outliner();
+	IKController::SkeletalJoint* renderUI_OutlinerJoints(std::shared_ptr<CharEntity> c, IKController::SkeletalJoint* selectedJoint);
 	void renderUI_animation();
 	void renderUI_Sequencer();
 	void renderUI_tools();
 	void renderUI_ik();
+	void renderUI_ikChainEditor(int* item_current_idx);
+	void renderUI_ikTargetEditor();
 
 	/**
 	 * @brief loading logic for primary actor
@@ -77,6 +81,7 @@ private:
 		std::unique_ptr<StaticActor> actorStatic;
 		std::unique_ptr<IKSkeletalActor> actor;
 		std::unique_ptr<IKController> controller;
+		bool visible = true;
 
 		int animIdx = 0;
 		int animFrameCurr = 0;
@@ -104,6 +109,7 @@ private:
 	};
 	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
 	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity
+	std::weak_ptr<CharEntity> m_charEntitySec; // currently selected char entity
 
 	// Anim Gui
 	int m_animAutoplay = false;
@@ -141,8 +147,11 @@ private:
 
 	// preferences //TODO(skade) pair in struct
 	bool m_showPopPreferences = false;
+	bool m_showPopChainEdit = false;
 	bool m_cesStartup = false;
 	std::string m_cesStartupStr = "load cesium man on startup";
+
+	LineBox m_lineBox;
 
 };//MotionRetargetScene
 

@@ -34,15 +34,16 @@ class Picker {
 public:
 	Picker(GLWindow* pWin, VirtualCamera* pCam);
 	void pick(std::vector<std::weak_ptr<IPickable>> objects);
+	void forcePick(std::weak_ptr<IPickable> pick);
 	void start();
 	void resolve();
 	void reset();
 	void update(Matrix4f trans);
 	std::weak_ptr<IPickable> getLastPick() {
 		return m_pLastPick;
-		//if (auto lp = m_pLastPick.lock())
-		//	return lp;
-		//return std::weak_ptr<IPickable>();
+	};
+	std::weak_ptr<IPickable> getCurrPick() {
+		return m_pCurrPick;
 	};
 	Matrix4f m_guizmoMat = Matrix4f::Identity();
 private:

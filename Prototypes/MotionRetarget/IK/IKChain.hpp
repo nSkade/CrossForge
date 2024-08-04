@@ -1,7 +1,10 @@
 #pragma once
 
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
-#include <Prototypes/MotionRetarget/Constraints/IKTarget.hpp>
+#include <Prototypes/MotionRetarget/IK/IKTarget.hpp>
+
+#include "Solver/CCDSolver.hpp"
+#include "Solver/FABRIKSolver.hpp"
 
 namespace CForge {
 
@@ -14,6 +17,13 @@ struct IKJoint {
 
 	//JointLimits* pLimits;
 };
+//TODO(skade)
+//class IKSegment {
+//public:
+//private:
+//	IKSegment* m_pParent;
+//	std::vector<IKSegment*> m_pChilds;
+//};
 
 //TODO(skade) new structures
 
@@ -24,20 +34,16 @@ struct IKJoint {
 struct IKChain {
 	std::string name;
 	std::vector<SkeletalAnimationController::SkeletalJoint*> joints; // front() is end-effector joint
-	IKTarget* target;
+	std::weak_ptr<IKTarget> target; //TODO(skade) shared pointer
 
-	IKJoint* pRoot;
-	std::vector<IKJoint*> pEndEff;
+	IKJoint* pRoot = nullptr; //TODO(skade) make sure memory safe, IKChain always deleted before corr controller
+
+	//float weight = 1.; // weight used for centroid interpolation,
+	                   //TODO(skade) contribution equals: weight / sum(all chain weights on centoid)
+
+	std::unique_ptr<IIKSolver> ikSolver = std::make_unique<IKSolverFABRIK>();
+	//std::vector<std::pair<IKJoint*,IKTarget*>> pEndEff;
 };
-
-//TODO(skade)
-//class IKSegment {
-//public:
-//private:
-//	IKSegment* m_pParent;
-//	std::vector<IKSegment*> m_pChilds;
-//};
-//
 //class IKChain {
 //public:
 //private:

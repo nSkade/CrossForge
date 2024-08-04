@@ -4,13 +4,17 @@
 namespace CForge {
 
 void IKSolverFABRIK::solve(std::string segmentName, IKController* pController) {
-	std::vector<IKController::SkeletalJoint*>& Chain = pController->m_JointChains.at(segmentName).joints;
-	IKTarget* target = pController->m_JointChains.at(segmentName).target;
+	//std::vector<IKController::SkeletalJoint*>& Chain = pController->m_jointChains.at(segmentName).joints;
+	std::vector<IKController::SkeletalJoint*>& Chain = pController->getIKChain(segmentName)->joints;
+	//IKTarget* target = pController->m_jointChains.at(segmentName).target;
+	IKTarget* target = pController->getIKChain(segmentName)->target.lock().get();
+	if (!target)
+		return;
 
 	//TODO(skade) make member for per chain solver to avoid memory alloc?
 	fbrkPoints.clear(); // global position for fabrik calculation
 	for (uint32_t i = 0; i < Chain.size(); ++i)
-		fbrkPoints.push_back(pController->m_IKJoints[Chain[i]]->posGlobal);
+		fbrkPoints.push_back(pController->m_IKJoints[Chain[i]].posGlobal);
 
 	std::vector<float> fbrkLen(Chain.size()); // joint lengths
 	float totalChainLength = 0.;
@@ -18,12 +22,12 @@ void IKSolverFABRIK::solve(std::string segmentName, IKController* pController) {
 	// compute chain lengths, root joint has length to next joint
 	fbrkLen[0] = 0.f; // eef has no length
 	for (uint32_t i=1;i<Chain.size();++i) {
-		fbrkLen[i] = (pController->m_IKJoints[Chain[i-1]]->posGlobal - pController->m_IKJoints[Chain[i]]->posGlobal).norm();
+		fbrkLen[i] = (pController->m_IKJoints[Chain[i-1]].posGlobal - pController->m_IKJoints[Chain[i]].posGlobal).norm();
 		totalChainLength += fbrkLen[i];
 	}
 
 	// original root position, needs to be restored on end
-	Vector3f rootOrigPos = pController->m_IKJoints[Chain.back()]->posGlobal;
+	Vector3f rootOrigPos = pController->m_IKJoints[Chain.back()].posGlobal;
 	Vector3f rootToTarget = target->pos - rootOrigPos;
 	
 	if (rootToTarget.norm() >= totalChainLength) {
@@ -72,19 +76,23 @@ void IKSolverFABRIK::solve(std::string segmentName, IKController* pController) {
 }
 
 void IKSolverFABRIK::backwardKinematics(std::string segmentName, IKController* pController, const std::vector<Vector3f>& fbrkPoints) {
-	std::vector<IKController::SkeletalJoint*>& Chain = pController->m_JointChains.at(segmentName).joints;
-	IKTarget* target = pController->m_JointChains.at(segmentName).target;
+	//std::vector<IKController::SkeletalJoint*>& Chain = pController->m_jointChains.at(segmentName).joints;
+	std::vector<IKController::SkeletalJoint*>& Chain = pController->getIKChain(segmentName)->joints;
+	//IKTarget* target = pController->m_jointChains.at(segmentName).target;
+	IKTarget* target = pController->getIKChain(segmentName)->target.lock().get();
+	if (!target)
+		return;
 
 	for (int32_t i = Chain.size() - 1; i > 0; --i) {
 		// angle axis for every fabrik point
-		IKJoint* ikJ = pController->m_IKJoints[Chain[i]];
+		IKJoint& ikJ = pController->m_IKJoints[Chain[i]];
 
 		// destination
-		Vector3f destvec = fbrkPoints[i-1] - ikJ->posGlobal;
+		Vector3f destvec = fbrkPoints[i-1] - ikJ.posGlobal;
 		destvec.normalize();
 
 		// current dir
-		Vector3f curvec = pController->m_IKJoints[Chain[i-1]]->posGlobal - ikJ->posGlobal;
+		Vector3f curvec = pController->m_IKJoints[Chain[i-1]].posGlobal - ikJ.posGlobal;
 		curvec.normalize();
 
 		float curDotDest = curvec.dot(destvec);
@@ -94,7 +102,7 @@ void IKSolverFABRIK::backwardKinematics(std::string segmentName, IKController* p
 			curDotDest = -1.;
 		float angle = std::acos(curDotDest);
 		
-		Quaternionf globToLoc = ikJ->rotGlobal.inverse();
+		Quaternionf globToLoc = ikJ.rotGlobal.inverse();
 		Vector3f rotAx = curvec.cross(destvec);
 		rotAx.normalize();
 		Vector3f rotAxLoc = globToLoc*rotAx;

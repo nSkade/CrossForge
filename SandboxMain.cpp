@@ -13,7 +13,14 @@
 #include "crossforge/Core/SCrossForgeDevice.h"
 #include "crossforge/Core/SLogger.h"
 
+//TODO(skade) minor memory leaks
+//#include <Examples/ExampleSceneBase.hpp>
+//#define ActiveScene ExampleSceneBase
+
+//TODO(skade) shader manager memory leaks?
 //#include <Examples/ExampleMinimumGraphicsSetup.hpp>
+//#define ActiveScene ExampleMinimumGraphicsSetup
+
 //#include <Examples/ExampleMorphTargetAnimation.hpp>
 //#include <Examples/ExampleMultiViewport.hpp>
 //#include <Examples/ExampleSceneGraph.hpp>
@@ -44,9 +51,6 @@
 using namespace CForge;
 using namespace Eigen;
 
-//#define ActiveScene ExampleSceneBase
-
-//#define ActiveScene ExampleMinimumGraphicsSetup
 //#define ActiveScene ExampleSkybox
 //#define ActiveScene ExampleTextRendering
 //#define ActiveScene ExampleShapesAndMaterials
@@ -136,8 +140,10 @@ void testAllExamples(SCrossForgeDevice *pDevice) {
 
 }//testAllExamples
 
+//TODO(skade) memory leak crt
 int main(int argc, char* argv[]) {
 #ifdef WIN32
+	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	_CrtMemState S1, S2, S3;
 	_CrtMemCheckpoint(&S1);
 #endif
@@ -179,10 +185,13 @@ int main(int argc, char* argv[]) {
 	_CrtMemDifference(&S3, &S1, &S2);
 	_CrtMemDumpStatistics(&S3);
 
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+	_CrtDumpMemoryLeaks();
+
 	// disable memleak dump
-	int Tmp = _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF);
-	Tmp &= ~_CRTDBG_LEAK_CHECK_DF;
-	_CrtSetDbgFlag(Tmp);
+	//int Tmp = _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF);
+	//Tmp &= ~_CRTDBG_LEAK_CHECK_DF;
+	//_CrtSetDbgFlag(Tmp);
 #endif
 
 

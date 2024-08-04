@@ -4,31 +4,28 @@
 #include <crossforge/Graphics/RenderDevice.h>
 #include <crossforge/AssetIO/SAssetIO.h>
 
+//TODOf(skade) use primitiveShapeFectory to generate joint mesh
+//#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
+
 #include <glad/glad.h>
 
 namespace CForge {
 using namespace Eigen;
 
 JointPickableMesh::JointPickableMesh() {
-	T3DMesh<float> mesh;
-	SAssetIO::load("MyAssets/ccd-ik/joint.obj", &mesh); //TODO(skade) use primitive shape factory instead
+	SAssetIO::load("Assets/joint.obj", &mesh); //TODO(skade) use primitive shape factory instead
 	eigenMesh = EigenMesh(mesh);
 	mesh.getMaterial(0)->Color.w() = .75;
 	mesh.computeAxisAlignedBoundingBox();
 	bv.init(mesh.aabb());
-
-	actor.init(&mesh);
-
-	mesh.getMaterial(0)->Color = Vector4f(227./255,142./255,48./255,1.);
-	actorSel.init(&mesh);
 }
 
-void JointPickableMesh::setOpacity(float opacity) {
+void JointPickable::setOpacity(float opacity) {
 	Vector4f color = actor.material(0)->color();
 	color.w() = opacity;
 	actor.material(0)->color(color);
 }
-float JointPickableMesh::getOpacity() {
+float JointPickable::getOpacity() {
 	return actor.material(0)->color().w();
 }
 
@@ -58,7 +55,7 @@ void JointPickable::update(Matrix4f sgnT) {
 
 	//TODO sgnT
 	m_transform = m_sgnT * LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
-	if (!m_picked)
+	if (!m_highlight)
 		m_transformGuizmo = m_sgnT * LocalTransform;
 }
 void JointPickable::pckMove(const Matrix4f& trans) {
@@ -87,17 +84,18 @@ void JointPickable::pckMove(const Matrix4f& trans) {
 void JointPickable::render(RenderDevice* pRD) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	pRD->modelUBO()->modelMatrix(m_transform);
-	m_pMesh->actor.render(pRD,
-						Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
-	glDisable(GL_BLEND);
-	if (m_picked) {
+	if (highlightBehind || !m_highlight) {
+		pRD->modelUBO()->modelMatrix(m_transform);
+		actor.render(pRD,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
+	}
+	if (m_highlight) {
 		glCullFace(GL_FRONT);
 		pRD->modelUBO()->modelMatrix(m_transform * CForgeMath::scaleMatrix(Vector3f(1.,1.3,1.3)));
-		m_pMesh->actorSel.render(pRD,
-							Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
+		actorSel.material(0)->color(colorSelect);
+		actorSel.render(pRD, Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
 		glCullFace(GL_BACK);
 	}
+	glDisable(GL_BLEND);
 }
 
 }//CForge

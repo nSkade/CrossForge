@@ -79,21 +79,17 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 	}
 }
 
+void Picker::forcePick(std::weak_ptr<IPickable> pick) {
+	m_pPick = pick;
+	resolve();
+}
+
 void Picker::start() {
 	m_pPick.reset();
 }
 
 void Picker::resolve() {
 	if (auto p = m_pPick.lock()) {
-		//TODO(skade) remove
-		//m_guizmoMat = p.get()->pckTransGuizmo();
-		//if (auto lp = m_pLastPick.lock())
-		//	lp.get()->pckDeselect();
-		//p.get()->pckSelect();
-
-		//m_pLastPick = m_pPick;
-		//m_pCurrPick = m_pPick;
-		
 		auto lp = m_pLastPick.lock();
 		if (p.get() != lp.get()) {
 			if (p) {

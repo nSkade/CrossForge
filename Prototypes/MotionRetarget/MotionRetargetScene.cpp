@@ -1,6 +1,6 @@
 #include "MotionRetargetScene.hpp"
 
-#include "IKSolver/IKChain.hpp"
+#include "IK/IKChain.hpp"
 
 #include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
 #include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
@@ -52,6 +52,8 @@ void MotionRetargetScene::init() {
 	m_config.load(&m_RenderWin);
 	m_config.load(m_cesStartupStr.c_str(), &m_cesStartup);
 	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
+
+	m_lineBox.init();
 
 	if (m_cesStartup)
 		initCesiumMan();
@@ -171,7 +173,8 @@ void MotionRetargetScene::mainLoop() {
 			pA->t = c->animFrameCurr / pA->SamplesPerSecond;
 	}
 
-	if (m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_DELETE,true)) {
+	bool hoveredImgui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+	if (!hoveredImgui && m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_DELETE,true)) {
 		if (auto p = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
 			m_sgnRoot.removeChild(&p->sgn);
 
@@ -181,9 +184,17 @@ void MotionRetargetScene::mainLoop() {
 
 			m_picker.reset();
 		}
+		else if (auto p = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
+			//TODO(skade) IKTargets best global, for delete but also when letting the target change by another char entity
+
+			//auto pos = std::find(m_charEntities.begin(),m_charEntities.end(),p);
+			//if (pos != m_charEntities.end())
+			//	m_charEntities.erase(pos);
+
+			//m_picker.reset();
+		}
 	}
 	
-	bool hoveredImgui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
 	{ // Handle Picking
 		if (!hoveredImgui) {
 			if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
@@ -192,16 +203,22 @@ void MotionRetargetScene::mainLoop() {
 					std::vector<std::weak_ptr<IPickable>> p;
 					m_picker.start();
 					for (uint32_t i=0;i<m_charEntities.size();++i) {
+						auto c = m_charEntities[i];
+						if (!c->visible)
+							continue;
+
 						//TODO(skade)
-						p.clear(); p.push_back(m_charEntities[i]);
+						p.clear(); p.push_back(c);
 						m_picker.pick(p);
+						if (!c->controller)
+							continue;
 						if (m_showTarget) {
-							std::vector<std::weak_ptr<IKTarget>> t = m_charEntities[i]->controller->getTargets();
+							std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
 							p.assign(t.begin(),t.end());
 							m_picker.pick(p);
 						}
 						if (m_showJoints) {
-							std::vector<std::weak_ptr<JointPickable>> jp = m_charEntities[i]->controller->getJointPickables();
+							std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
 							p.assign(jp.begin(),jp.end());
 							m_picker.pick(p);
 						}
@@ -209,8 +226,10 @@ void MotionRetargetScene::mainLoop() {
 
 					m_picker.resolve();
 					m_guizmoMat = m_picker.m_guizmoMat;
-					if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock()))
+					if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
+						m_charEntitySec = m_charEntityPrim;
 						m_charEntityPrim = e;
+					}
 				}
 			}
 
@@ -259,8 +278,8 @@ void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
 	T3DMesh<float>* mesh = &(c->mesh);
 	setMeshShader(mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
 	mesh->computePerVertexNormals(); //TODO(skade) remove
-	c->controller = std::make_unique<IKController>();
 	if (mesh->rootBone()) {
+		c->controller = std::make_unique<IKController>();
 		c->controller->init(mesh);
 
 		for (uint32_t i = 0; i < mesh->skeletalAnimationCount(); ++i) {
@@ -323,6 +342,7 @@ void MotionRetargetScene::initCesiumMan() {
 		Box aabb = c->mesh.aabb();
 		Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
 		c->sgn.scale(scale);
+		c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
 	}
 }
 
@@ -413,7 +433,6 @@ void MotionRetargetScene::initEndEffectorMarkers() {
 	M.clear();
 }//initEndEffectorMarkers
 
-//TODO(skade)
 void MotionRetargetScene::loadCharPrim(std::string path, bool useGLTFIO) {
 	if (useGLTFIO) {
 		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
@@ -449,17 +468,39 @@ void MotionRetargetScene::storeCharPrim(std::string path, bool useGLTFIO) {
 	}
 }
 void MotionRetargetScene::renderVisualizers() {
-	for (uint32_t i=0;i<m_charEntities.size();++i)
-		renderVisualizers(m_charEntities[i].get());
+	for (uint32_t i=0;i<m_charEntities.size();++i) {
+		if (m_charEntities[i]->visible)
+			renderVisualizers(m_charEntities[i].get());
+	}
 }
 
 //TODO(skade) cleanup
 void MotionRetargetScene::renderVisualizers(CharEntity* c) {
+	static bool renderAABB = true;
+	if (renderAABB) {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glDisable(GL_CULL_FACE);
+		glLineWidth(1);
+		if (auto c = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
+			Matrix4f m = MRMutil::buildTransformation(c->sgn);
+			m_lineBox.color = Vector4f(227./255,142./255,48./255,.75);
+			m_lineBox.render(&m_RenderDev,c->bv.aabb(),m);
+		}
+		if (auto c = std::dynamic_pointer_cast<CharEntity>(m_charEntitySec.lock())) {
+			Matrix4f m = MRMutil::buildTransformation(c->sgn);
+			m_lineBox.color = Vector4f(227./255,142./255,48./255,.25);
+			m_lineBox.render(&m_RenderDev,c->bv.aabb(),m);
+		}
+		//glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+		glEnable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
 	Vector3f pos; Quaternionf rot; Vector3f scale;
 	c->sgn.buildTansformation(&pos,&rot,&scale);
 	Matrix4f t = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	if (m_showJoints) { //TODO(skade) put in function
+	if (c->controller && m_showJoints ) { //TODO(skade) put in function
 		//glDisable(GL_DEPTH_TEST);
 		//glEnable(GL_BLEND);
 
@@ -480,9 +521,8 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 	//glEnable(GL_BLEND); //TODOf(skade) change blendmode in active material forward pass
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (m_showTarget) {
-		std::vector<std::shared_ptr<IKTarget>> tar;
-		c->controller->getTargets(&tar);
+	if (c->controller && m_showTarget) {
+		std::vector<std::shared_ptr<IKTarget>> tar = c->controller->m_targets;
 		
 		for (uint32_t i = 0; i < tar.size(); ++i) {
 			//TODO(skade) clean sgnT update loc
@@ -496,31 +536,33 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 
 	//TODO(skade)
 	// render fabrik points
-	for (uint32_t j=0;j<c->controller->m_iksFABRIK.size();++j) {
-		std::vector<Vector3f> fbrkPoints = c->controller->m_iksFABRIK[j].fbrkPoints;
-		for (uint32_t i = 0; i < fbrkPoints.size(); ++i) {
-			Matrix4f cubeTransform = CForgeMath::translationMatrix(fbrkPoints[i]);
-			float r = .5;
-			Matrix4f cubeScale = CForgeMath::scaleMatrix(Vector3f(r,r,r)*1.0f);
-			m_RenderDev.modelUBO()->modelMatrix(t*cubeTransform*cubeScale);
-			bool cmr = (i+1) & 1;
-			bool cmg = (i+1) & 2;
-			bool cmb = (i+1) & 4;
-			
-			//TODO(skade) reads drive due to shader init
-			T3DMesh<float> M;
-			PrimitiveShapeFactory::cuboid(&M, Vector3f(0.05f, 0.05f, 0.05f), Vector3i(1, 1, 1));
-			auto* pMat = M.getMaterial(0);
-			pMat->Color = Vector4f(cmr,cmg,cmb, 1.0f);
-			pMat->Metallic = 0.3f;
-			pMat->Roughness = 0.2f;
-			
-			M.computePerVertexNormals();
-			StaticActor a; a.init(&M);
-			
-			//glColorMask(cmr,cmg,cmb,1);
-			a.render(&m_RenderDev,Quaternionf::Identity(),Vector3f(),Vector3f(1.f,1.f,1.f));
-			//glColorMask(1,1,1,1);
+	if (c->controller) {
+		auto fbrkChains = c->controller->getFABRIKpoints();
+		for (auto fbrkPoints : fbrkChains) {
+			for (uint32_t i = 0; i < fbrkPoints.size(); ++i) {
+				Matrix4f cubeTransform = CForgeMath::translationMatrix(fbrkPoints[i]);
+				float r = .5;
+				Matrix4f cubeScale = CForgeMath::scaleMatrix(Vector3f(r,r,r)*1.0f);
+				m_RenderDev.modelUBO()->modelMatrix(t*cubeTransform*cubeScale);
+				bool cmr = (i+1) & 1;
+				bool cmg = (i+1) & 2;
+				bool cmb = (i+1) & 4;
+				
+				//TODO(skade) reads drive due to shader init
+				T3DMesh<float> M;
+				PrimitiveShapeFactory::cuboid(&M, Vector3f(0.05f, 0.05f, 0.05f), Vector3i(1, 1, 1));
+				auto* pMat = M.getMaterial(0);
+				pMat->Color = Vector4f(cmr,cmg,cmb, 1.0f);
+				pMat->Metallic = 0.3f;
+				pMat->Roughness = 0.2f;
+				
+				M.computePerVertexNormals();
+				StaticActor a; a.init(&M);
+				
+				//glColorMask(cmr,cmg,cmb,1);
+				a.render(&m_RenderDev,Quaternionf::Identity(),Vector3f(),Vector3f(1.f,1.f,1.f));
+				//glColorMask(1,1,1,1);
+			}
 		}
 	}
 	//glDisable(GL_BLEND);
@@ -552,6 +594,10 @@ void MotionRetargetScene::defaultKeyboardUpdate(Keyboard* pKeyboard) {
 			m_showPopPreferences = false;
 			return;
 		}
+		if (m_showPopChainEdit) {
+			m_showPopChainEdit = false;
+			return;
+		}
 		m_exitCalled = true;
 	}
 }
@@ -569,7 +615,6 @@ bool MotionRetargetScene::keyboardAnyKeyPressed() {
 	prevScroll = pMouse->wheel();
 	if (scrollDelta.x() != 0. || scrollDelta.y() != 0.)
 		r = true;
-	
 	return r;
 }
 

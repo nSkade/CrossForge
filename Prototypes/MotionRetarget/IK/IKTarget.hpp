@@ -7,6 +7,15 @@ using namespace Eigen;
 
 //TODO(skade)
 struct IKTarget : public IPickable {
+
+	IKTarget(std::string name, BoundingVolume bv) {
+		this->bv = bv;
+		this->name = name;
+	}
+
+	/**
+	 * @param sgnT Transform Matrix of corresponding actor geo SGN
+	*/
 	void update(Matrix4f sgnT) {
 		m_sgnT = sgnT;
 	}
@@ -30,11 +39,11 @@ struct IKTarget : public IPickable {
 		return bv;
 	}
 
-	BoundingVolume bv; //TODO(skade)
+	BoundingVolume bv;
 	Matrix4f m_sgnT = Matrix4f::Identity();
+	std::string name;
 
-	Vector3f pos;
-	float influence = 1.; //TODO(skade)
+	Vector3f pos; // global position
 };
 
 }//CForge

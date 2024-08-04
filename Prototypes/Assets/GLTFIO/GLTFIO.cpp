@@ -152,6 +152,8 @@ namespace CForge {
 	void GLTFIO::storeIntern(const std::string Filepath, const T3DMesh<float>* pMesh) {
 		Model emptyModel;
 		m_model = emptyModel;
+		assert(!m_pCMesh);
+		m_pCMesh = new T3DMesh<float>(*pMesh);
 
 		m_coord.clear();
 		m_normal.clear();
@@ -188,6 +190,8 @@ namespace CForge {
 		TinyGLTF writer;
 
 		writer.WriteGltfSceneToFile(&m_model, Filepath, false, false, true, false);
+		delete m_pCMesh;
+		m_pCMesh = nullptr;
 	}//store
 
 	//TODOf(skade) for SAssetIO

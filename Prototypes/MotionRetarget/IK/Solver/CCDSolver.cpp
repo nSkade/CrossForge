@@ -3,15 +3,20 @@
 
 namespace CForge {
 
-template<IKSolverCCD::CCDtype type>
+//template<IKSolverCCD::CCDtype type>
 void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
-	std::vector<IKController::SkeletalJoint*>& Chain = pController->m_JointChains.at(segmentName).joints;
-	IKTarget* target = pController->m_JointChains.at(segmentName).target;
+	//std::vector<IKController::SkeletalJoint*>& Chain = pController->m_jointChains.at(segmentName).joints;
+	std::vector<IKController::SkeletalJoint*>& Chain = pController->getIKChain(segmentName)->joints;
+	//IKTarget* target = pController->m_jointChains.at(segmentName).target;
+	IKTarget* target = pController->getIKChain(segmentName)->target.lock().get();
+	if (!target)
+		return;
+
 	Vector3f lastEFpos;
-	IKJoint* eef = pController->m_IKJoints[Chain[0]];
+	IKJoint& eef = pController->m_IKJoints[Chain[0]];
 
 	for (int32_t i = 0; i < m_MaxIterations; ++i) {
-		lastEFpos = eef->posGlobal;
+		lastEFpos = eef.posGlobal;
 
 		// check for termination -> condition: end-effector has reached the targets position and orientation
 		float DistError = (lastEFpos-target->pos).norm();
@@ -22,21 +27,21 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 		//for (int32_t k = Chain.size()-1; k >= 0; --k) {
 		// Backward CCD
 		int32_t k = 1;
-		if (type == FORWARD)
+		if (m_type == FORWARD)
 			k = Chain.size()-1;
 
-		bool fwd = type == FORWARD;
+		bool fwd = m_type == FORWARD;
 		for (; fwd ? k >= 1 :  k < Chain.size(); fwd ? --k : ++k) {
 			// start at base joint
 			IKController::SkeletalJoint* pCurrent = Chain[k];
-			IKJoint* pCurrentIK = pController->m_IKJoints[pCurrent];
+			IKJoint& pCurrentIK = pController->m_IKJoints[pCurrent];
 
 			// calculate rotation axis
 			// joint position to end effector
-			Vector3f jpToEE = eef->posGlobal - pCurrentIK->posGlobal;
+			Vector3f jpToEE = eef.posGlobal - pCurrentIK.posGlobal;
 			jpToEE.normalize();
 			// joint position to target position
-			Vector3f jpToTar = target->pos - pCurrentIK->posGlobal;
+			Vector3f jpToTar = target->pos - pCurrentIK.posGlobal;
 			jpToTar.normalize();
 
 			// rotation angle
@@ -49,14 +54,14 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 			Vector3f rotVec = jpToEE.cross(jpToTar);
 			rotVec.normalize();
 
-			Quaternionf globToLoc = pCurrentIK->rotGlobal.inverse();
+			Quaternionf globToLoc = pCurrentIK.rotGlobal.inverse();
 			globToLoc.normalize();
 			
 			Vector3f rotVecLocal = globToLoc*rotVec;
 			rotVecLocal.normalize();
 			
 			//Quaternionf GlobalIncrement = Quaternionf(AngleAxis(theta,rotVec));
-			//Quaternionf NewGlobalRotation = GlobalIncrement * pCurrentIK->rotGlobal;
+			//Quaternionf NewGlobalRotation = GlobalIncrement * pCurrentIK.rotGlobal;
 			//NewGlobalRotation.normalize();
 			
 			// transform new global rotation to new local rotation
@@ -67,8 +72,8 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 
 			//TODO(skade)
 			//// constrain new local rotation if joint is not unconstrained
-			//if (pCurrentIK->pLimits != nullptr)
-			//	NewLocalRotation = pCurrentIK->pLimits->constrain(NewLocalRotation);
+			//if (pCurrentIK.pLimits != nullptr)
+			//	NewLocalRotation = pCurrentIK.pLimits->constrain(NewLocalRotation);
 
 			// apply new local rotation to joint
 			pCurrent->LocalRotation = pCurrent->LocalRotation * NewLocalRotation;
@@ -78,13 +83,14 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 			pController->forwardKinematics(pCurrent);
 		}//for[each joint in chain]
 
-		float PosChangeError = (eef->posGlobal - lastEFpos).norm();
+		float PosChangeError = (eef.posGlobal - lastEFpos).norm();
 		if (PosChangeError < m_thresholdPosChange)
 			return;
 	}//for[m_MaxIterations]
 }//solve
-template void IKSolverCCD::solve<IKSolverCCD::BACKWARD>(std::string segmentName, IKController* pController);
-template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, IKController* pController);
+//TODO(skade) remove
+//template void IKSolverCCD::solve<IKSolverCCD::BACKWARD>(std::string segmentName, IKController* pController);
+//template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, IKController* pController);
 
 //struct EndEffectorData { // X corresponds to entry from end-effector to root
 //	Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
@@ -121,7 +127,7 @@ template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, 
 //}//rotateGaze
 
 //void IKController::ikCCDglobal(const std::string segmentName) {
-//	std::vector<SkeletalJoint*>& Chain = m_JointChains.at(segmentName).joints;
+//	std::vector<SkeletalJoint*>& Chain = m_jointChains.at(segmentName).joints;
 //	EndEffectorData* pEffData = m_IKJoints[Chain[0]]->pEndEffectorData;
 //	Matrix3Xf LastEndEffectorPoints;
 //

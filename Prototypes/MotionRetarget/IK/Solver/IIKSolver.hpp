@@ -1,21 +1,19 @@
 #pragma once
 
-#include "IKChain.hpp"
-
 namespace CForge {
 
 class IKController;
 
 /**
- * @brief Interface for various Inverse Kinematics Solver.
+ * @brief Interface for various Inverse Kinematics Solvers.
  *        Solvers handle a single IKChain.
 */
 class IIKSolver {
 public:
+	virtual void solve(std::string segmentName, IKController* pController) {};
 	//TODO(skade) implement common interface
 	
 protected:
-	//IKChain m_chain; //TODO(skade) chain
 	float m_thresholdDist = 1e-6f;
 	float m_thresholdPosChange = 1e-6f;
 
