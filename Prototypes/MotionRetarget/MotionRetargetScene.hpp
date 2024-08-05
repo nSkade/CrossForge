@@ -8,8 +8,8 @@
 #include <Prototypes/MotionRetarget/UI/EditCamera.hpp>
 #include <Prototypes/MotionRetarget/Config/Config.hpp>
 
-#include "IKSkeletalActor.hpp"
-#include "Animation/Picking.hpp"
+#include "IK/IKSkeletalActor.hpp"
+#include "CMN/Picking.hpp"
 #include "UI/ViewManipulate.hpp"
 
 #include "CMN/MRMutil.hpp"
@@ -17,6 +17,10 @@
 
 namespace CForge {
 
+/**
+ * @class MotionRetargetScene
+ * @brief Handles rendering the scene and providing the UI interface to data operations.
+*/
 class MotionRetargetScene : public ExampleSceneBase {
 public:
 	MotionRetargetScene(void) : m_picker(&m_RenderWin,&m_Cam) {
@@ -34,11 +38,12 @@ public:
 	void initCameraAndLights(bool CastShadows = true);
 
 private:
-	void initCharacter();
 	struct CharEntity;
 	void initCharacter(std::weak_ptr<CharEntity> charEntity);
 	void initCesiumMan();
-	void initEndEffectorMarkers();
+
+	//TODO(skade) dim SPOT IKTarget, move actor into IKTarget, + picked highlight
+	void initIKTargetActor();
 
 	/**
 	 * @brief Render Joints and Constraints
@@ -47,6 +52,7 @@ private:
 	void renderVisualizers(CharEntity* c);
 
 	//TODOf(skade) put in seperate class
+	// UI functions
 	void initUI();
 	void cleanUI();
 	void renderUI();
@@ -70,7 +76,15 @@ private:
 	void defaultKeyboardUpdate(Keyboard* pKeyboard);
 
 private:
-	//TODO(skade) implement multiple entities
+	struct settings {
+		float gridSize = 3.f;
+		bool  renderDebugGrid = true;
+		bool  showJoints = true;
+		bool  showTargets = true;
+		bool  cesStartup = false; // start scene with cesium man on startup
+		bool  renderAABB = true; // render line aabb around charEntities when selected
+	} m_settings;
+
 	/**
 	 * @brief compacts info regarding single character
 	*/
@@ -81,6 +95,7 @@ private:
 		std::unique_ptr<StaticActor> actorStatic;
 		std::unique_ptr<IKSkeletalActor> actor;
 		std::unique_ptr<IKController> controller;
+		BoundingVolume bv; // mesh bounding volume
 		bool visible = true;
 
 		int animIdx = 0;
@@ -101,9 +116,7 @@ private:
 		Matrix4f pckTransPickin() {
 			return MRMutil::buildTransformation(sgn);
 		}; // used for picking evaluation
-		BoundingVolume bv;
 		const BoundingVolume& pckBV() {
-			bv.init(mesh.aabb());
 			return bv; 
 		};
 	};
@@ -111,48 +124,42 @@ private:
 	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity
 	std::weak_ptr<CharEntity> m_charEntitySec; // currently selected char entity
 
-	// Anim Gui
-	int m_animAutoplay = false;
-
 	SGNTransformation m_sgnRoot;
+	StaticActor m_TargetPos;
 
-	std::map<std::string, std::vector<SGNTransformation*>> m_EffectorTransformSGNs;
-	std::map<std::string, std::vector<SGNGeometry*>> m_EffectorGeomSGNs;
-	StaticActor m_EffectorPos, m_EffectorX, m_EffectorY, m_EffectorZ;
-	
-	std::map<std::string, std::vector<SGNTransformation*>> m_TargetTransformSGNs;
-	std::map<std::string, std::vector<SGNGeometry*>> m_TargetGeomSGNs;
-
-	StaticActor m_TargetPos, m_TargetAABB;
-	AlignedBox3f m_TargetMarkerAABB;
-
-	bool m_LMBDownLastFrame = false;
-	bool m_exitCalled = false;
-
-	//TODO(skade) sort & put in options struct
-	bool m_IKCupdate = false;
-	bool m_IKCupdateSingle = false;
-	bool m_renderDebugGrid = true;
-	float m_gridSize = 3.f;
-	bool m_showJoints = true;
-	bool m_showTarget = true;
-	bool m_guizmoViewManipChanged = false;
-	Matrix4f m_guizmoMat = Matrix4f::Identity();
-
-	Guizmo m_guizmo;
 	Config m_config;
 	EditCamera m_editCam;
 	Picker m_picker;
-	ViewManipulate m_viewManipulate;
-
-	// preferences //TODO(skade) pair in struct
-	bool m_showPopPreferences = false;
-	bool m_showPopChainEdit = false;
-	bool m_cesStartup = false;
-	std::string m_cesStartupStr = "load cesium man on startup";
-
 	LineBox m_lineBox;
 
+	Guizmo m_guizmo;
+	ViewManipulate m_viewManipulate;
+
+	// internal variables
+	// input
+	bool m_LMBDownLastFrame = false;
+	bool m_exitCalled = false;
+	// cam
+	bool m_guizmoViewManipChanged = false;
+	Matrix4f m_guizmoMat = Matrix4f::Identity();
+	// anim
+	bool m_IKCupdate = false;
+	bool m_IKCupdateSingle = false;
+	int m_animAutoplay = false;
+	// outliner
+	IKController::SkeletalJoint* m_outlinerSelJoint = nullptr;
+	// ik edit
+	int m_selChainIdx = -1;
+	int m_selChainIdxPrev = -1;
+	// ik chain edit
+	bool m_ikceNameInit = false;
+	std::string m_ikceName = "new";
+	IKController::SkeletalJoint* m_ikceRootJoint = nullptr;
+	IKController::SkeletalJoint* m_ikceEndEffJoint = nullptr;
+	// gui popup
+	bool m_showPopPreferences = false;
+	bool m_showPopChainEdit = false;
+	std::string m_cesStartupStr = "load cesium man on startup";
 };//MotionRetargetScene
 
 }//CForge

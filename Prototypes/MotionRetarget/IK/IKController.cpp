@@ -6,7 +6,7 @@
 
 #include <crossforge/Graphics/RenderDevice.h> //TODO(skade) for JointVis
 
-#include "CMN/EigenFWD.hpp"
+#include <Prototypes/MotionRetarget/CMN/EigenFWD.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -414,49 +414,7 @@ void IKController::updateTargetPoints() {
 }
 
 void IKController::update(float FPSScale) {
-	//TODO(skade)
 	m_ikArmature.solve(this);
-
-	//while (m_iksFABRIK.size() < getJointChains().size())
-	//	m_iksFABRIK.push_back(IKSolverFABRIK());
-
-	//int i=0;
-	//for (auto c : getJointChains()) {
-	//	forwardKinematics(m_pRoot);
-	//	
-	//	// check if target is set
-	//	//if (!c.second.target) //TODO(skade) better sol,
-	//	if (!c.target) //TODO(skade) better sol,
-	//		continue;
-
-	//	//if (c.second.name!="RightLeg")
-	//	//	continue;
-	//	
-	//	//TODO(skade) define solver for each chain
-	//	switch (testIKslvSelect)
-	//	{
-	//	case CForge::IKController::IKSS_CCD_F:
-	//	//	m_iksCCD.solve<IKSolverCCD::FORWARD>(c.first,this);
-	//	//	break;
-	//	//case CForge::IKController::IKSS_CCD_B:
-	//	//	m_iksCCD.solve<IKSolverCCD::BACKWARD>(c.first,this);
-	//	//	break;
-	//	//case CForge::IKController::IKSS_CCD_FABRIK:
-	//	//	m_iksFABRIK[i].solve(c.first,this);
-	//		m_iksCCD.solve<IKSolverCCD::FORWARD>(c.name,this); //TODO(skade) id instead of segment name
-	//		break;
-	//	case CForge::IKController::IKSS_CCD_B:
-	//		m_iksCCD.solve<IKSolverCCD::BACKWARD>(c.name,this);
-	//		break;
-	//	case CForge::IKController::IKSS_CCD_FABRIK:
-	//		m_iksFABRIK[i].solve(c.name,this);
-	//		break;
-	//	default:
-	//		break;
-	//	}
-
-	//	++i;
-	//}
 }//update
 
 void IKController::applyAnimation(Animation* pAnim, bool UpdateUBO) {

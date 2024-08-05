@@ -2,7 +2,7 @@
 
 #include <Prototypes/GUI/ImGuiUtility.h>
 #include "UI/ImGuiStyle.hpp"
-#include "UI/IKSequencer.hpp"
+#include "Animation/IKSequencer.hpp"
 #include <crossforge/AssetIO/UserDialog.h>
 //TODO(skade) for ImGuiUtility::initImGui replace
 #include <imgui_impl_glfw.h>
@@ -88,8 +88,6 @@ IKController::SkeletalJoint* MotionRetargetScene::renderUI_OutlinerJoints(std::s
 	renderJointNode = [&](CharEntity* c, IKController::SkeletalJoint* joint) {
 		if (!joint)
 			return;
-		
-		//c->controller->m_IKJoints
 	
 		static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 		ImGuiTreeNodeFlags node_flags = base_flags;
@@ -104,11 +102,6 @@ IKController::SkeletalJoint* MotionRetargetScene::renderUI_OutlinerJoints(std::s
 					renderJointNode(c,c->controller->getBone(joint->Children[i]));
 				ImGui::TreePop();
 			}
-			//if (ImGui::TreeNode(joint->Name.c_str())) {
-			//	for (uint32_t i=0;i<joint->Children.size();++i)
-			//		renderJointNode(c,c->controller->getBone(joint->Children[i]));
-			//	ImGui::TreePop();
-			//}
 		}
 		else { // leaf
 			node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
@@ -126,6 +119,19 @@ IKController::SkeletalJoint* MotionRetargetScene::renderUI_OutlinerJoints(std::s
 void MotionRetargetScene::renderUI_Outliner() {
 
 	ImGui::Begin("Outliner");
+	{ // currently selected item
+		std::string item = "";
+		if (auto lp = m_picker.getLastPick().lock()) {
+			if (auto p = std::dynamic_pointer_cast<CharEntity>(lp))
+				item = "CharEntity "+p->name;
+			if (auto p = std::dynamic_pointer_cast<JointPickable>(lp))
+				item = "Joint "+p->m_pJoint->Name;
+			if (auto p = std::dynamic_pointer_cast<IKTarget>(lp))
+				item = "Target "+p->name;
+		}
+		ImGui::Text(item.c_str());
+	}
+	ImGui::Separator();
 	//TODO(skade) make selectable
 	for (uint32_t i=0;i<m_charEntities.size();++i) {
 		auto c = m_charEntities[i];
@@ -161,29 +167,25 @@ void MotionRetargetScene::renderUI_Outliner() {
 				continue;
 			}
 			if (ImGui::TreeNode("Armature")) {
-				static IKController::SkeletalJoint* selectedNode = nullptr; //TODO(skade) make member
-				IKController::SkeletalJoint* clickedNode = renderUI_OutlinerJoints(c,selectedNode);
+				IKController::SkeletalJoint* clickedNode = renderUI_OutlinerJoints(c,m_outlinerSelJoint);
 
 				if (clickedNode) {
 					if (ImGui::GetIO().KeyCtrl) { // CTRL+click to toggle
-						if (selectedNode == clickedNode) {
-							selectedNode = nullptr;
+						if (m_outlinerSelJoint == clickedNode) {
+							m_outlinerSelJoint = nullptr;
 							m_picker.reset();
 						}
 						else {
-							selectedNode = clickedNode;
+							m_outlinerSelJoint = clickedNode;
 							m_picker.forcePick(c->controller->getJointPickable(clickedNode));
 							m_guizmoMat = m_picker.m_guizmoMat;
 						}
-						//selection_mask ^= (1 << node_clicked);          // CTRL+click to toggle
 					}
 					else {
-						selectedNode = clickedNode;
+						m_outlinerSelJoint = clickedNode;
 						m_picker.forcePick(c->controller->getJointPickable(clickedNode));
 						m_guizmoMat = m_picker.m_guizmoMat;
 					}
-					//else //if (!(selection_mask & (1 << node_clicked))) // Depending on selection behavior you want, may want to preserve selection when clicking on item that is part of the selection
-					//	selection_mask = (1 << node_clicked);           // Click to single-select
 				}
 				ImGui::TreePop();
 			} // Armature
@@ -487,14 +489,14 @@ void MotionRetargetScene::renderUI_menuBar() {
 				ImGui::Text("ImGuizmo");
 				ImGui::Separator();
 				ImGui::Text("Grid");
-				ImGui::Checkbox("Render Debug Grid",&m_renderDebugGrid);
-				ImGui::InputScalar("Grid Size",ImGuiDataType_Float,&m_gridSize);
+				ImGui::Checkbox("Render Debug Grid",&m_settings.renderDebugGrid);
+				ImGui::InputScalar("Grid Size",ImGuiDataType_Float,&m_settings.gridSize);
 				ImGui::Separator();
 				ImGui::Text("Debug");
 				ImGui::Checkbox("Render Debug Cube",&m_guizmo.m_renderDebugCube);
 				ImGui::Separator();
 				ImGui::Separator();
-				ImGui::Checkbox(m_cesStartupStr.c_str(),&m_cesStartup);
+				ImGui::Checkbox(m_cesStartupStr.c_str(),&m_settings.cesStartup);
 
 				//if (ImGui::BeginPopupContextItem()) { //TODO(skade)
 				//	if (ImGui::MenuItem("Close"))
@@ -511,9 +513,9 @@ void MotionRetargetScene::renderUI_tools() {
 	ImGui::Begin("Tools");
 	//TODOf(skade) settings tab
 	if (ImGui::CollapsingHeader("Visualizers", ImGuiTreeNodeFlags_None)) {
-		ImGui::Checkbox("Show Joints", &m_showJoints);
+		ImGui::Checkbox("Show Joints", &m_settings.showJoints);
 		ImGui::SameLine();
-		ImGui::Checkbox("Show Targets", &m_showTarget);
+		ImGui::Checkbox("Show Targets", &m_settings.showTargets);
 		//TODOf(skade)
 		//if (m_FPSLabelActive)
 		//	m_FPSLabel.render(&m_RenderDev);
@@ -547,11 +549,11 @@ void MotionRetargetScene::renderUI_tools() {
 		m_guizmoViewManipChanged = false;
 	m_Cam.cameraMatrix(cameraMat);
 
-	if (m_renderDebugGrid) {
+	if (m_settings.renderDebugGrid) {
 		//TODOf(skade) rotate grid when ortographic view depending on largest cam view vector component
 		//if (!m_editCam.m_CamIsProj)
 		
-		ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix.data(), m_gridSize);
+		ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix.data(), m_settings.gridSize);
 	}
 
 	ImGui::End();
@@ -565,19 +567,14 @@ void MotionRetargetScene::renderUI_ik() {
 		ImGui::End();
 		return;
 	}
+	static CharEntity* prevC = nullptr;
+	if (prevC != c.get()) { // m_charEntityPrim changed
+		m_selChainIdx = -1;
+		m_selChainIdxPrev = -1;
+	}
+	prevC = c.get();
+
 	std::vector<IKChain>& chains = c->controller->getJointChains();
-
-	//TODO(skade) target not linked to chain anymore
-	// chain info
-	//std::shared_ptr<IKTarget> lp = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock());
-	//if (lp) {
-	//	IKChain* chain = c->controller->getIKChain(lp.get());
-	//	if (chain)
-	//		ImGui::Text("IK chain Name: %s",chain->name.c_str());
-	//} else
-	//	ImGui::Text("IK chain Name none");
-
-	static int selChainIdx = -1; // Here we store our selection data as an index.
 
 	{ // ik method
 		ImGui::Checkbox("enable IK",&m_IKCupdate);
@@ -603,8 +600,8 @@ void MotionRetargetScene::renderUI_ik() {
 			return 0;
 		};
 
-		if (selChainIdx != -1) {
-			IKChain& chain = chains[selChainIdx];
+		if (m_selChainIdx != -1) {
+			IKChain& chain = chains[m_selChainIdx];
 			int idx = ikToIdx(chain.ikSolver.get());
 			int prevIdx = idx;
 
@@ -635,19 +632,18 @@ void MotionRetargetScene::renderUI_ik() {
 				}
 			}
 		}
-		//c->controller->testIKslvSelect = static_cast<IKController::TestIKslvSelect>(currItem);
 	}
 
 	if (ImGui::BeginListBox("IK Chains")) {
 		for (int n = 0; n < chains.size(); n++) {
-			const bool is_selected = (selChainIdx == n);
+			const bool is_selected = (m_selChainIdx == n);
 			if (ImGui::Selectable(chains[n].name.c_str(), is_selected)) {
 				if (ImGui::GetIO().KeyCtrl) { // CTRL+click to toggle
-					if (selChainIdx == n)
-						selChainIdx = -1;
+					if (m_selChainIdx == n)
+						m_selChainIdx = -1;
 				}
 				else
-					selChainIdx = n;
+					m_selChainIdx = n;
 			}
 
 			if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
@@ -671,41 +667,40 @@ void MotionRetargetScene::renderUI_ik() {
 	//}
 
 	//TODO(skade) adjust when changing to other rigged char
-	static int item_current_idxPrev = -1; // Here we store our selection data as an index.
 	// highlight chain joints green
-	if (selChainIdx != -1) {
-		auto js = chains[selChainIdx].joints;
+	if (m_selChainIdx != -1) {
+		auto js = chains[m_selChainIdx].joints;
 		for (uint32_t i = 0; i < js.size(); ++i) {
 			auto jp = c->controller->getJointPickable(js[i]).lock();
 			jp->colorSelect = Vector4f(0.,1.,0.,1.);
 			jp->m_highlight = true;
 		}
 	}
-	if (item_current_idxPrev != selChainIdx && item_current_idxPrev != -1) {
-		auto js = chains[item_current_idxPrev].joints;
+	if (m_selChainIdxPrev != m_selChainIdx && m_selChainIdxPrev != -1) {
+		auto js = chains[m_selChainIdxPrev].joints;
 		for (uint32_t i = 0; i < js.size(); ++i) {
 			auto jp = c->controller->getJointPickable(js[i]).lock();
 			jp->colorSelect = jp->colorSelect0;
 			jp->m_highlight = false;
 		}
 	}
-	item_current_idxPrev = selChainIdx;
+	m_selChainIdxPrev = m_selChainIdx;
 	
 	if (ImGui::CollapsingHeader("IKChain operations")) {
-		//if (selChainIdx != -1) {
-		//	auto& chain = chains[selChainIdx];
+		//if (m_selChainIdx != -1) {
+		//	auto& chain = chains[m_selChainIdx];
 		//	ImGui::DragFloat("weight",&chain.weight,.005,0.,1.);
 		//}
 
-		renderUI_ikChainEditor(&selChainIdx);
+		renderUI_ikChainEditor(&m_selChainIdx);
 
 		std::string targetName = "none";
-		if (selChainIdx != -1)
-			if (auto t = chains[selChainIdx].target.lock())
+		if (m_selChainIdx != -1)
+			if (auto t = chains[m_selChainIdx].target.lock())
 				targetName = t->name;
 		if (ImGui::Button("set target")) {
 			if (auto p = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
-				chains[selChainIdx].target = p; //TODO(skade) targets need to be smart ptr when decoupled
+				chains[m_selChainIdx].target = p; //TODO(skade) targets need to be smart ptr when decoupled
 				// problem when p is from other charEntity
 			}
 		}
@@ -713,20 +708,20 @@ void MotionRetargetScene::renderUI_ik() {
 		ImGui::Text((std::string("target: ") + targetName).c_str());
 		
 		if (ImGui::Button("delete selected chain")) {
-			if (chains.size() > 0 && selChainIdx != -1) {
+			if (chains.size() > 0 && m_selChainIdx != -1) {
 
 				//TODO(skade) improve location
-				auto js = chains[selChainIdx].joints;
+				auto js = chains[m_selChainIdx].joints;
 				for (uint32_t i = 0; i < js.size(); ++i) {
 					auto jp = c->controller->getJointPickable(js[i]).lock();
 					jp->colorSelect = jp->colorSelect0;
 					jp->m_highlight = false;
 				}
 
-				chains.erase(chains.begin() + selChainIdx);
+				chains.erase(chains.begin() + m_selChainIdx);
 				
-				selChainIdx = -1;
-				item_current_idxPrev = -1;
+				m_selChainIdx = -1;
+				m_selChainIdxPrev = -1;
 			}
 		}
 	}
@@ -745,24 +740,28 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 		ImGui::End();
 		return;
 	}
+	static CharEntity* prevC = nullptr;
+	if (prevC != c.get()) { // m_charEntityPrim changed
+		m_ikceNameInit = false;
+		m_ikceName = "new";
+		m_ikceRootJoint = nullptr;
+		m_ikceEndEffJoint = nullptr;
+	}
+	prevC = c.get();
 	auto& chains = c->controller->getJointChains();
 
-	static bool nameInit = false;
-	static std::string name = "new";
-	static IKController::SkeletalJoint* rootJoint = nullptr;
-	static IKController::SkeletalJoint* endEffJoint = nullptr;
 	if (m_showPopChainEdit) {
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 		if (ImGui::Begin("add ik chain", &m_showPopChainEdit)) {
-			if (!nameInit) {
+			if (!m_ikceNameInit) {
 				if (*item_current_idx != -1)
-					name = chains[*item_current_idx].name;
-				nameInit = true;
+					m_ikceName = chains[*item_current_idx].name;
+				m_ikceNameInit = true;
 			}
-			ImGui::InputText("chain name:", &name);
+			ImGui::InputText("chain name:", &m_ikceName);
 
 			ImVec2 subSize = ImGui::GetWindowSize();
 			subSize.y *= .4;
@@ -770,21 +769,21 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 			{
 				ImGui::BeginChild("root joint",subSize,true);
 				std::string rootJointName = "none";
-				if (rootJoint)
-					rootJointName = rootJoint->Name;
+				if (m_ikceRootJoint)
+					rootJointName = m_ikceRootJoint->Name;
 				ImGui::Text((std::string("root joint: ") + rootJointName).c_str());
 				ImGui::Separator();
-				IKController::SkeletalJoint* clickedJoint = renderUI_OutlinerJoints(c,rootJoint);
+				IKController::SkeletalJoint* clickedJoint = renderUI_OutlinerJoints(c,m_ikceRootJoint);
 
 				// change color
 				if (clickedJoint) {
-					if (rootJoint) {
-						auto jp = c->controller->getJointPickable(rootJoint).lock();
+					if (m_ikceRootJoint) {
+						auto jp = c->controller->getJointPickable(m_ikceRootJoint).lock();
 						jp->restoreColor();
 						jp->m_highlight = false;
 					}
-					rootJoint = clickedJoint;
-					auto jp = c->controller->getJointPickable(rootJoint).lock();
+					m_ikceRootJoint = clickedJoint;
+					auto jp = c->controller->getJointPickable(m_ikceRootJoint).lock();
 					jp->colorSelect = Vector4f(1.,0.,0.,1.);
 					jp->m_highlight = true;
 				}
@@ -794,19 +793,19 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 			{
 				ImGui::BeginChild("endEff joint",subSize, true);
 				std::string endEffJointName = "none";
-				if (endEffJoint)
-					endEffJointName = endEffJoint->Name;
+				if (m_ikceEndEffJoint)
+					endEffJointName = m_ikceEndEffJoint->Name;
 				ImGui::Text((std::string("endEff joint: ") + endEffJointName).c_str());
 				ImGui::Separator();
-				IKController::SkeletalJoint* clickedJoint = renderUI_OutlinerJoints(c,endEffJoint);
+				IKController::SkeletalJoint* clickedJoint = renderUI_OutlinerJoints(c,m_ikceEndEffJoint);
 				if (clickedJoint) {
-					if (endEffJoint) {
-						auto jp = c->controller->getJointPickable(endEffJoint).lock();
+					if (m_ikceEndEffJoint) {
+						auto jp = c->controller->getJointPickable(m_ikceEndEffJoint).lock();
 						jp->restoreColor();
 						jp->m_highlight = false;
 					}
-					endEffJoint = clickedJoint;
-					auto jp = c->controller->getJointPickable(endEffJoint).lock();
+					m_ikceEndEffJoint = clickedJoint;
+					auto jp = c->controller->getJointPickable(m_ikceEndEffJoint).lock();
 					jp->colorSelect = Vector4f(0.,0.,1.,1.);
 					jp->m_highlight = true;
 				}
@@ -814,45 +813,45 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 			}
 
 			if (ImGui::Button("Confirm")) {
-				//IKChain nChain = c->controller->getJointChains()[name];
-				IKChain* nChain = c->controller->getIKChain(name);
+				//IKChain nChain = c->controller->getJointChains()[m_ikceName];
+				IKChain* nChain = c->controller->getIKChain(m_ikceName);
 				if (!nChain) {
 					c->controller->getJointChains().emplace_back();
 					nChain = &c->controller->getJointChains().back();
 				}
-				nChain->name = name;
+				nChain->name = m_ikceName;
 				
 				nChain->joints.clear();
 				{
-					IKController::SkeletalJoint* j = endEffJoint;
+					IKController::SkeletalJoint* j = m_ikceEndEffJoint;
 					nChain->joints.push_back(j);
 					do {
 						j = c->controller->getBone(j->Parent);
 						nChain->joints.push_back(j);
-					} while (j != rootJoint);
+					} while (j != m_ikceRootJoint);
 				}
 				
-				nChain->pRoot = &c->controller->m_IKJoints[rootJoint];
-				//c->controller->getJointChains()[name] = nChain;
+				nChain->pRoot = &c->controller->m_IKJoints[m_ikceRootJoint];
+				//c->controller->getJointChains()[m_ikceName] = nChain;
 				
-				name = "new"; nameInit = false;
+				m_ikceName = "new"; m_ikceNameInit = false;
 				m_showPopChainEdit = false;
 			}
 			ImGui::End();
 		}
 	} // if addChainPopup
 	else {
-		name = "new"; nameInit = false;
+		m_ikceName = "new"; m_ikceNameInit = false;
 		//TODO(skade) bug rootJoint still from other charentity on swap
-		if (rootJoint) {
-			auto jp = c->controller->getJointPickable(rootJoint).lock();
+		if (m_ikceRootJoint) {
+			auto jp = c->controller->getJointPickable(m_ikceRootJoint).lock();
 			if (jp) {
 				jp->restoreColor();
 				jp->m_highlight = false;
 			}
 		}
-		if (endEffJoint) {
-			auto jp = c->controller->getJointPickable(endEffJoint).lock();
+		if (m_ikceEndEffJoint) {
+			auto jp = c->controller->getJointPickable(m_ikceEndEffJoint).lock();
 			if (jp) {
 				jp->restoreColor();
 				jp->m_highlight = false;

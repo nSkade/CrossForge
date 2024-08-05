@@ -1,5 +1,5 @@
 #include "IKArmature.hpp"
-#include <Prototypes/MotionRetarget/IKController.hpp>
+#include <Prototypes/MotionRetarget/IK/IKController.hpp>
 
 namespace CForge {
 using namespace Eigen;

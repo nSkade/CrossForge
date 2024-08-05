@@ -6,15 +6,14 @@
 #include <crossforge/Graphics/Shader/GLShader.h>
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
-#include "Animation/JointPickable.hpp"
-#include "IK/IKTarget.hpp"
+#include <Prototypes/MotionRetarget/Animation/JointPickable.hpp>
 
-#include "IK/Solver/CCDSolver.hpp"
-#include "IK/Solver/FABRIKSolver.hpp"
+#include "IKTarget.hpp"
+#include "Solver/CCDSolver.hpp"
+#include "Solver/FABRIKSolver.hpp"
+#include "IKArmature.hpp"
 
 //#include "JointLimits/HingeLimits.h"
-
-#include "IK/IKArmature.hpp"
 
 namespace CForge {
 using namespace Eigen;

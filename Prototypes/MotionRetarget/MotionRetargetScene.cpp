@@ -23,7 +23,7 @@ void MotionRetargetScene::init() {
 	//initGroundPlane(&m_RootSGN, 100.0f, 20.0f);
 	initFPSLabel();
 	initSkybox();
-	initEndEffectorMarkers(); // initialize end-effector & target markers
+	initIKTargetActor(); // initialize end-effector & target markers
 	
 	//TODO(skade)
 	//LineOfText* pKeybindings = new LineOfText();
@@ -50,44 +50,22 @@ void MotionRetargetScene::init() {
 	m_config.load(&m_Cam);
 	m_config.load("m_editCam.m_CamIsProj", &m_editCam.m_CamIsProj);
 	m_config.load(&m_RenderWin);
-	m_config.load(m_cesStartupStr.c_str(), &m_cesStartup);
+	m_config.load(m_cesStartupStr.c_str(), &m_settings.cesStartup);
 	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
 
 	m_lineBox.init();
 
-	if (m_cesStartup)
+	if (m_settings.cesStartup)
 		initCesiumMan();
 }//initialize
 
 void MotionRetargetScene::clear() {
 	m_config.store(m_Cam);
 	m_config.store("m_editCam.m_CamIsProj", m_editCam.m_CamIsProj);
-	m_config.store(m_cesStartupStr.c_str(), m_cesStartup);
+	m_config.store(m_cesStartupStr.c_str(), m_settings.cesStartup);
 	m_config.baseStore();
 
 	ExampleSceneBase::clear();
-
-	//TODO(skade)
-	for (auto& EffTransforms : m_EffectorTransformSGNs) {
-		for (auto pSGN : EffTransforms.second) if (pSGN != nullptr) delete pSGN;
-	}
-	m_EffectorTransformSGNs.clear();
-
-	for (auto& EffGeoms : m_EffectorGeomSGNs) {
-		for (auto pSGN : EffGeoms.second) if (pSGN != nullptr) delete pSGN;
-	}
-	m_EffectorGeomSGNs.clear();
-
-	for (auto& TargetTransforms : m_TargetTransformSGNs) {
-		for (auto pSGN : TargetTransforms.second) if (pSGN != nullptr) delete pSGN;
-	}
-	m_TargetTransformSGNs.clear();
-
-	for (auto& TargetGeoms : m_TargetGeomSGNs) {
-		for (auto pSGN : TargetGeoms.second) if (pSGN != nullptr) delete pSGN;
-	}
-	m_TargetGeomSGNs.clear();
-	//TODO(skade)
 	cleanUI();
 }
 
@@ -174,6 +152,8 @@ void MotionRetargetScene::mainLoop() {
 	}
 
 	bool hoveredImgui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+
+	// removing objects
 	if (!hoveredImgui && m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_DELETE,true)) {
 		if (auto p = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
 			m_sgnRoot.removeChild(&p->sgn);
@@ -193,54 +173,54 @@ void MotionRetargetScene::mainLoop() {
 
 			//m_picker.reset();
 		}
-	}
+	} // removing objects
 	
 	{ // Handle Picking
-		if (!hoveredImgui) {
-			if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
+	if (!hoveredImgui) {
+		if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
 
-				if (!ImGuizmo::IsUsing()) {
-					std::vector<std::weak_ptr<IPickable>> p;
-					m_picker.start();
-					for (uint32_t i=0;i<m_charEntities.size();++i) {
-						auto c = m_charEntities[i];
-						if (!c->visible)
-							continue;
+			if (!ImGuizmo::IsUsing()) {
+				std::vector<std::weak_ptr<IPickable>> p;
+				m_picker.start();
+				for (uint32_t i=0;i<m_charEntities.size();++i) {
+					auto c = m_charEntities[i];
+					if (!c->visible)
+						continue;
 
-						//TODO(skade)
-						p.clear(); p.push_back(c);
+					//TODO(skade)
+					p.clear(); p.push_back(c);
+					m_picker.pick(p);
+					if (!c->controller)
+						continue;
+					if (m_settings.showTargets) {
+						std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
+						p.assign(t.begin(),t.end());
 						m_picker.pick(p);
-						if (!c->controller)
-							continue;
-						if (m_showTarget) {
-							std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
-							p.assign(t.begin(),t.end());
-							m_picker.pick(p);
-						}
-						if (m_showJoints) {
-							std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
-							p.assign(jp.begin(),jp.end());
-							m_picker.pick(p);
-						}
 					}
-
-					m_picker.resolve();
-					m_guizmoMat = m_picker.m_guizmoMat;
-					if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
-						m_charEntitySec = m_charEntityPrim;
-						m_charEntityPrim = e;
+					if (m_settings.showJoints) {
+						std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
+						p.assign(jp.begin(),jp.end());
+						m_picker.pick(p);
 					}
 				}
-			}
 
-			if (auto lp = m_picker.getLastPick().lock())
-				m_guizmo.active(true);
-			else
-				m_guizmo.active(false);
+				m_picker.resolve();
+				m_guizmoMat = m_picker.m_guizmoMat;
+				if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
+					m_charEntitySec = m_charEntityPrim;
+					m_charEntityPrim = e;
+				}
+			}
 		}
-		m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
-		m_picker.update(m_guizmoMat);
+
+		if (auto lp = m_picker.getLastPick().lock())
+			m_guizmo.active(true);
+		else
+			m_guizmo.active(false);
 	}
+	m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
+	m_picker.update(m_guizmoMat);
+	} // Handle Picking
 
 
 	{ // View and Rendering
@@ -297,11 +277,20 @@ void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
 		c->sgn.init(&m_sgnRoot, c->actorStatic.get());
 	}
 
-	// autoscale
+	// set bounding volume
 	mesh->computeAxisAlignedBoundingBox();
 	Box aabb = mesh->aabb();
+	c->bv.init(aabb);
+
+	// autoscale
 	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
 	c->sgn.scale(scale);
+
+	//TODO(skade) SPOT
+	m_picker.forcePick(c);
+	m_guizmoMat = m_picker.m_guizmoMat;
+	m_charEntitySec = m_charEntityPrim;
+	m_charEntityPrim = c;
 }
 
 void MotionRetargetScene::initCesiumMan() {
@@ -324,7 +313,7 @@ void MotionRetargetScene::initCesiumMan() {
 	{
 		c->name = std::filesystem::path(path).filename().string();
 		setMeshShader(&c->mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
-		c->mesh.computePerVertexNormals(); //TODO(skade) remove
+		c->mesh.computePerVertexNormals(); //TODO(skade) remove?
 		c->controller = std::make_unique<IKController>();
 		c->controller->init(&c->mesh, pathIKConfig);
 
@@ -337,56 +326,22 @@ void MotionRetargetScene::initCesiumMan() {
 
 		c->sgn.init(&m_sgnRoot, c->actor.get());
 
-		// autoscale
+		// set bounding volume
 		c->mesh.computeAxisAlignedBoundingBox();
 		Box aabb = c->mesh.aabb();
+		c->bv.init(aabb);
+
+		// autoscale
 		Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
 		c->sgn.scale(scale);
 		c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
 	}
 }
 
-void MotionRetargetScene::initEndEffectorMarkers() {
+void MotionRetargetScene::initIKTargetActor() {
 	T3DMesh<float> M;
 
-	// end-effector actors
-	PrimitiveShapeFactory::uvSphere(&M, Vector3f(0.05f, 0.05f, 0.05f), 8, 8);
-	for (uint32_t i = 0; i < M.materialCount(); ++i) {
-		auto* pMat = M.getMaterial(i);
-		pMat->Color = Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
-		pMat->Metallic = 0.3f;
-		pMat->Roughness = 0.2f;
-		pMat->VertexShaderForwardPass.push_back("Shader/ForwardPassPBS.vert");
-		pMat->FragmentShaderForwardPass.push_back("Shader/ForwardPassPBS.frag");
-		pMat->VertexShaderGeometryPass.push_back("Shader/BasicGeometryPass.vert");
-		pMat->FragmentShaderGeometryPass.push_back("Shader/BasicGeometryPass.frag");
-		pMat->VertexShaderShadowPass.push_back("Shader/ShadowPassShader.vert");
-		pMat->FragmentShaderShadowPass.push_back("Shader/ShadowPassShader.frag");
-	}
-	M.computePerVertexNormals();
-	m_EffectorPos.init(&M);
-
-	for (uint32_t i = 0; i < M.materialCount(); ++i) {
-		auto* pMat = M.getMaterial(i);
-		pMat->Color = Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
-	}
-	m_EffectorX.init(&M);
-
-	for (uint32_t i = 0; i < M.materialCount(); ++i) {
-		auto* pMat = M.getMaterial(i);
-		pMat->Color = Vector4f(0.0f, 1.0f, 0.0f, 1.0f);
-	}
-	m_EffectorY.init(&M);
-
-	for (uint32_t i = 0; i < M.materialCount(); ++i) {
-		auto* pMat = M.getMaterial(i);
-		pMat->Color = Vector4f(0.0f, 0.0f, 1.0f, 1.0f);
-	}
-	m_EffectorZ.init(&M);
-	M.clear();
-
 	// target actors
-	//TODO(skade) dim SPOT IKTarget
 	PrimitiveShapeFactory::cuboid(&M, Vector3f(0.05f, 0.05f, 0.05f), Vector3i(1, 1, 1));
 	for (uint32_t i = 0; i < M.materialCount(); ++i) {
 		auto* pMat = M.getMaterial(i);
@@ -402,36 +357,7 @@ void MotionRetargetScene::initEndEffectorMarkers() {
 	}
 	M.computePerVertexNormals();
 	m_TargetPos.init(&M);
-
-	//TODO(skade)
-	//for (uint32_t i = 0; i < M.materialCount(); ++i) {
-	//	auto* pMat = M.getMaterial(i);
-	//	pMat->Color = Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
-	//}
-	//m_TargetX.init(&M);
-
-	M.clear();
-
-	// target aabb actor
-	PrimitiveShapeFactory::cuboid(&M, Vector3f(0.1f, 0.1f, 0.1f), Vector3i(1, 1, 1));
-	for (uint32_t i = 0; i < M.materialCount(); ++i) {
-		auto* pMat = M.getMaterial(i);
-		pMat->Color = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-		pMat->Metallic = 0.3f;
-		pMat->Roughness = 0.2f;
-		pMat->VertexShaderForwardPass.push_back("Shader/ForwardPassPBS.vert");
-		pMat->FragmentShaderForwardPass.push_back("Shader/ForwardPassPBS.frag");
-		pMat->VertexShaderGeometryPass.push_back("Shader/BasicGeometryPass.vert");
-		pMat->FragmentShaderGeometryPass.push_back("Shader/BasicGeometryPass.frag");
-		pMat->VertexShaderShadowPass.push_back("Shader/ShadowPassShader.vert");
-		pMat->FragmentShaderShadowPass.push_back("Shader/ShadowPassShader.frag");
-	}
-	M.computePerVertexNormals();
-	M.computeAxisAlignedBoundingBox();
-	m_TargetAABB.init(&M);
-	m_TargetMarkerAABB = AlignedBox3f(M.aabb().min(), M.aabb().max());
-	M.clear();
-}//initEndEffectorMarkers
+}//initIKTargetActor
 
 void MotionRetargetScene::loadCharPrim(std::string path, bool useGLTFIO) {
 	if (useGLTFIO) {
@@ -468,16 +394,7 @@ void MotionRetargetScene::storeCharPrim(std::string path, bool useGLTFIO) {
 	}
 }
 void MotionRetargetScene::renderVisualizers() {
-	for (uint32_t i=0;i<m_charEntities.size();++i) {
-		if (m_charEntities[i]->visible)
-			renderVisualizers(m_charEntities[i].get());
-	}
-}
-
-//TODO(skade) cleanup
-void MotionRetargetScene::renderVisualizers(CharEntity* c) {
-	static bool renderAABB = true;
-	if (renderAABB) {
+	if (m_settings.renderAABB) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDisable(GL_CULL_FACE);
 		glLineWidth(1);
@@ -491,16 +408,23 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 			m_lineBox.color = Vector4f(227./255,142./255,48./255,.25);
 			m_lineBox.render(&m_RenderDev,c->bv.aabb(),m);
 		}
-		//glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 		glEnable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
+	for (uint32_t i=0;i<m_charEntities.size();++i) {
+		if (m_charEntities[i]->visible)
+			renderVisualizers(m_charEntities[i].get());
+	}
+}
+
+//TODO(skade) cleanup
+void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 	Vector3f pos; Quaternionf rot; Vector3f scale;
 	c->sgn.buildTansformation(&pos,&rot,&scale);
 	Matrix4f t = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	if (c->controller && m_showJoints ) { //TODO(skade) put in function
+	if (c->controller && m_settings.showJoints ) { //TODO(skade) put in function
 		//glDisable(GL_DEPTH_TEST);
 		//glEnable(GL_BLEND);
 
@@ -521,7 +445,7 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 	//glEnable(GL_BLEND); //TODOf(skade) change blendmode in active material forward pass
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (c->controller && m_showTarget) {
+	if (c->controller && m_settings.showTargets) {
 		std::vector<std::shared_ptr<IKTarget>> tar = c->controller->m_targets;
 		
 		for (uint32_t i = 0; i < tar.size(); ++i) {

@@ -1,6 +1,6 @@
 #include "JointPickable.hpp"
 
-#include <Prototypes/MotionRetarget/IKController.hpp>
+#include <Prototypes/MotionRetarget/IK/IKController.hpp>
 #include <crossforge/Graphics/RenderDevice.h>
 #include <crossforge/AssetIO/SAssetIO.h>
 

@@ -1,5 +1,5 @@
 #include "CCDSolver.hpp"
-#include <Prototypes/MotionRetarget/IKController.hpp>
+#include <Prototypes/MotionRetarget/IK/IKController.hpp>
 
 namespace CForge {
 
