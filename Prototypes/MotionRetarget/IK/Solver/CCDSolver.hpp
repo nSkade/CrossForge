@@ -6,9 +6,9 @@
 
 namespace CForge {
 
-class IKSolverCCD : public IIKSolver {
+class IKSccd : public IIKSolver {
 public:
-	enum CCDtype {
+	enum Type {
 		BACKWARD,
 		FORWARD,
 	} m_type = BACKWARD;

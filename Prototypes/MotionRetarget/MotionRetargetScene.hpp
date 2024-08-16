@@ -122,7 +122,7 @@ private:
 	};
 	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
 	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity
-	std::weak_ptr<CharEntity> m_charEntitySec; // currently selected char entity
+	std::weak_ptr<CharEntity> m_charEntitySec; // secondary char entity for operations
 
 	SGNTransformation m_sgnRoot;
 	StaticActor m_TargetPos;
@@ -163,4 +163,3 @@ private:
 };//MotionRetargetScene
 
 }//CForge
-

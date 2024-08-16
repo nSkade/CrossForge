@@ -3,11 +3,9 @@
 
 namespace CForge {
 
-//template<IKSolverCCD::CCDtype type>
-void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
-	//std::vector<IKController::SkeletalJoint*>& Chain = pController->m_jointChains.at(segmentName).joints;
+//template<IKSccd::Type type>
+void IKSccd::solve(std::string segmentName, IKController* pController) {
 	std::vector<IKController::SkeletalJoint*>& Chain = pController->getIKChain(segmentName)->joints;
-	//IKTarget* target = pController->m_jointChains.at(segmentName).target;
 	IKTarget* target = pController->getIKChain(segmentName)->target.lock().get();
 	if (!target)
 		return;
@@ -23,8 +21,6 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 		if (DistError <= m_thresholdDist)
 			return;
 
-		//TODO(skade) implement Forward CCD
-		//for (int32_t k = Chain.size()-1; k >= 0; --k) {
 		// Backward CCD
 		int32_t k = 1;
 		if (m_type == FORWARD)
@@ -89,8 +85,8 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 	}//for[m_MaxIterations]
 }//solve
 //TODO(skade) remove
-//template void IKSolverCCD::solve<IKSolverCCD::BACKWARD>(std::string segmentName, IKController* pController);
-//template void IKSolverCCD::solve<IKSolverCCD::FORWARD>(std::string segmentName, IKController* pController);
+//template void IKSccd::solve<IKSccd::BACKWARD>(std::string segmentName, IKController* pController);
+//template void IKSccd::solve<IKSccd::FORWARD>(std::string segmentName, IKController* pController);
 
 //struct EndEffectorData { // X corresponds to entry from end-effector to root
 //	Eigen::Matrix3Xf EEPosLocal;      // current local joint positions, applied onto Controller
@@ -177,7 +173,7 @@ void IKSolverCCD::solve(std::string segmentName, IKController* pController) {
 //}//ikCCDglobal
 
 //TODOf(skade) target for every joint
-//Quaternionf IKSolverCCD::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
+//Quaternionf IKSccd::computeUnconstrainedGlobalRotation(IKJoint* pJoint, IKController::EndEffectorData* pEffData) {
 //
 //	//TODO(skade) doesnt simply rotate joint to target, but takes whole chain into considertaiton
 //	           // every joint has its own target, find best rotation to reduce error

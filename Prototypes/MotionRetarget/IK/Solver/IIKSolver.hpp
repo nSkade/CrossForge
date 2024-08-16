@@ -11,7 +11,6 @@ class IKController;
 class IIKSolver {
 public:
 	virtual void solve(std::string segmentName, IKController* pController) {};
-	//TODO(skade) implement common interface
 	
 protected:
 	float m_thresholdDist = 1e-6f;

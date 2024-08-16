@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /LTCG}")
 
 # incremental linking
-set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "/INCREMENTAL:YES")
+#set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "/INCREMENTAL:YES")
 #set(CMAKE_SHARED_LINKER_FLAGS "/INCREMENTAL:YES")
 
 #TODO(skade) time build
@@ -159,7 +159,7 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/CMN/EigenFWD.cpp
 	"Prototypes/MotionRetarget/CMN/MRMutil.cpp"
 	"Prototypes/MotionRetarget/UI/LineBox.cpp"
-)
+ "Prototypes/MotionRetarget/IK/Solver/JacInvSolver.cpp" )
 
 #TODO(skade) optimize gltfio TODO debug
 #set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOutil.cpp PROPERTIES COMPILE_FLAGS -O2)
@@ -171,6 +171,12 @@ add_executable(CForgeSandbox
 if (WIN32)
 	target_sources(CForgeSandbox PRIVATE Assets/icon/icon.rc)
 endif()
+
+#TODOf(skade) get rid of warnings
+#target_compile_options(CForgeSandbox PRIVATE
+#	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+#	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+#)
 
 if(EMSCRIPTEN)
 	target_link_Libraries(CForgeSandbox

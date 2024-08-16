@@ -1,16 +1,11 @@
 #pragma once
 
 #include <crossforge/AssetIO/T3DMesh.hpp>
-#include <crossforge/Graphics/UniformBufferObjects/UBOBoneData.h>
-#include <crossforge/Graphics/Shader/ShaderCode.h>
-#include <crossforge/Graphics/Shader/GLShader.h>
 #include <crossforge/Graphics/Controller/SkeletalAnimationController.h>
 
 #include <Prototypes/MotionRetarget/Animation/JointPickable.hpp>
 
 #include "IKTarget.hpp"
-#include "Solver/CCDSolver.hpp"
-#include "Solver/FABRIKSolver.hpp"
 #include "IKArmature.hpp"
 
 //#include "JointLimits/HingeLimits.h"
@@ -89,7 +84,7 @@ public:
 	std::vector<std::vector<Vector3f>> getFABRIKpoints() {
 		std::vector<std::vector<Vector3f>> ret;
 		for (IKChain& ikc : m_ikArmature.m_jointChains) {
-			if (IKSolverFABRIK* iks = dynamic_cast<IKSolverFABRIK*>(ikc.ikSolver.get())) {
+			if (IKSfabrik* iks = dynamic_cast<IKSfabrik*>(ikc.ikSolver.get())) {
 				ret.push_back(iks->fbrkPoints);
 			}
 		}

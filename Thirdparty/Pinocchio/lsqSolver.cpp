@@ -165,7 +165,7 @@ vector<int> SPDMatrix::computePerm() const
         }
     }
     for(i = 0; i < sz; ++i)
-        neighborSize.insert(make_pair(neighbors[i].size(), i));
+        neighborSize.insert(make_pair((int) neighbors[i].size(), i));
 
     //iterate
     while(!neighborSize.empty()) {
@@ -180,7 +180,7 @@ vector<int> SPDMatrix::computePerm() const
         //erase them from the neighborSize set because their neighborhood sizes are about
         //to change
         for(i = 0; i < (int)nb.size(); ++i)
-            neighborSize.erase(make_pair(neighbors[nb[i]].size(), nb[i]));
+            neighborSize.erase(make_pair((int) neighbors[nb[i]].size(), nb[i]));
         //erase the eliminated vertex from their neighbor lists
         for(i = 0; i < (int)nb.size(); ++i)
             neighbors[nb[i]].erase(neighbors[nb[i]].find(cur));
@@ -193,7 +193,7 @@ vector<int> SPDMatrix::computePerm() const
         }
         //and put them back into the neighborSize set
         for(i = 0; i < (int)nb.size(); ++i)
-            neighborSize.insert(make_pair(neighbors[nb[i]].size(), nb[i]));
+            neighborSize.insert(make_pair((int) neighbors[nb[i]].size(), nb[i]));
     }
 
     vector<int> oout = out;

@@ -5,7 +5,7 @@
 namespace CForge {
 using namespace Eigen;
 
-class IKSolverFABRIK : public IIKSolver {
+class IKSfabrik : public IIKSolver {
 public:
 	void solve(std::string segmentName, IKController* pController);
 

@@ -308,8 +308,11 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	Sequencer(&mySequence, &animFrameCurr, &expanded, &selectedEntry, &firstFrame,
 	          ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL |
 	          ImSequencer::SEQUENCER_COPYPASTE | ImSequencer::SEQUENCER_CHANGE_FRAME);
-	if (auto c = m_charEntityPrim.lock())
+	if (auto c = m_charEntityPrim.lock()) {
 		c->animFrameCurr = animFrameCurr;
+		if (c->animFrameCurr > mySequence.mFrameMax)
+			c->animFrameCurr = 0;
+	}
 	
 	//TODO(skade)
 	// add a UI to edit that particular item
@@ -584,51 +587,84 @@ void MotionRetargetScene::renderUI_ik() {
 
 		std::vector<std::string> ikMstr = {
 			"IKSS_NONE",
-			"IKSS_CCD_B",
-			"IKSS_CCD_F",
-			"IKSS_CCD_FABRIK"
+			"IKSS_CCD",
+			"IKSS_FABRIK",
+			"IKSS_JACINV"
 		};
+		enum IKMethod {
+			IKSS_NONE = 0,
+			IKSS_CCD,
+			IKSS_FABRIK,
+			IKSS_JACINV
+		};
+
 		//TODO(skade) enum
-		auto ikToIdx = [](IIKSolver* s) -> int {
-			if (auto iksCCD = dynamic_cast<IKSolverCCD*>(s)) {
-				if (iksCCD->m_type == IKSolverCCD::BACKWARD)
-					return 1;
-				else
-					return 2;
-			} else if (dynamic_cast<IKSolverFABRIK*>(s))
-				return 3;
-			return 0;
+		auto ikToIdx = [](IIKSolver* s) -> IKMethod {
+			if (auto iksCCD = dynamic_cast<IKSccd*>(s))
+				return IKSS_CCD;
+			else if (dynamic_cast<IKSfabrik*>(s))
+				return IKSS_FABRIK;
+			else if (dynamic_cast<IKSjacInv*>(s))
+				return IKSS_JACINV;
+			return IKSS_NONE;
+		};
+		auto makeIK = [](IKChain* c, IKMethod m) {
+			switch (m)
+			{
+			default:
+			case IKSS_NONE:
+				c->ikSolver.release();
+				break;
+			case IKSS_CCD:
+				c->ikSolver = std::make_unique<IKSccd>();
+				break;
+			case IKSS_FABRIK:
+				c->ikSolver = std::make_unique<IKSfabrik>();
+				break;
+			case IKSS_JACINV:
+				c->ikSolver = std::make_unique<IKSjacInv>();
+				break;
+			}
 		};
 
 		if (m_selChainIdx != -1) {
 			IKChain& chain = chains[m_selChainIdx];
-			int idx = ikToIdx(chain.ikSolver.get());
-			int prevIdx = idx;
+			IKMethod idx = ikToIdx(chain.ikSolver.get());
+			IKMethod prevIdx = idx;
 
-			ImGui::ComboStr("ik method",&idx,ikMstr,ikMstr.size());
+			//TODO(skade) cleaner?
+			ImGui::ComboStr("ik method",(int*) &idx,ikMstr,ikMstr.size());
 			if (prevIdx != idx) {
-				switch (idx)
-				{
-				case 0:
-					chain.ikSolver.release();
-					break;
-				case 1: {
-					auto ns = std::make_unique<IKSolverCCD>();
-					ns->m_type = IKSolverCCD::BACKWARD;
-					chain.ikSolver = std::move(ns);
-				}
-					break;
-				case 2: {
-					auto ns = std::make_unique<IKSolverCCD>();
-					ns->m_type = IKSolverCCD::FORWARD;
-					chain.ikSolver = std::move(ns);
-				}
-					break;
-				case 3:
-					chain.ikSolver = std::make_unique<IKSolverFABRIK>();
-					break;
-				default:
-					break;
+				makeIK(&chain,idx);
+			}
+			int subType = 0;
+			if (auto iks = dynamic_cast<IKSjacInv*>(chain.ikSolver.get())) {
+				std::vector<std::string> meth = {
+					"TRANSPOSE",
+					"SVD",
+					"DLS",
+				};
+				subType = iks->m_type;
+				ImGui::ComboStr("inv meth",&subType,meth,meth.size());
+				iks->m_type = (IKSjacInv::Type) subType;
+			}
+			if (auto iks = dynamic_cast<IKSccd*>(chain.ikSolver.get())) {
+				std::vector<std::string> meth = {
+					"BACKWARD",
+					"FORWARD",
+				};
+				subType = iks->m_type;
+				ImGui::ComboStr("inv meth",&subType,meth,meth.size());
+				iks->m_type = (IKSccd::Type) subType;
+			}
+
+			if (ImGui::Button("all chains to curr setup")) {
+				for (auto& c : chains) {
+					makeIK(&c,idx);
+					if (auto iks = dynamic_cast<IKSccd*>(c.ikSolver.get()))
+						iks->m_type = (IKSccd::Type) subType;
+					if (auto iks = dynamic_cast<IKSjacInv*>(c.ikSolver.get()))
+						iks->m_type = (IKSjacInv::Type) subType;
 				}
 			}
 		}

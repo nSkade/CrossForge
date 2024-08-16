@@ -184,17 +184,19 @@ namespace CForge {
 		}//for[all keyframes]
 		
 		//TODO(skade) duration sometimes not set?
-		pAnim->Duration = pAnim->Keyframes[0]->Timestamps[pAnim->Keyframes[0]->Timestamps.size()-1];
+		if (pAnim->Keyframes[0]->Timestamps.size() > 0)
+			pAnim->Duration = pAnim->Keyframes[0]->Timestamps[pAnim->Keyframes[0]->Timestamps.size()-1];
 		
 		//TODO(skade)
 		// now we count the sample per second
 		auto Timestamps = pAnim->Keyframes[0]->Timestamps;
-		pAnim->SamplesPerSecond = 0;
-		for (auto i : Timestamps) {
-			pAnim->SamplesPerSecond++;
-			if (i >= 1.0f) break;
+		if (Timestamps.size() > 0) {
+			pAnim->SamplesPerSecond = 0;
+			for (auto i : Timestamps) {
+				pAnim->SamplesPerSecond++;
+				if (i >= 1.0f) break;
+			}
 		}
-	
 	}//addAnimation
 
 	int32_t SkeletalAnimationController::jointIDFromName(std::string JointName) {

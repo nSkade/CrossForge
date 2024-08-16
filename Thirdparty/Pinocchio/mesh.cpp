@@ -523,10 +523,18 @@ public:
     bool operator==(const StlVtx &o) const { return (*this)[0] == o[0] && (*this)[1] == o[1] && (*this)[2] == o[2]; }
     bool operator<(const StlVtx &o) const { return (*this)[0] < o[0] || ((*this)[0] == o[0] &&
         ((*this)[1] < o[1] || ((*this)[1] == o[1] && (*this)[2] < o[2]))); }
-    operator size_t() const { return 73856093*(this[0]) ^ 19349663*(this[1]) ^ 83492791*(this[3]);}
+    size_t calculate_size() const {
+        return 73856093 * this[0] ^ 19349663 * this[1] ^ 83492791 * this[3];
+    }
+    operator size_t() const {
+        return calculate_size();
+    }
 };
 
+//TODO(skade) MAKE_HASH already defined, still correct?
+#ifndef MAKE_HASH
 #define MAKE_HASH = (StlVtx, return (int)(p[0] * 100000. + p[1] * 200000. + p[2] * 400000.););
+#endif
 
 void Mesh::readStl(istream &strm)
 {

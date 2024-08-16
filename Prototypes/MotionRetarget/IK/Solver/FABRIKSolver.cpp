@@ -3,7 +3,7 @@
 
 namespace CForge {
 
-void IKSolverFABRIK::solve(std::string segmentName, IKController* pController) {
+void IKSfabrik::solve(std::string segmentName, IKController* pController) {
 	//std::vector<IKController::SkeletalJoint*>& Chain = pController->m_jointChains.at(segmentName).joints;
 	std::vector<IKController::SkeletalJoint*>& Chain = pController->getIKChain(segmentName)->joints;
 	//IKTarget* target = pController->m_jointChains.at(segmentName).target;
@@ -75,7 +75,7 @@ void IKSolverFABRIK::solve(std::string segmentName, IKController* pController) {
 	backwardKinematics(segmentName,pController,fbrkPoints);
 }
 
-void IKSolverFABRIK::backwardKinematics(std::string segmentName, IKController* pController, const std::vector<Vector3f>& fbrkPoints) {
+void IKSfabrik::backwardKinematics(std::string segmentName, IKController* pController, const std::vector<Vector3f>& fbrkPoints) {
 	//std::vector<IKController::SkeletalJoint*>& Chain = pController->m_jointChains.at(segmentName).joints;
 	std::vector<IKController::SkeletalJoint*>& Chain = pController->getIKChain(segmentName)->joints;
 	//IKTarget* target = pController->m_jointChains.at(segmentName).target;

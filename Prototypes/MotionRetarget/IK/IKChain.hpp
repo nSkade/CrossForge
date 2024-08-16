@@ -5,6 +5,7 @@
 
 #include "Solver/CCDSolver.hpp"
 #include "Solver/FABRIKSolver.hpp"
+#include "Solver/JacInvSolver.hpp"
 
 namespace CForge {
 
@@ -41,7 +42,7 @@ struct IKChain {
 	//float weight = 1.; // weight used for centroid interpolation,
 	                   //TODO(skade) contribution equals: weight / sum(all chain weights on centoid)
 
-	std::unique_ptr<IIKSolver> ikSolver = std::make_unique<IKSolverFABRIK>();
+	std::unique_ptr<IIKSolver> ikSolver = std::make_unique<IKSfabrik>();
 	//std::vector<std::pair<IKJoint*,IKTarget*>> pEndEff;
 };
 //class IKChain {
