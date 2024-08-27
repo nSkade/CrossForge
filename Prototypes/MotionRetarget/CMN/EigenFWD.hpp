@@ -23,4 +23,7 @@ return is_nan(x.vec());
 
 Quaternionf FromTwoVectors(Vector3f a, Vector3f b);
 
+//TODO(skade) VectorXd for OMR?
+MatrixXd JacobiSVDSolve(MatrixXd jac, Vector3d diff);
+
 }//EigenFWD

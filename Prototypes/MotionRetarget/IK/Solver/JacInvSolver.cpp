@@ -3,6 +3,8 @@
 
 #include <iostream> //TODO(skade) remove
 
+#include <Prototypes/MotionRetarget/CMN/EigenFWD.hpp>
+
 namespace CForge {
 using namespace Eigen;
 
@@ -50,8 +52,7 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 		}
 			break;
 		case SVD: { // svd
-			Eigen::JacobiSVD<MatrixXd> svd(jac, ComputeThinU | ComputeThinV);
-			jacI = svd.solve(diff);
+			jacI = EigenFWD::JacobiSVDSolve(jac,diff);
 		}
 			break;
 		default:
@@ -80,26 +81,21 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 			float dz = jacI(j*3+2);
 
 			// global delta
-			Quaternionf rotD = AngleAxisf(dx,Vector3f::UnitX())
-			                 * AngleAxisf(dy,Vector3f::UnitY())
-			                 * AngleAxisf(dz,Vector3f::UnitZ());
+			Quaternionf rotD = Quaternionf(AngleAxisf(dx,Vector3f::UnitX()))
+			                 * Quaternionf(AngleAxisf(dy,Vector3f::UnitY()))
+			                 * Quaternionf(AngleAxisf(dz,Vector3f::UnitZ()));
 			rotD.normalize();
 
-			//// rotate by dist error
-			//AngleAxisf rotDaa = AngleAxisf(rotD);
-			//rotDaa.angle() *= .01; // DistError;
-			//rotD = Quaternionf(rotDaa);
-			//rotD.normalize();
-
-			//TODOm(skade)
-			//// get parent global rotatios
-			//Quaternionf rotParGlb;
-			//if (Chain[j]->Parent != -1)
-			//	rotParGlb = pController->m_IKJoints[pController->getBone(Chain[j]->Parent)].rotGlobal;
-			//auto rotGlb = pController->m_IKJoints[Chain[j]].rotGlobal;
-			//Chain[j]->LocalRotation = (rotD * rotGlb).normalized() * rotParGlb;
+			//TODO(skade) add delta as parameter
+			//{// rotate by dist error
+			//	AngleAxisf rotDaa = AngleAxisf(rotD);
+			//	rotDaa.angle() *= .1;//(DistError + 1.)*10.;
+			//	rotD = Quaternionf(rotDaa);
+			//	rotD.normalize();
+			//}
 
 			Chain[j]->LocalRotation = rotD * Chain[j]->LocalRotation;
+			//Chain[j]->LocalRotation =  rotD * 
 			Chain[j]->LocalRotation.normalize();
 		}
 		
@@ -139,12 +135,51 @@ MatrixXd IKSjacInv::calculateJacobianNumerical(std::string segmentName, IKContro
 
 	for (int i = 0; i < chain.size(); ++i) {
 		for (int j = 0; j < dim; ++j) {
-			Matrix3f jointSpace = chain[i]->LocalRotation.matrix();
-			Vector3f toeef = (pController->m_IKJoints[chain[0]].posGlobal - pController->m_IKJoints[chain[i]].posGlobal);
-			Vector3f element = jointSpace.col(j).cross(toeef);
-			 //TODOm(skade) row oder col?
-			// (a,b) * (1) = (a)
-			// (c,d) * (0) = (c)
+		
+			// xyz endeff position rate change on angle change
+			Vector3f element = Vector3f::Zero();
+
+#if 0		// forwardKinematics method, naive slower
+			Vector3f eefPos = pController->m_IKJoints[chain[0]].posGlobal;
+			auto origRot = chain[i]->LocalRotation;
+
+			// rotate in dim by delta
+			float delta = 0.01f; //TODO(skade) j -> eff norm instead of delta?
+			switch (j)
+			{
+			case 0:
+				chain[i]->LocalRotation = Quaternionf(AngleAxisf(delta,Vector3f::UnitX())) * chain[i]->LocalRotation;
+			case 1:
+				chain[i]->LocalRotation = Quaternionf(AngleAxisf(delta,Vector3f::UnitY())) * chain[i]->LocalRotation;
+			case 2:
+				chain[i]->LocalRotation = Quaternionf(AngleAxisf(delta,Vector3f::UnitZ())) * chain[i]->LocalRotation;
+			default:
+				break;
+			}
+			
+			pController->forwardKinematics();
+			element = pController->m_IKJoints[chain[0]].posGlobal - eefPos;
+			element.normalize();
+
+			// undo rotation
+			chain[i]->LocalRotation = origRot;
+			pController->forwardKinematics();
+
+#else		// cross product tangent calculation, more performant,
+			// this exploits the fact that all children of a joint are just a rigid structure on rotation
+			
+			// rotation has higher effect, depending on distance
+			Vector3f toeef = pController->m_IKJoints[chain[0]].posGlobal - pController->m_IKJoints[chain[i]].posGlobal;
+
+			// joint space defined by parent transformation
+			Matrix3f jointSpace = Matrix3f::Identity();
+			if (chain[i]->Parent != -1)
+				jointSpace = pController->m_IKJoints[pController->getBone(chain[i]->Parent)].rotGlobal.matrix();
+
+			// cross product to get the tangent vector, direction in which the point moves on rotation
+			// of the corresponding axis
+			element = jointSpace.col(j).cross(toeef);
+#endif
 			for (uint32_t k = 0; k < 3; ++k) {
 				jacobian(k,i*dim+j) = element(k);
 			}

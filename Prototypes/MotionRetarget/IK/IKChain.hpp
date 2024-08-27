@@ -42,7 +42,7 @@ struct IKChain {
 	//float weight = 1.; // weight used for centroid interpolation,
 	                   //TODO(skade) contribution equals: weight / sum(all chain weights on centoid)
 
-	std::unique_ptr<IIKSolver> ikSolver = std::make_unique<IKSfabrik>();
+	std::unique_ptr<IIKSolver> ikSolver = std::make_unique<IKSjacInv>();
 	//std::vector<std::pair<IKJoint*,IKTarget*>> pEndEff;
 };
 //class IKChain {
