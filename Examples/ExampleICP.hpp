@@ -84,6 +84,7 @@ namespace CForge {
 			// load SMPLX model
 			// SAssetIO::load("MyAssets/010.obj", &m_SMPLXMesh);
 			objImportExport::storeInMesh("MyAssets/010.obj", &m_SMPLXMesh);
+			// SAssetIO::load("MyAssets/Reko_Timo/test_own_export_from_python.obj", &m_SMPLXMesh);
 			SAssetIO::load("MyAssets/Reko_Timo/test_own_export_from_python.obj", &m_ProxyMesh); 
 
             m_SMPLXMesh.computePerVertexNormals();
@@ -125,7 +126,7 @@ namespace CForge {
 
 			// create help text
 			LineOfText* pKeybindings = new LineOfText();
-			pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement: (Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text | 1: ICP | shift+1: scaling ICP");
+			pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "F1: Toggle help text | 1: ICP | Shift+1: scaling ICP | 2: Hausdorff Distance | 3: Rotate Mismatch | 4: Texture Transfer Naive | 5: Texture Transfer Normals | 6: Save Model | 7: Save Model with Skeleton"); 
 			m_HelpTexts.push_back(pKeybindings);
 			m_DrawHelpTexts = true;
 			m_ScreenshotExtension = "png";
@@ -465,11 +466,17 @@ namespace CForge {
             Vector3f nor = ba.cross(ac);
 
             // create a lamda sign function for a float
+			/**
+			 * @return 1 if x > 0, -1 if x < 0, 0 if x == 0
+			 */
             auto sign = [](float x) -> float { return (0.0f < x) - (x < 0.0f); };
             auto dot2 = [](Vector3f v) -> float { return v.dot(v); };
             auto clamp = [](float x) -> float{ return std::clamp(x, 0.0f, 1.0f); };
             auto minVec = [](Vector3f a, Vector3f b) -> Vector3f { return Vector3f(std::fmin(a.x(), b.x()), std::min(a.y(), b.y()), std::min(a.z(), b.z())); };
-
+			
+			/**
+			 * @brief check if the point is on the edge of the triangle
+			 */
             bool edge = sign(ba.cross(nor).dot(pa)) + sign(cb.cross(nor).dot(pb)) + sign(ac.cross(nor).dot(pc)) < 2.0f;
             
             float vpa = dot2(ba * clamp(ba.dot(pa) / dot2(ba)) - pa); 

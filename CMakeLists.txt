@@ -145,6 +145,7 @@ add_executable(CForgeSandbox
 
     Prototypes/PNGimport/pngImport.cpp
     Prototypes/SMPLTexturing/MeshConnection.cpp
+    Prototypes/SMPLTexturing/SubmeshFabricHelper.cpp
 
     #Inverse Kinematics Prototype
     Prototypes/InverseKinematics/InverseKinematicsController.cpp

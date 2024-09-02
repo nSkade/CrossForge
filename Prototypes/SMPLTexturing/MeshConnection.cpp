@@ -418,5 +418,22 @@ namespace CForge{
 			// copying end 
 
     }
+
+    Eigen::Vector3f MeshConnection::centerOfGravitySubmesh(T3DMesh<float>* pMesh, int submeshIndex){
+        if(pMesh == nullptr || submeshIndex >= pMesh->submeshCount() || submeshIndex < 0) throw CForgeExcept("Nullpointer or Index out of range");
+
+        T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(submeshIndex);
+        Eigen::Vector3f Rval = Eigen::Vector3f::Zero();
+        for(int i = 0; i < sub->Faces.size(); i++){
+            T3DMesh<float>::Face f = sub->Faces[i];
+            Eigen::Vector3f v1 = pMesh->vertex(f.Vertices[0]);
+            Eigen::Vector3f v2 = pMesh->vertex(f.Vertices[1]);
+            Eigen::Vector3f v3 = pMesh->vertex(f.Vertices[2]);
+
+            Rval += (v1 + v2 + v3) / 3.0f;
+        }
+        Rval /= sub->Faces.size();
+        return Rval;
+    }
     
 }//CForge

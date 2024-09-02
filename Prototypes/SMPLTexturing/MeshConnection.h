@@ -30,6 +30,7 @@ namespace CForge
         static bool areSameFace(T3DMesh<float>::Face f1, T3DMesh<float>::Face f2);
         static int getFaceIndex(T3DMesh<float>* pMesh, int submeshIndex, T3DMesh<float>::Face face);
         static T3DMesh<float> splitMeshFromProxy(T3DMesh<float>* pMeshOrg, T3DMesh<float>* pMeshRegions, std::vector<std::vector<int32_t>> vertexMap);
+        static Eigen::Vector3f centerOfGravitySubmesh(T3DMesh<float>* pMesh, int submeshIndex);
         static void copyMesh(T3DMesh<float>* pMeshOrg, T3DMesh<float>* pMeshCopy);
     protected:
         static bool vertexOfFace(T3DMesh<float>::Face face, int vertexIndex); 

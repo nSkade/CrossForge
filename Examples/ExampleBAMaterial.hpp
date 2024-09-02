@@ -28,6 +28,7 @@
 #include <Prototypes/PNGimport/pngImport.h>
 #include <Prototypes/SMPLTexturing/ICP.h>
 #include <Prototypes/SMPLTexturing/MeshConnection.h>
+#include <Prototypes/SMPLTexturing/SubmeshFabricHelper.h>
 
 #include "python3.10/Python.h"
 
@@ -135,7 +136,7 @@ namespace CForge {
 			
 			m_RegionMesh.computePerVertexNormals(); 
 			m_RegionMesh.computePerFaceNormals(); 
-
+			
 			m_RegionActor.init(&m_RegionMesh); 
 			m_RegionActorTransformSGN.init(&m_RootSGN); 
 			m_RegionActorSGN.init(&m_RegionActorTransformSGN, &m_RegionActor); 
@@ -149,7 +150,7 @@ namespace CForge {
 
 			// create help text
 			LineOfText* pKeybindings = new LineOfText();
-			pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement: (Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text | 1: GrowRegion | 2: FloatFill | 3: Reset");
+			pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement: (Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text | 1: GrowRegion | 2: FloatFill | 3: Reset | 5: Split&Export");
 			m_HelpTexts.push_back(pKeybindings);
 			m_DrawHelpTexts = true;
 			m_ScreenshotExtension = "jpg";
@@ -252,13 +253,73 @@ namespace CForge {
 				
 				// like this I can display it - problem: need to do a deep copy for SMPLXMesh to display it (faces are not copied)
 				// you can not delete submeshes, so "updating it" is not possible - or you need to adjust the T3DMesh class
+
+				// TODO: set a check if no screenshots are taken yet, then do it now and split the mesh then
+
+				if(!m_meshIsSplit){
+					m_takePictures = true;
+					m_splitMesh = true; 
+				}
+				else{
+					m_meshIsSplit = true; 
+				}
+
+			}
+			if(m_RenderWin.keyboard()->keyPressed(Keyboard::KEY_6)){
+				m_RenderWin.keyboard()->keyState(Keyboard::KEY_6, Keyboard::KEY_RELEASED); 
+				if(!m_meshIsSplit) m_takePictures = true;
+			}
+			if(m_takePictures){
+				// 1 move camera, 2 wait, 3 take picture, set to 1 unitl all pictures are taken
+				if(m_indexPicture == m_trianglesToPictures.size()){
+					m_takePictures = false; 
+					m_indexPicture = 0; 
+
+					// all pictures are taken - run the python script
+					runPythonScript("/home/niclas/dev/BA/TextileNet/src/analyse_images_in_folder.py"); 
+					m_FabricHelpers = SubmeshFabricHelper::readFabricHelper("results_folder.json"); 
+					updateFabricHelper(); 
+				}
+
+				switch (m_indexPictureLastFrame)
+				{
+				case 0: {
+					/* set camera*/
+					m_indexPictureLastFrame++;
+					int index = m_trianglesToPictures.at(m_indexPicture); 
+					takePictuesOfTrianglregion(&m_ReconstructionTransformSGN, &m_SMPLXMesh, 0, index, false);
+					m_picturesAreTaken = true; 
+					break;
+				}
+				case 1: {
+					/* wait one frame */
+					m_indexPictureLastFrame++;
+					break;
+				}
+				case 2: {
+					m_indexPicture++; 
+					m_indexPictureLastFrame = 0;
+					m_RenderDev.activePass(RenderDevice::RENDERPASS_FORWARD, nullptr, false);
+					std::string ScreenshotURI = "Screenshots/ScreenshotforAI_" + std::to_string(m_ScreenshotCount++) + "." + m_ScreenshotExtension;
+					takeScreenshot(ScreenshotURI);
+					
+					break;
+				}
+				default:
+					break;
+				}
+			}
+			if(m_splitMesh && !m_takePictures){
+				m_splitMesh = false;
+
 				T3DMesh<float> mesh = MeshConnection::splitMeshFromProxy(&m_SMPLXMesh, &m_RegionMesh, m_correspondencies);
 				MeshConnection::copyMesh(&mesh, &m_SMPLXMesh);
 				m_SMPLXMesh.computePerFaceNormals();
 				m_SMPLXMesh.computePerVertexNormals();
 				m_Reconstruction.init(&m_SMPLXMesh); 
 
-				objImportExport::exportSubmeshesAsObjFiles(std::vector<std::string> {}, &m_SMPLXMesh); 	
+				objImportExport::exportSubmeshesAsObjFiles(std::vector<std::string> {}, &m_SMPLXMesh); 
+				std::cout<<"Exported SMPLX Submeshes" << std::endl; 
 			}
 
 		}//mainLoop{}
@@ -375,6 +436,31 @@ namespace CForge {
 					
 				}// childID
 			}// parentID
+
+			// add submesh to FabricHelper
+			if(m_FabricHelpers.size() == m_RegionMesh.submeshCount()){
+				for(int i = 0; i < m_FabricHelpers.size(); i++){
+					m_FabricHelpers[i].submesh = m_RegionMesh.getSubmesh(i);
+
+					BoneGroups current = m_allRegionTypes.at(i);
+					if(current == BoneGroups::HEAD || current == BoneGroups::HAND){
+						m_FabricHelpers[i].isSkin = true; 
+					}
+				}
+			}
+			
+
+			// update the fabrichelper
+			// if the submesh is empty, then remove it
+			// for (int i = m_FabricHelpers.size() - 1; i >= 0; --i) {
+    		// 	if (m_FabricHelpers[i].submesh->Faces.empty()) {
+        	// 		m_FabricHelpers.erase(m_FabricHelpers.begin() + i);
+    		// 	}
+			// }
+			m_FabricHelpers.erase(
+    			std::remove_if(m_FabricHelpers.begin(), m_FabricHelpers.end(),
+                   [](const auto& helper) { return helper.submesh->Faces.empty(); }),
+    		m_FabricHelpers.end());
 		}
 
 		void mergeIfSubmeshSmall(T3DMesh<float> *pMesh, int subIndexChild, int subIndexParent){
@@ -804,7 +890,30 @@ namespace CForge {
 				regionalModel.addSubmesh(&sub, true); 
 			}   
 
+			// later we need to assign fabrics - populate the fabric helpers
+			m_FabricHelpers.clear(); 
+			for(int i = 0; i < m_allRegionTypes.size(); i++){
+				FabricHelper helper; 
+				helper.id = i; 
+				helper.submesh = regionalModel.getSubmesh(i);
+				m_FabricHelpers.push_back(helper);
+			}
+			
 			return regionalModel; 
+		}
+
+		// set to skin if the region was marked beforehand as skin
+		void updateFabricHelper(){
+			for(int i = 0; i < m_FabricHelpers.size(); i++){
+				BoneGroups current = m_allRegionTypes.at(i);
+				if(current == BoneGroups::HEAD || current == BoneGroups::HAND){
+					m_FabricHelpers[i].isSkin = true; 
+				}
+				// get the submesh of the fabric helper
+				m_FabricHelpers[i].submesh = m_RegionMesh.getSubmesh(i);
+			}
+			
+			return; 
 		}
 
 		BoneGroups faceAccordingGroup(T3DMesh<float>::Submesh *sub, std::vector<BoneGroups> correspondingGroup, int count){
@@ -830,6 +939,43 @@ namespace CForge {
 			return rval; 
 		}
 
+		void takePictuesOfTrianglregion(SGNTransformation *transform, T3DMesh<float> *pMesh, int submeshIndex, int faceIndex, bool takePictures = true){
+			if(pMesh == nullptr || submeshIndex < 0 || submeshIndex > pMesh->submeshCount() ) throw CForgeExcept("Mesh is nullptr");
+			T3DMesh<float>::Submesh *sub = pMesh->getSubmesh(submeshIndex);
+			T3DMesh<float>::Face f = sub->Faces[faceIndex];
+			Eigen::Vector3f v1 = pMesh->vertex(f.Vertices[0]);
+			Eigen::Vector3f v2 = pMesh->vertex(f.Vertices[1]);
+			Eigen::Vector3f v3 = pMesh->vertex(f.Vertices[2]);
+			Eigen::Vector3f normal = ((v2 - v1).cross(v3 - v1)).normalized();
+
+			// do it in worldspace not in local space
+			Eigen::Vector3f position;
+			Eigen::Quaternionf rotation;
+			Eigen::Vector3f scale;
+
+			// m_ReconstructionTransformSGN
+			transform->buildTansformation(&position, &rotation, &scale);
+
+			Eigen::Matrix4f worldScale = CForgeMath::scaleMatrix(scale); 
+			Eigen::Matrix4f worldPos = CForgeMath::translationMatrix(position); 
+			Eigen::Matrix4f worldRot = CForgeMath::rotationMatrix(rotation); 
+			Eigen::Matrix4f worldTransform = worldPos * worldRot * worldScale;
+
+			Eigen::Vector4f v1_homogeneous(v1(0), v1(1), v1(2), 1.0f);
+			Eigen::Vector4f worldV1_homogeneous = worldTransform * v1_homogeneous;
+			Eigen::Vector3f worldV1 = worldV1_homogeneous.head<3>();
+
+			Eigen::Vector3f camPos = worldV1 + (-1 * normal) * 0.5f;
+			m_Cam.lookAt(camPos, worldV1);
+
+			// take the picture
+			if(takePictures){
+				m_RenderDev.activePass(RenderDevice::RENDERPASS_FORWARD, nullptr, false);
+				std::string ScreenshotURI = "Screenshots/ScreenshotforAI_" + std::to_string(m_ScreenshotCount++) + "." + m_ScreenshotExtension;
+				takeScreenshot(ScreenshotURI);
+			}
+		}
+
 	protected:
 		// Scene Graph
 		SGNTransformation m_RootSGN;
@@ -852,7 +998,6 @@ namespace CForge {
         T3DMesh<float> m_SMPLXMesh;
 		T3DMesh<float> m_ProxyMesh; 
 		T3DMesh<float> m_RegionMesh;
-		T3DMesh<float> m_SMPLXMeshUpdated; 
 
 		std::vector<std::vector<int32_t>> m_correspondencies;	
 		std::vector<int32_t> m_correspondenciesNotInverted;
@@ -864,7 +1009,7 @@ namespace CForge {
 														Vector4f(1.0f, 0.0f, 1.0f, 1.0f),
 														Vector4f(0.0f, 1.0f, 1.0f, 1.0f)};
 		
-		std::array<BoneGroups, 55> m_SMPLXGroup =  
+		std::array<BoneGroups, 55> m_SMPLXGroup = 
 									{TORSO, LEG, LEG, TORSO, LEG, 
 									LEG, TORSO, FOOT, FOOT, TORSO, 
 									FOOT, FOOT, HEAD, TORSO, TORSO, 
@@ -878,6 +1023,9 @@ namespace CForge {
 									HAND, HAND, HAND, HAND, HAND}; 
 		
 		std::array<BoneGroups, 6> m_allRegionTypes = {HEAD, TORSO, FOOT, LEG, ARM, HAND};
+		// later for taking the pictures we need to know where to take the pictues
+		// face: 471, foot: 18744
+		std::vector<int32_t> m_trianglesToPictures = {3057, 5835, 14994, 8376, 3772, 17624};  
 		std::array<float, 6> m_areaSubmeshes; 
 		float m_areaDifferenceRatio = 0.1f; 
 
@@ -921,6 +1069,12 @@ namespace CForge {
 		int m_maxFloatFillItteration = 50;
 		PNGImport m_textur; 
 
+		std::vector<FabricHelper> m_FabricHelpers;
+		int triangleCounter = 0; 
+
+		bool m_takePictures = false, m_picturesAreTaken = false, m_meshIsSplit = false, m_splitMesh = false; 
+		int m_indexPicture = 0; 
+		int m_indexPictureLastFrame = 0; 
 	}; //ExampleBAMaterials
 
 }//name space
