@@ -12,4 +12,9 @@ MatrixXd JacobiSVDSolve(MatrixXd jac, Vector3d diff) {
 	return svd.solve(diff);
 }
 
+MatrixXd FullPivLUSolve(MatrixXd jac, Vector3d diff) {
+	Eigen::FullPivLU<MatrixXd> fplu(jac);
+	return fplu.solve(diff);
+}
+
 }//EigenFWD

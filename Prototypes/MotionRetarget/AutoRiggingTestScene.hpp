@@ -86,25 +86,24 @@ namespace CForge {
 		}//initCameraAndLights
 		
 		void mainLoop() {
-
-			gladLoadGL();
 			
+			{
+			gladLoadGL();
 			// load skydome and a textured cube
 			T3DMesh<float> M;
 			StaticActor Skydome;
 			SkeletalActor Eric;
 			StaticActor Spock;
 			SkeletalAnimationController Controller;
-			
 			SAssetIO::load("MyAssets/ExampleScenes/SimpleSkydome.fbx", &M);
 			setMeshShader(&M, 0.8f, 0.04f);
 			M.computePerVertexNormals();
 			Skydome.init(&M);
 			M.clear();
-
+			}
 			/////////////////////////////////////////////////////////////////
-
-			//SAssetIO::load("AssetOut/outModel1.fbx", &M);
+			
+			SAssetIO::load("AssetOut/outModel1.fbx", &M);
 
 			T3DMesh<float> MB;
 			SAssetIO::load("MyAssets/ExampleScenes/Eric_Anim.fbx", &MB);
@@ -189,13 +188,15 @@ namespace CForge {
 			//nsPinocchio::PinocchioOutput rig = nsPinocchio::autorig(sklEric, piM);
 			nsPinocchio::PinocchioOutput rig = nsPiT::autorig(sklEric, &piM);
 			
-			MT.bones(&bones);
-			MT.clearSkeletalAnimations();
-			//MT.addSkeletalAnimation(M.getSkeletalAnimation(0));
-			nsPiT::copyAnimation(M,&MT,0);
-			for (uint32_t i = 0; i < MT.boneCount(); i++) {
-				MT.getBone(i)->VertexInfluences = std::vector<int32_t>();
-				MT.getBone(i)->VertexWeights = std::vector<float>();
+			{ // create bones
+				MT.bones(&bones);
+				MT.clearSkeletalAnimations();
+				//MT.addSkeletalAnimation(M.getSkeletalAnimation(0));
+				nsPiT::copyAnimation(M,&MT,0);
+				for (uint32_t i = 0; i < MT.boneCount(); i++) {
+					MT.getBone(i)->VertexInfluences = std::vector<int32_t>();
+					MT.getBone(i)->VertexWeights = std::vector<float>();
+				}
 			}
 			
 			if (rig.attachment)
@@ -413,10 +414,13 @@ namespace CForge {
 			m_pShaderMan->release();
 
 		}
+		//TODOf(skade) remove
 		void mergeRedundantVertices(T3DMesh<float>* pMesh) {
 			float Epsilon = /**/std::numeric_limits<float>::min();//*/0.00025f;//TODO
 
+			// <first occurence, copy>
 			std::vector<std::pair<uint32_t, uint32_t>> RedundantVertices;
+			
 			std::vector<bool> IsRedundant;
 			std::vector <uint32_t> VertexMapping;
 			for (uint32_t i = 0; i < pMesh->vertexCount(); ++i) {
@@ -504,9 +508,9 @@ namespace CForge {
 		uint32_t getMatchingVertex(uint32_t RedundantVertexID, std::vector<std::pair<uint32_t, uint32_t>> *pRedundantVertices) {
 			uint32_t Rval = 0;
 
-			for (auto i : (*pRedundantVertices)) {
-				if (i.second == RedundantVertexID) {
-					Rval = i.first;
+			for (auto [original,copy] : (*pRedundantVertices)) {
+				if (copy == RedundantVertexID) {
+					Rval = original;
 					break;
 				}
 			}

@@ -13,6 +13,7 @@ void IKSfabrik::solve(std::string segmentName, IKController* pController) {
 
 	//TODO(skade) make member for per chain solver to avoid memory alloc?
 	fbrkPoints.clear(); // global position for fabrik calculation
+	fbrkPoints.reserve(Chain.size()); //TODOff(skade)
 	for (uint32_t i = 0; i < Chain.size(); ++i)
 		fbrkPoints.push_back(pController->m_IKJoints[Chain[i]].posGlobal);
 

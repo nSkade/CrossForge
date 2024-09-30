@@ -183,7 +183,7 @@ namespace nsPinocchioTools {
 		//	std::cout << "\n";
 		//}
 		
-		// TODO set mesh to T-Pose
+		//TODO(skade) set mesh to T-Pose
 		// set position of bones
 		adaptSkeleton(&piO,in,out->rootBone());
 		//apply weights

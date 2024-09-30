@@ -52,7 +52,11 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 		}
 			break;
 		case SVD: { // svd
+			//TODOf(skade) not stable when multiple joints align
 			jacI = EigenFWD::JacobiSVDSolve(jac,diff);
+
+			//TODOf(skade)
+			//jacI = EigenFWD::FullPivLUSolve(jac,diff);
 		}
 			break;
 		default:
@@ -86,16 +90,16 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 			                 * Quaternionf(AngleAxisf(dz,Vector3f::UnitZ()));
 			rotD.normalize();
 
+			//TODO(skade) not usable with svd
 			//TODO(skade) add delta as parameter
 			//{// rotate by dist error
 			//	AngleAxisf rotDaa = AngleAxisf(rotD);
-			//	rotDaa.angle() *= .1;//(DistError + 1.)*10.;
+			//	rotDaa.angle() *= (DistError + 1.)*10.; //.1; //TODO(skade)
 			//	rotD = Quaternionf(rotDaa);
 			//	rotD.normalize();
 			//}
 
 			Chain[j]->LocalRotation = rotD * Chain[j]->LocalRotation;
-			//Chain[j]->LocalRotation =  rotD * 
 			Chain[j]->LocalRotation.normalize();
 		}
 		
@@ -116,17 +120,7 @@ MatrixXd IKSjacInv::DampedLeastSquare(MatrixXd jac) {
 	return ret;
 }
 
-/**
- * @brief calculates Jacobian matrix of chain regarding influence on end effector,
- *        the jacobian looks as follows:
- * for every joint axis write change on each dim on endeffector
- *              joint 1 x                      joint 1 y                     joint 1 z
- *    eef1 x  | {angle dx, angle dy, angle dz, angle dx, angle dy, angle dz, angle dx, angle dy, angle dz,
- *    eff1 y  | {angle dx, angle dy, angle dz, angle dx, angle dy, angle dz, angle dx, angle dy, angle dz,
- *    eff1 z  | {angle dx, angle dy, angle dz, angle dx, angle dy, angle dz, angle dx, angle dy, angle dz,
- *    eff2 x  v ,...}
- *          all joints
-*/
+//TODO(skade) implement for multiple endeffectors for use with OMR
 MatrixXd IKSjacInv::calculateJacobianNumerical(std::string segmentName, IKController* pController) {
 	std::vector<IKController::SkeletalJoint*>& chain = pController->getIKChain(segmentName)->joints;
 	IKTarget* target = pController->getIKChain(segmentName)->target.lock().get();

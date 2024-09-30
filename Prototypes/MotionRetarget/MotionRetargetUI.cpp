@@ -12,6 +12,11 @@
 
 #include <imgui_stdlib.h>
 
+#include "AutoRig/ARpinocchio.hpp" //TODO(skade) into Scene instead of here
+#include "AutoRig/ARrignet.hpp" //TODO(skade) into Scene instead of here
+
+#include "CMN/MergeVertices.hpp"
+
 namespace ImGui {
 
 auto ComboStr = [](const char* label, int* current_item, const std::vector<std::string>& items, int items_count, int height_in_items = -1)
@@ -66,6 +71,7 @@ void MotionRetargetScene::renderUI() {
 	renderUI_Sequencer();
 	renderUI_tools();
 	renderUI_ik();
+	renderUI_autorig();
 
 	ImGuiUtility::render();
 
@@ -89,8 +95,7 @@ IKController::SkeletalJoint* MotionRetargetScene::renderUI_OutlinerJoints(std::s
 		if (!joint)
 			return;
 	
-		static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-		ImGuiTreeNodeFlags node_flags = base_flags;
+		ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 		if (joint == selectedJoint)
 			node_flags |= ImGuiTreeNodeFlags_Selected;
 		if (joint->Children.size() > 0) { // tree
@@ -156,6 +161,8 @@ void MotionRetargetScene::renderUI_Outliner() {
 					for (auto jp : jps)
 						jp.lock()->setOpacity(jpo);
 
+					//TODOf(skade) improve usage
+					// need to set highlight behavior for all joints
 					static bool hullHighlight = true;
 					ImGui::Checkbox("hull highlight",&hullHighlight);
 					for (auto jp : jps)
@@ -192,8 +199,7 @@ void MotionRetargetScene::renderUI_Outliner() {
 			if (ImGui::TreeNode("Targets")) {
 				for (uint32_t j = 0; j < c->controller->m_targets.size(); ++j) {
 					auto t = c->controller->m_targets[j];
-					static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-					ImGuiTreeNodeFlags node_flags = base_flags;
+					ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 					node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
 					ImGui::TreeNodeEx(t->name.c_str(),node_flags);
 					if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
@@ -222,10 +228,10 @@ void MotionRetargetScene::renderUI_animation() {
 		return;
 	}
 
-	std::vector<std::string> items;
-	items.push_back("none");
+	std::vector<std::string> items(c->controller->animationCount()+1);
+	items[0] = "none";
 	for (uint32_t i=0;i<c->controller->animationCount();++i)
-		items.push_back(c->controller->animation(i)->Name);
+		items[i+1] = c->controller->animation(i)->Name;
 	ImGui::ComboStr("select animation",&c->animIdx,items,items.size());
 
 	if (c->animIdx > 0) { // anim selected
@@ -267,6 +273,7 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	ImGui::Begin("Sequencer");
 
 	// sequence with default values
+	//TODO(skade) make member
 	static MySequence mySequence;
 	static bool init = false;
 	if (!init) {
@@ -335,12 +342,12 @@ void MotionRetargetScene::renderUI_menuBar() {
 				if (ImGui::MenuItem("GLTF", ".gltf, .glb")) {
 					//TODO(skade) name
 					std::string path = UserDialog::OpenFile("load primary char", "gltf", "*.gltf *.glb");
-					loadCharPrim(path,true);
+					loadCharPrim(path,IOM_GLTFIO);
 				}
 				if (ImGui::MenuItem("Assimp")) {
 					//TODO(skade) list assimp types
 					std::string path = UserDialog::OpenFile("load primary char", "assimp");
-					loadCharPrim(path,false);
+					loadCharPrim(path,IOM_ASSIMP);
 				}
 				ImGui::EndMenu();
 			}
@@ -348,12 +355,17 @@ void MotionRetargetScene::renderUI_menuBar() {
 				if (ImGui::MenuItem("GLTF", ".gltf, .glb")) {
 					//TODO(skade) name
 					std::string path = UserDialog::SaveFile("store primary char", "gltf", "*.gltf *.glb");
-					storeCharPrim(path,true);
+					storeCharPrim(path,IOM_GLTFIO);
 				}
 				if (ImGui::MenuItem("Assimp")) {
 					//TODO(skade) list assimp types
 					std::string path = UserDialog::SaveFile("store primary char", "assimp");
-					storeCharPrim(path,false);
+					storeCharPrim(path,IOM_ASSIMP);
+				}
+				if (ImGui::MenuItem("objImport")) {
+					//TODO(skade) list assimp types
+					std::string path = UserDialog::SaveFile("store primary char", "assimp");
+					storeCharPrim(path,IOM_OBJIMP);
 				}
 				ImGui::EndMenu();
 			}
@@ -443,22 +455,54 @@ void MotionRetargetScene::renderUI_menuBar() {
 		//		initCesiumMan();
 		//	ImGui::EndMenu();
 		//}
+		if (ImGui::BeginMenu("Autorig")) {
+			if (ImGui::MenuItem("rignet"))
+				m_showPop[POP_AR_RIGNET] = true;
+			if (ImGui::MenuItem("pinocchio"))
+				m_showPop[POP_AR_PINOC] = true;
+			ImGui::EndMenu();
+		}
+
+		//TODOf(skade) move logic outside
+		if (ImGui::BeginMenu("Tools")) {
+			if (ImGui::MenuItem("merge redundent vertices")) {
+				if (auto c = m_charEntityPrim.lock()) {
+					mergeRedundantVertices(&c->mesh);
+					c->init(&m_sgnRoot);
+				}
+				m_picker.reset();
+			}
+			if (ImGui::MenuItem("Apply Transformation to Mesh Data")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->applyTransformToMesh(&m_sgnRoot);
+				m_picker.reset();
+			}
+			if (ImGui::MenuItem("assign current pose as restpose")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->updateRestpose(&m_sgnRoot);
+				m_picker.reset();
+			}
+			if (ImGui::MenuItem("remove Armature")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->removeArmature(&m_sgnRoot);
+				m_picker.reset();
+			}
+			if (ImGui::MenuItem("Reset Camera")) {
+				Vector3f c = Vector3f(.5,0.,-.5);
+				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
+			}
+			if (ImGui::MenuItem("Preferences"))
+				m_showPop[POP_PREF] = true;
+			
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Debug")) {
 			if (ImGui::MenuItem("Load cesium man"))
 				initCesiumMan();
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Tools")) {
-			if (ImGui::MenuItem("Reset Camera")) {
-				Vector3f c = Vector3f(.5,0.,-.5);
-				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
-			}
-			if (ImGui::MenuItem("Preferences"))
-				m_showPopPreferences = true;
-			
-			ImGui::EndMenu();
-		}
 		ImGui::EndMainMenuBar();
 
 		//TODO(skade) modal, popup prompt (e.g. delete?
@@ -482,31 +526,55 @@ void MotionRetargetScene::renderUI_menuBar() {
 			//}
 		}
 
-		if (m_showPopPreferences) {
+		if (m_showPop[POP_PREF]) {
 			ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 			//if (!ImGui::Begin("Preferences", &m_showPopPreferences)) {
 			//	ImGui::End();
 			//	return; //TODO(skade)
 			//}
-			if (ImGui::Begin("Preferences", &m_showPopPreferences)) {
-				ImGui::Text("ImGuizmo");
-				ImGui::Separator();
-				ImGui::Text("Grid");
-				ImGui::Checkbox("Render Debug Grid",&m_settings.renderDebugGrid);
-				ImGui::InputScalar("Grid Size",ImGuiDataType_Float,&m_settings.gridSize);
-				ImGui::Separator();
-				ImGui::Text("Debug");
-				ImGui::Checkbox("Render Debug Cube",&m_guizmo.m_renderDebugCube);
-				ImGui::Separator();
-				ImGui::Separator();
-				ImGui::Checkbox(m_cesStartupStr.c_str(),&m_settings.cesStartup);
+			bool popState = m_showPop[POP_PREF];
+			if (ImGui::Begin("Preferences", &popState)) {
+				ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); {
+					ImGui::Text("Grid");
+					ImGui::Checkbox("Render Debug Grid",&m_settings.renderDebugGrid);
+					ImGui::InputScalar("Grid Size",ImGuiDataType_Float,&m_settings.gridSize);
+					ImGui::Separator();
+					ImGui::Text("Debug");
+					ImGui::Checkbox("Render Debug Cube",&m_guizmo.m_renderDebugCube);
+					ImGui::Separator();
+					ImGui::Separator();
+					ImGui::Checkbox(m_cesStartupStr.c_str(),&m_settings.cesStartup);
 
-				//if (ImGui::BeginPopupContextItem()) { //TODO(skade)
-				//	if (ImGui::MenuItem("Close"))
-				//		m_showPopPreferences = false;
-				//	ImGui::EndPopup();
-				//}
+					if (ImGui::Button("path Conda")) {
+						m_settings.pathAnaconda = UserDialog::SelectFolder("path Conda");
+					}
+					ImGui::SameLine();
+					ImGui::Text(m_settings.pathAnaconda.c_str());
+					ImGui::Text("path to anaconda installation, folder which should contain _conda.exe");
+
+					if (ImGui::Button("path Rignet")) {
+						m_settings.pathRignet = UserDialog::SelectFolder("path Rignet");
+					}
+					ImGui::SameLine();
+					ImGui::Text(m_settings.pathRignet.c_str());
+					ImGui::Text("path to rignet root, folder which should contain quick_start.py");
+
+					//if (ImGui::BeginPopupContextItem()) { //TODO(skade)
+					//	if (ImGui::MenuItem("Close"))
+					//		m_showPopPreferences = false;
+					//	ImGui::EndPopup();
+					//}
+				} ImGui::EndChild();
+				
+				if (ImGui::Button("Save Settings")) {
+					m_config.store(m_cesStartupStr.c_str(), m_settings.cesStartup);
+					m_config.store("path.anaconda", m_settings.pathAnaconda); //TODO(skade) path interface
+					m_config.store("path.rignet", m_settings.pathRignet);
+					m_config.baseStore();
+					popState = false;
+				}
 			}
+			m_showPop[POP_PREF] = popState;
 			ImGui::End();
 		}
 	}
@@ -585,7 +653,7 @@ void MotionRetargetScene::renderUI_ik() {
 		if (ImGui::Button("singleIK"))
 			m_IKCupdateSingle = true;
 
-		std::vector<std::string> ikMstr = {
+		const std::vector<std::string> ikMstr = {
 			"IKSS_NONE",
 			"IKSS_CCD",
 			"IKSS_FABRIK",
@@ -613,7 +681,7 @@ void MotionRetargetScene::renderUI_ik() {
 			{
 			default:
 			case IKSS_NONE:
-				c->ikSolver.release();
+				c->ikSolver.reset();
 				break;
 			case IKSS_CCD:
 				c->ikSolver = std::make_unique<IKSccd>();
@@ -639,9 +707,9 @@ void MotionRetargetScene::renderUI_ik() {
 			}
 			int subType = 0;
 			if (auto iks = dynamic_cast<IKSjacInv*>(chain.ikSolver.get())) {
-				std::vector<std::string> meth = {
+				const std::vector<std::string> meth = {
 					"TRANSPOSE",
-					"SVD",
+					"SVD (unstable)",
 					"DLS",
 				};
 				subType = iks->m_type;
@@ -649,7 +717,7 @@ void MotionRetargetScene::renderUI_ik() {
 				iks->m_type = (IKSjacInv::Type) subType;
 			}
 			if (auto iks = dynamic_cast<IKSccd*>(chain.ikSolver.get())) {
-				std::vector<std::string> meth = {
+				const std::vector<std::string> meth = {
 					"BACKWARD",
 					"FORWARD",
 				};
@@ -768,9 +836,9 @@ void MotionRetargetScene::renderUI_ik() {
 }
 
 void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
-	if (ImGui::Button("edit chain")) {
-		m_showPopChainEdit = true;
-	}
+	if (ImGui::Button("edit chain"))
+		m_showPop[POP_CHAINED] = true;
+
 	auto c = m_charEntityPrim.lock();
 	if (!c || !c->controller) {
 		ImGui::End();
@@ -786,12 +854,13 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 	prevC = c.get();
 	auto& chains = c->controller->getJointChains();
 
-	if (m_showPopChainEdit) {
+	if (m_showPop[POP_CHAINED]) {
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-		if (ImGui::Begin("add ik chain", &m_showPopChainEdit)) {
+		bool popState = m_showPop[POP_CHAINED];
+		if (ImGui::Begin("add ik chain", &popState)) {
 			if (!m_ikceNameInit) {
 				if (*item_current_idx != -1)
 					m_ikceName = chains[*item_current_idx].name;
@@ -852,8 +921,8 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 				//IKChain nChain = c->controller->getJointChains()[m_ikceName];
 				IKChain* nChain = c->controller->getIKChain(m_ikceName);
 				if (!nChain) {
-					c->controller->getJointChains().emplace_back();
-					nChain = &c->controller->getJointChains().back();
+					nChain = &(c->controller->getJointChains().emplace_back());
+					//nChain = &c->controller->getJointChains().back(); //TODOf(skade)
 				}
 				nChain->name = m_ikceName;
 				
@@ -871,10 +940,11 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 				//c->controller->getJointChains()[m_ikceName] = nChain;
 				
 				m_ikceName = "new"; m_ikceNameInit = false;
-				m_showPopChainEdit = false;
+				m_showPop[POP_CHAINED] = false;
 			}
 			ImGui::End();
 		}
+		m_showPop[POP_CHAINED] = popState;
 	} // if addChainPopup
 	else {
 		m_ikceName = "new"; m_ikceNameInit = false;
@@ -922,6 +992,55 @@ void MotionRetargetScene::renderUI_ikTargetEditor() {
 				targets.erase(tPos);
 		}
 	}
+}
+
+void MotionRetargetScene::renderUI_autorig() {
+	bool popState = m_showPop[POP_AR_RIGNET];
+	if (popState) {
+		// Always center this window when appearing
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+		if (ImGui::Begin("autorig rignet", &popState)) {
+			if (ImGui::Button("Confirm")) {
+				
+				ARrignet arr;
+				arr.condaPath = m_settings.pathAnaconda;
+				arr.rignetPath = m_settings.pathRignet;
+
+				if (auto e = m_charEntityPrim.lock()) {
+					arr.rig(&e->mesh);
+					initCharacter(e);
+				}
+				
+				popState = false;
+			}
+			ImGui::End();
+		}
+	}
+	m_showPop[POP_AR_RIGNET] = popState;
+
+	popState = m_showPop[POP_AR_PINOC];
+	if (popState) {
+		// Always center this window when appearing
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+		if (ImGui::Begin("autorig pinnocchio", &popState)) {
+			if (ImGui::Button("Confirm")) {
+				
+				ARpinocchio arp;
+				if (auto e = m_charEntityPrim.lock()) {
+					arp.rig(&e->mesh);
+					initCharacter(e);
+				}
+				
+				popState = false;
+			}
+			ImGui::End();
+		}
+	}
+	m_showPop[POP_AR_PINOC] = popState;
 }
 
 }//CForge

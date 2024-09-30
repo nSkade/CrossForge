@@ -17,6 +17,9 @@ namespace CForge {
 		void render(class RenderDevice* pRDev, Eigen::Quaternionf Rotation, Eigen::Vector3f Translation, Eigen::Vector3f Scale);
 
 		IKController* getController();
+
+		Eigen::Vector3f transformVertex(int32_t Index);
+
 	protected:
 		IKController* m_pAnimationController;
 	};//SkeletalActor

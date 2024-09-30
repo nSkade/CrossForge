@@ -8,11 +8,12 @@
 #include <Prototypes/MotionRetarget/UI/EditCamera.hpp>
 #include <Prototypes/MotionRetarget/Config/Config.hpp>
 
-#include "IK/IKSkeletalActor.hpp"
-#include "CMN/Picking.hpp"
-#include "UI/ViewManipulate.hpp"
+#include "CharEntity.hpp"
 
-#include "CMN/MRMutil.hpp"
+//#include "IK/IKSkeletalActor.hpp"
+//#include "CMN/Picking.hpp"
+
+#include "UI/ViewManipulate.hpp"
 #include "UI/LineBox.hpp"
 
 namespace CForge {
@@ -38,7 +39,6 @@ public:
 	void initCameraAndLights(bool CastShadows = true);
 
 private:
-	struct CharEntity;
 	void initCharacter(std::weak_ptr<CharEntity> charEntity);
 	void initCesiumMan();
 
@@ -63,14 +63,22 @@ private:
 	void renderUI_Sequencer();
 	void renderUI_tools();
 	void renderUI_ik();
+	void renderUI_autorig();
 	void renderUI_ikChainEditor(int* item_current_idx);
 	void renderUI_ikTargetEditor();
 
 	/**
 	 * @brief loading logic for primary actor
 	*/
-	void loadCharPrim(std::string path, bool useGLTFIO);
-	void storeCharPrim(std::string path, bool useGLTFIO);
+	enum IOmeth {
+		IOM_ASSIMP,
+		IOM_GLTFIO,
+		IOM_OBJIMP,
+		IOMCOUNT,
+	};
+	
+	void loadCharPrim(std::string path, IOmeth ioM);
+	void storeCharPrim(std::string path, IOmeth ioM);
 
 	bool keyboardAnyKeyPressed();
 	void defaultKeyboardUpdate(Keyboard* pKeyboard);
@@ -83,43 +91,10 @@ private:
 		bool  showTargets = true;
 		bool  cesStartup = false; // start scene with cesium man on startup
 		bool  renderAABB = true; // render line aabb around charEntities when selected
+		std::string pathAnaconda = "";
+		std::string pathRignet = "";
 	} m_settings;
 
-	/**
-	 * @brief compacts info regarding single character
-	*/
-	struct CharEntity : public IPickable {
-		std::string name;
-		T3DMesh<float> mesh;
-		SGNGeometry sgn;
-		std::unique_ptr<StaticActor> actorStatic;
-		std::unique_ptr<IKSkeletalActor> actor;
-		std::unique_ptr<IKController> controller;
-		BoundingVolume bv; // mesh bounding volume
-		bool visible = true;
-
-		int animIdx = 0;
-		int animFrameCurr = 0;
-		SkeletalAnimationController::Animation* pAnimCurr = nullptr;
-
-		//TODO(skade) function to apply transformation on mesh data
-		void pckMove(const Matrix4f& trans) {
-			Vector3f p,s; Quaternionf r;
-			MRMutil::deconstructMatrix(trans,&p,&r,&s);
-			sgn.position(p);
-			sgn.rotation(r);
-			sgn.scale(s);
-		};
-		Matrix4f pckTransGuizmo() {
-			return MRMutil::buildTransformation(sgn);
-		}; // used for guizmo update
-		Matrix4f pckTransPickin() {
-			return MRMutil::buildTransformation(sgn);
-		}; // used for picking evaluation
-		const BoundingVolume& pckBV() {
-			return bv; 
-		};
-	};
 	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
 	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity
 	std::weak_ptr<CharEntity> m_charEntitySec; // secondary char entity for operations
@@ -157,9 +132,17 @@ private:
 	IKController::SkeletalJoint* m_ikceRootJoint = nullptr;
 	IKController::SkeletalJoint* m_ikceEndEffJoint = nullptr;
 	// gui popup
-	bool m_showPopPreferences = false;
-	bool m_showPopChainEdit = false;
-	std::string m_cesStartupStr = "load cesium man on startup";
+	enum AppPopups {
+		POP_PREF = 0,
+		POP_CHAINED,
+		POP_AR_PINOC,
+		POP_AR_RIGNET,
+		POP_COUNT,
+	};
+	std::vector<bool> m_showPop = std::vector<bool>(POP_COUNT,false);
+
+	// consts
+	const std::string m_cesStartupStr = "load cesium man on startup";
 };//MotionRetargetScene
 
 }//CForge

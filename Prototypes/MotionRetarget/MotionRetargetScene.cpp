@@ -1,10 +1,13 @@
 #include "MotionRetargetScene.hpp"
 
 #include "IK/IKChain.hpp"
+#include "CMN/MRMutil.hpp"
 
 #include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
 #include <Prototypes/Assets/GLTFIO/GLTFIO.hpp>
 #include <crossforge/AssetIO/SAssetIO.h>
+
+#include <Prototypes/objImport/objImport.h>
 
 #include <fstream>
 #include <filesystem>
@@ -48,21 +51,25 @@ void MotionRetargetScene::init() {
 
 	m_config.baseLoad();
 	m_config.load(&m_Cam);
-	m_config.load("m_editCam.m_CamIsProj", &m_editCam.m_CamIsProj);
 	m_config.load(&m_RenderWin);
-	m_config.load(m_cesStartupStr.c_str(), &m_settings.cesStartup);
-	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
 
-	m_lineBox.init();
+	m_config.load("m_editCam.m_CamIsProj", &m_editCam.m_CamIsProj);
+	m_config.load(m_cesStartupStr.c_str(), &m_settings.cesStartup);
+
+	m_config.load("path.anaconda", &m_settings.pathAnaconda);
+	m_config.load("path.rignet", &m_settings.pathRignet);
 
 	if (m_settings.cesStartup)
 		initCesiumMan();
+
+	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
+	m_lineBox.init();
 }//initialize
 
 void MotionRetargetScene::clear() {
 	m_config.store(m_Cam);
 	m_config.store("m_editCam.m_CamIsProj", m_editCam.m_CamIsProj);
-	m_config.store(m_cesStartupStr.c_str(), m_settings.cesStartup);
+
 	m_config.baseStore();
 
 	ExampleSceneBase::clear();
@@ -247,7 +254,7 @@ void MotionRetargetScene::mainLoop() {
 		m_RenderWin.swapBuffers();
 	}
 	
-	m_config.store(m_RenderWin);
+	m_config.store(m_RenderWin); // need to store every frame because, clear has m_RenderWin already destructed
 	defaultKeyboardUpdate(m_RenderWin.keyboard());
 	if (m_exitCalled)
 		m_RenderWin.closeWindow();
@@ -255,35 +262,18 @@ void MotionRetargetScene::mainLoop() {
 
 void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
 	std::shared_ptr<CharEntity> c = charEntity.lock();
-	T3DMesh<float>* mesh = &(c->mesh);
-	setMeshShader(mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
-	mesh->computePerVertexNormals(); //TODO(skade) remove
-	if (mesh->rootBone()) {
-		c->controller = std::make_unique<IKController>();
-		c->controller->init(mesh);
+	//setMeshShader(mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
 
-		for (uint32_t i = 0; i < mesh->skeletalAnimationCount(); ++i) {
-			if (mesh->getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
-				c->controller->addAnimationData(mesh->getSkeletalAnimation(i));
-		}
-		c->actor = std::make_unique<IKSkeletalActor>();
-		c->actor->init(mesh, c->controller.get());
+	//TODO(skade)
+	c->init(&m_sgnRoot);
+	//if (c->isStatic)
+	//	c->sgn.init(&m_sgnRoot,c->actorStatic.get());
+	//else
+	//	c->sgn.init(&m_sgnRoot,c->actor.get());
 
-		c->sgn.init(&m_sgnRoot, c->actor.get());
-	}
-	else {
-		c->actorStatic = std::make_unique<StaticActor>();
-		c->actorStatic->init(mesh);
-		c->sgn.init(&m_sgnRoot, c->actorStatic.get());
-	}
-
-	// set bounding volume
-	mesh->computeAxisAlignedBoundingBox();
-	Box aabb = mesh->aabb();
-	c->bv.init(aabb);
-
+	//TODO(skade) autoscale import option in preferences
 	// autoscale
-	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
+	Vector3f scale = Vector3f(2.f,2.f,2.f)/(c->bv.aabb().diagonal().maxCoeff()); //TODO(skade) standard size
 	c->sgn.scale(scale);
 
 	//TODO(skade) SPOT
@@ -310,9 +300,12 @@ void MotionRetargetScene::initCesiumMan() {
 	m_charEntities.emplace_back(std::make_unique<CharEntity>());
 	std::shared_ptr<CharEntity> c = m_charEntities.back();
 	GLTFIO::load(path, &c->mesh);
+
+	//TODO(skade) special init replacement for IK limb loading,
+	//            replace with proper skeleton retarget "config" solution
 	{
 		c->name = std::filesystem::path(path).filename().string();
-		setMeshShader(&c->mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
+		//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
 		c->mesh.computePerVertexNormals(); //TODO(skade) remove?
 		c->controller = std::make_unique<IKController>();
 		c->controller->init(&c->mesh, pathIKConfig);
@@ -359,17 +352,10 @@ void MotionRetargetScene::initIKTargetActor() {
 	m_TargetPos.init(&M);
 }//initIKTargetActor
 
-void MotionRetargetScene::loadCharPrim(std::string path, bool useGLTFIO) {
-	if (useGLTFIO) {
-		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
-			m_charEntities.emplace_back(std::make_shared<CharEntity>());
-			auto c = m_charEntities.back();
-			GLTFIO::load(path,&c->mesh);
-			c->name = std::filesystem::path(path).filename().string();
-			initCharacter(c);
-		}
-	}
-	else {
+void MotionRetargetScene::loadCharPrim(std::string path, IOmeth ioM) {
+	switch (ioM)
+	{
+	case CForge::MotionRetargetScene::IOM_ASSIMP:
 		if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
 			m_charEntities.emplace_back(std::make_shared<CharEntity>());
 			auto c = m_charEntities.back();
@@ -377,20 +363,42 @@ void MotionRetargetScene::loadCharPrim(std::string path, bool useGLTFIO) {
 			SAssetIO::load(path,&c->mesh);
 			initCharacter(c);
 		}
+		break;
+	case CForge::MotionRetargetScene::IOM_GLTFIO:
+		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
+			m_charEntities.emplace_back(std::make_shared<CharEntity>());
+			auto c = m_charEntities.back();
+			GLTFIO::load(path,&c->mesh);
+			c->name = std::filesystem::path(path).filename().string();
+			initCharacter(c);
+		}
+		break;
+	case CForge::MotionRetargetScene::IOM_OBJIMP:
+		break;
+	default:
+		break;
 	}
 }
-void MotionRetargetScene::storeCharPrim(std::string path, bool useGLTFIO) {
+void MotionRetargetScene::storeCharPrim(std::string path, IOmeth ioM) {
 	auto c = m_charEntityPrim.lock();
 	if (!c)
 		return;
 
-	if (useGLTFIO) {
-		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
-			GLTFIO::store(path,&c.get()->mesh);
-	}
-	else {
+	switch (ioM)
+	{
+	case CForge::MotionRetargetScene::IOM_ASSIMP:
 		if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
 			SAssetIO::store(path,&c.get()->mesh);
+		break;
+	case CForge::MotionRetargetScene::IOM_GLTFIO:
+		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
+			GLTFIO::store(path,&c.get()->mesh);
+		break;
+	case CForge::MotionRetargetScene::IOM_OBJIMP:
+		objImportExport::exportAsObjFile(path,&c->mesh);
+		break;
+	default:
+		break;
 	}
 }
 void MotionRetargetScene::renderVisualizers() {
@@ -446,7 +454,7 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (c->controller && m_settings.showTargets) {
-		std::vector<std::shared_ptr<IKTarget>> tar = c->controller->m_targets;
+		std::vector<std::shared_ptr<IKTarget>>& tar = c->controller->m_targets;
 		
 		for (uint32_t i = 0; i < tar.size(); ++i) {
 			//TODO(skade) clean sgnT update loc
@@ -514,14 +522,14 @@ void MotionRetargetScene::defaultKeyboardUpdate(Keyboard* pKeyboard) {
 	}
 
 	if (pKeyboard->keyPressed(Keyboard::KEY_ESCAPE,true)) {
-		if (m_showPopPreferences) {
-			m_showPopPreferences = false;
-			return;
+		// check if popup is open and close instead of exit
+		for (uint32_t i=0;i<POP_COUNT;++i) {
+			if (m_showPop[i]) {
+				m_showPop[i] = false;
+				return;
+			}
 		}
-		if (m_showPopChainEdit) {
-			m_showPopChainEdit = false;
-			return;
-		}
+
 		m_exitCalled = true;
 	}
 }

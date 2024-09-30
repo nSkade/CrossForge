@@ -508,6 +508,11 @@ namespace CForge {
 				for (auto i : pRef->m_Bones) {
 					m_Bones[i->ID]->init(i, &m_Bones);
 				}
+				//TODO SPOT bones func
+				// find root bone
+				for (auto i : m_Bones) {
+					if (i->pParent == nullptr) m_pRootBone = i;
+				}//for[all bones]
 
 				// copy skeletal animations
 				for (auto i : pRef->m_SkeletalAnimations) {
@@ -555,6 +560,7 @@ namespace CForge {
 				if (nullptr != i) delete i;
 			}
 			m_Bones.clear();
+			m_pRootBone = nullptr;
 		}//clearSkeleton
 
 		/**
@@ -625,10 +631,11 @@ namespace CForge {
 			for (auto i : m_Bones) delete i;
 			m_Bones.clear();
 			
-			if (nullptr != pBones && Copy) {	
+			if (nullptr != pBones && Copy) {
 				// create bones
 				for (size_t i = 0; i < pBones->size(); ++i) m_Bones.push_back(new Bone());
 
+				//TODO(skade) bad assumption that ID == i
 				for (size_t i = 0; i < pBones->size(); ++i) {
 					// copy data
 					m_Bones[i]->ID = i;
@@ -694,7 +701,7 @@ namespace CForge {
 				pSM = new Submesh();
 				pSM->init(pSubmesh);
 			}
-			m_Submeshes.push_back(pSM);			
+			m_Submeshes.push_back(pSM);
 		}//addSubmesh
 
 		/**

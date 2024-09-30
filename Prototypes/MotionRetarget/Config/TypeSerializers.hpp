@@ -9,15 +9,13 @@ namespace nlohmann {
 template <>
 struct adl_serializer<Eigen::Matrix4f> {
 	static void to_json(json& j, const Eigen::Matrix4f& v) {
-		std::vector<float> d;
-		for (uint32_t i=0;i<16;++i)
-			d.push_back(v.data()[i]);
-		j = d;
+		j = std::vector<float>(v.data(),v.data()+16);
 	}
 	static void from_json(const json& j, Eigen::Matrix4f& v) {
 		std::vector<float> d = j;
-		for (uint32_t i=0;i<16;++i)
-			v.data()[i] = d[i];
+		assert(d.size() == 16);
+
+		std::copy(d.data(),d.data()+16,v.data());
 	}
 };
 

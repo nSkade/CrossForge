@@ -50,34 +50,6 @@ void IKController::init(T3DMesh<float>* pMesh) {
 	if (pMesh->skeletalAnimationCount() > 0)
 		pAnimation = pMesh->getSkeletalAnimation(0); // used as initial pose of skeleton
 
-	//TODO(skade) add option
-	//for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
-	//	const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
-	//	SkeletalJoint* pJoint = new SkeletalJoint();
-
-	//	pJoint->ID = pRef->ID;
-	//	pJoint->Name = pRef->Name;
-
-	//	Matrix4f iom = pRef->InvBindPoseMatrix.inverse();
-
-	//	//TODOf(skade) insert rest pose values with solver: loc*paret * offset = identity (skinningmat)
-
-	//	// iom = p * r * s
-	//	pJoint->LocalPosition = iom.block<3,1>(0,3);
-	//	pJoint->LocalRotation = Quaternionf(iom.block<3,3>(0,0));
-	//	pJoint->LocalScale = Vector3f(1.,1.,1.);
-	//	//pJoint->LocalScale = Vector3f(iom.data()[0],iom.data()[5],iom.data()[10]);
-	//	//pJoint->LocalScale = iom.block<3,3>(0,0).inverse()*pJoint->LocalScale;
-
-	//	//pJoint->LocalScale = pAnimation->Keyframes[i]->Scalings[0];
-	//	//pJoint->LocalPosition = pAnimation->Keyframes[i]->Positions[0];
-	//	//pJoint->LocalRotation = pAnimation->Keyframes[i]->Rotations[0].normalized();
-	//	
-	//	pJoint->OffsetMatrix = pRef->InvBindPoseMatrix;
-	//	pJoint->SkinningMatrix = Matrix4f::Identity(); // computed during applyAnimation()
-	//	m_Joints.push_back(pJoint);
-	//}
-
 	// compute local joint parameters for restpose
 	for (uint32_t i = 0; i < pMesh->boneCount(); ++i)
 		m_Joints.emplace_back(new SkeletalJoint());
@@ -117,6 +89,7 @@ void IKController::init(T3DMesh<float>* pMesh) {
 
 		pJoint->Parent = (pRef->pParent != nullptr) ? pRef->pParent->ID : -1;
 
+		pJoint->Children.reserve(pRef->Children.size());
 		for (uint32_t k = 0; k < pRef->Children.size(); ++k)
 			pJoint->Children.push_back(pRef->Children[k]->ID);
 	}//for[bones]
@@ -158,8 +131,8 @@ void IKController::init(T3DMesh<float>* pMesh) {
 
 	for (uint32_t i=0;i<m_Joints.size();++i)
 		m_jointPickables[m_Joints[i]] = std::make_shared<JointPickable>(&m_jointPickableMesh,m_Joints[i],this);
-	for (auto& jp : m_jointPickables)
-		jp.second->init();
+	for (auto& [sj,jp] : m_jointPickables)
+		jp->init();
 		//m_jointPickables.emplace_back(std::make_shared<JointPickable>(&m_jointPickableMesh,m_Joints[i],this));
 
 	initJointProperties(pMesh);
@@ -184,15 +157,6 @@ void IKController::clear(void) {
 		delete m_Joints[i];
 	m_Joints.clear();
 	
-	//TODO(skade) constraints?
-	//for (auto& i : m_IKJoints) {
-	//	if (i.second) {
-	//		//TODO(skade) limits
-	//		//if (i.second->pLimits) delete i.second->pLimits;
-	//		delete i.second;
-	//		i.second = nullptr;
-	//	}
-	//}
 	m_IKJoints.clear();
 	getJointChains().clear();
 	
@@ -398,15 +362,12 @@ void IKController::initTargetPoints() {
 void IKController::clearTargetPoints() {
 	for (auto& c : getJointChains())
 		c.target.reset();
-		//c.second.target = nullptr;
 	m_targets.clear();
 }
 
 //TODO(skade)
 void IKController::updateTargetPoints() {
 	for (auto& c : getJointChains()) {
-		//IKJoint* eff = m_IKJoints[c.second.joints[0]];
-		//IKTarget* nt = c.second.target;
 		IKJoint& eff = m_IKJoints[c.joints[0]];
 		if (IKTarget* nt = c.target.lock().get())
 			nt->pos = eff.posGlobal;
@@ -458,6 +419,7 @@ void IKController::forwardKinematics(SkeletalJoint* pJoint) {
 void IKController::retrieveSkinningMatrices(std::vector<Matrix4f>* pSkinningMats) {
 	if (nullptr == pSkinningMats) throw NullpointerExcept("pSkinningMats");
 	pSkinningMats->clear();
+	pSkinningMats->reserve(m_Joints.size());
 	for (auto i : m_Joints)
 		pSkinningMats->push_back(i->SkinningMatrix);
 }//retrieveSkinningMatrices

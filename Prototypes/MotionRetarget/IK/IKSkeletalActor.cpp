@@ -14,7 +14,7 @@ namespace CForge {
 
 	void IKSkeletalActor::init(T3DMesh<float>* pMesh, IKController* pController) {
 		clear();
-		initBuffer(pMesh,false);
+		initBuffer(pMesh,true);
 
 		m_pAnimationController = pController;
 		m_BV.init(*pMesh, BoundingVolume::TYPE_AABB);
@@ -76,4 +76,16 @@ namespace CForge {
 	IKController* IKSkeletalActor::getController() {
 		return m_pAnimationController;
 	}
+
+	Eigen::Vector3f IKSkeletalActor::transformVertex(int32_t Index) {
+		if (0 == m_SkinVertexes.size()) throw CForgeExcept("Class not prepared for CPU skinning!");
+		if (0 > Index || Index >= m_SkinVertexes.size()) throw IndexOutOfBoundsExcept("Index");
+		
+		auto* pV = m_SkinVertexes[Index];
+
+		const Eigen::Vector4i I = Eigen::Vector4i(pV->BoneInfluences[0], pV->BoneInfluences[1], pV->BoneInfluences[2], pV->BoneInfluences[3]);
+		const Eigen::Vector4f W = Eigen::Vector4f(pV->BoneWeights[0], pV->BoneWeights[1], pV->BoneWeights[2], pV->BoneWeights[3]);
+
+		return m_pAnimationController->transformVertex(m_SkinVertexes[Index]->V, I, W);
+	}//transformVertex
 }//CForge

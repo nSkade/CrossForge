@@ -38,30 +38,8 @@ public:
 	//TODO(skade) remove, unnused
 	//void updateBones(Animation* pAnim);
 
-	//TODO(skade) remove?
-	//TODO(skade) make ptr ref
-	//std::vector<IKChain>& getIKChains() {
-	//	//std::vector<IKChain*> ret;
-	//	//for (auto& a : getJointChains())
-	//	//	ret.emplace_back(&a);
-	//	//	//ret.emplace_back(&a.second);
-	//	//return ret; 
-	//}
-	//TODO(skade) decouple targets from chains, remove
-	//IKChain* getIKChain(IKTarget* target) {
-	//	for (auto& a : getJointChains()) {
-	//		//if (a.second.target == target)
-	//		//	return &a.second;
-	//		if (a.target == target)
-	//			return &a;
-	//	}
-	//	return nullptr;
-	//}
-
 	IKChain* getIKChain(std::string name) {
 		for (auto& a : getJointChains()) {
-			//if (a.second.target == target)
-			//	return &a.second;
 			if (a.name == name)
 				return &a;
 		}
@@ -93,8 +71,9 @@ public:
 
 	std::vector<std::weak_ptr<JointPickable>> getJointPickables() {
 		std::vector<std::weak_ptr<JointPickable>> ret;
-		for (auto j : m_jointPickables)
-			ret.push_back(j.second);
+		ret.reserve(m_jointPickables.size());
+		for (auto& [sj,jp] : m_jointPickables)
+			ret.push_back(jp);
 		return ret;
 	};
 	std::weak_ptr<JointPickable> getJointPickable(SkeletalJoint* joint) {

@@ -83,7 +83,7 @@ namespace CForge {
 			pRG->Range.y() = BufferPointer;
 
 			// initialize shader
-			if (UsedMaterial != -1) {	
+			if (UsedMaterial != -1) {
 				
 				const T3DMesh<float>::Material* pMat = pMesh->getMaterial(UsedMaterial);
 

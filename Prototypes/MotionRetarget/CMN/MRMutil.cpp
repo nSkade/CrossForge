@@ -17,8 +17,8 @@ Matrix4f buildTransformation(ISceneGraphNode& sgn) {
 void deconstructMatrix(Matrix4f t, Vector3f* pos, Quaternionf* rot, Vector3f* scale) {
 	*pos = t.block<3,1>(0,3);
 	*scale = Vector3f(t.block<3,1>(0,0).norm(),
-	                          t.block<3,1>(0,1).norm(),
-	                          t.block<3,1>(0,2).norm());
+	                  t.block<3,1>(0,1).norm(),
+	                  t.block<3,1>(0,2).norm());
 	Matrix3f rotScale;
 	rotScale.row(0) = *scale;
 	rotScale.row(1) = *scale;

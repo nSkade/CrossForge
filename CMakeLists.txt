@@ -21,7 +21,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 #TODO(skade) time build
 #if(CMAKE_GENERATOR MATCHES "Ninja")
-#  set(CMAKE_NINJA_FLAGS "-d explain -d timing")
+#	set(CMAKE_NINJA_FLAGS "-d explain -d timing")
 #endif()
 
 # create required directories if non existent 
@@ -133,6 +133,8 @@ add_executable(CForgeSandbox
 	"Prototypes/MotionRetarget/MotionRetargetScene.cpp"
 	"Prototypes/MotionRetarget/MotionRetargetUI.cpp"
 
+	"Prototypes/MotionRetarget/CharEntity.cpp"
+
 	"Prototypes/MotionRetarget/IK/IKController.cpp"
 	"Prototypes/MotionRetarget/IK/IKSkeletalActor.cpp"
 
@@ -159,9 +161,17 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/CMN/EigenFWD.cpp
 	"Prototypes/MotionRetarget/CMN/MRMutil.cpp"
 	"Prototypes/MotionRetarget/UI/LineBox.cpp"
- "Prototypes/MotionRetarget/IK/Solver/JacInvSolver.cpp" )
+	 "Prototypes/MotionRetarget/IK/Solver/JacInvSolver.cpp"
+	 #"Prototypes/MotionRetarget/IK/Solver/AnalyticSolver.cpp"
+
+	 "Prototypes/objImport/objImport.cpp"
+ )
 
 #TODO(skade) optimize gltfio TODO debug
+#string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+#target_compile_options(CForgeSandbox PRIVATE "${CMAKE_CXX_FLAGS_DEBUG}")
+
 #set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOutil.cpp PROPERTIES COMPILE_FLAGS -O2)
 #set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOread.cpp PROPERTIES COMPILE_FLAGS -O2)
 #set_source_files_properties(Prototypes/Assets/GLTFIO/GLTFIOwrite.cpp PROPERTIES COMPILE_FLAGS -O2)
@@ -198,11 +208,13 @@ elseif(WIN32)
 
 	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # -bigobj") # necessary?
 	if (MSVC)
+		#TODO(skade)
 		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /d1reportTime")
-		#set_source_files_properties(
-		#	Prototypes/MotionRetarget/MotionRetargetScene.cpp
-		#	PROPERTIES COMPILE_OPTIONS /d1reportTime
-		#)
+		set_source_files_properties(
+			#Prototypes/MotionRetarget/MotionRetargetScene.cpp
+			#"Prototypes/MotionRetarget/IK/Solver/JacInvSolver.cpp"
+			PROPERTIES COMPILE_OPTIONS /d1reportTime
+		)
 	endif()
 	target_link_libraries(CForgeSandbox 
 		PRIVATE crossforge
@@ -320,6 +332,17 @@ target_link_libraries(Pinocchio
 	PRIVATE crossforge
 )
 
+if (WIN32)
+	# disable msvc runtime checks for o2
+	# https://learn.microsoft.com/de-de/cpp/build/reference/rtc-run-time-error-checks?view=msvc-170
+	# https://learn.microsoft.com/de-de/cpp/preprocessor/runtime-checks?view=msvc-170
+	string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+	target_compile_options(Pinocchio PRIVATE "${CMAKE_CXX_FLAGS_DEBUG}")
+	target_compile_options(Pinocchio PRIVATE /O2)
+endif (WIN32)
+
+#TODO(skade) time translation unit compile time
 # Set global property (all targets are impacted)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 set_property(TARGET CForgeSandbox PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")

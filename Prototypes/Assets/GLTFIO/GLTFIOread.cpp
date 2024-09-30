@@ -31,20 +31,21 @@ namespace CForge {
 		for (int i = 0; i < m_model.meshes.size(); i++) {
 			Mesh currentMesh = m_model.meshes[i];
 
-			T3DMesh<float>::Submesh* pParentSubmesh;
+			//T3DMesh<float>::Submesh* pParentSubmesh;
 
-			for (int j = 0; j < m_model.nodes.size(); j++) {
-				if (m_model.nodes[j].mesh == i) {
-					pParentSubmesh = m_pMesh->getSubmesh(j);
-					break;
-				}
-			}
+			//for (int j = 0; j < m_model.nodes.size(); j++) {
+			//	if (m_model.nodes[j].mesh == i) {
+			//		pParentSubmesh = m_pMesh->getSubmesh(j);
+			//		break;
+			//	}
+			//}
 
 			for (int k = 0; k < currentMesh.primitives.size(); k++) {
 				Primitive currentPrimitive = currentMesh.primitives[k];
 
-				auto pSubmesh = readPrimitive(&currentPrimitive);
+				T3DMesh<float>::Submesh* pSubmesh = readPrimitive(&currentPrimitive);
 
+				//TODO(skade)
 				//pParentSubmesh->Children.push_back(pSubmesh);
 				//pSubmesh->pParent = pParentSubmesh;
 			}
@@ -683,7 +684,7 @@ namespace CForge {
 		for (int i = 0; i < m_model.nodes.size(); i++) {
 			Node node = m_model.nodes[i];
 
-			T3DMesh<float>::Submesh* pSubmesh = new T3DMesh<float>::Submesh;
+			//T3DMesh<float>::Submesh* pSubmesh = new T3DMesh<float>::Submesh;
 
 			//TODO(skade) Submesh transform
 			//if (node.matrix.size()) {
@@ -715,7 +716,7 @@ namespace CForge {
 
 			//pSubmesh->pParent = nullptr;
 
-			m_pMesh->addSubmesh(pSubmesh, false);
+			//m_pMesh->addSubmesh(pSubmesh, false);
 		}
 
 
