@@ -87,6 +87,12 @@ void LineBox::update(const Box& aabb) {
 }
 void LineBox::render(RenderDevice* pRDev, const Box& b, Matrix4f sgnT) {
 	update(b);
+	
+	// set ogl line rendering mode
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glDisable(GL_CULL_FACE);
+	glLineWidth(1);
+
 	pRDev->activeShader(m_AABBshader);
 	m_AABBvertArray.bind();
 	pRDev->modelUBO()->modelMatrix(sgnT);
@@ -96,6 +102,10 @@ void LineBox::render(RenderDevice* pRDev, const Box& b, Matrix4f sgnT) {
 	glDrawElements(GL_TRIANGLE_STRIP, 14, GL_UNSIGNED_INT, nullptr);
 	glDisable(GL_BLEND);
 	m_AABBvertArray.unbind();
+
+	// disable ogl line rendering
+	glEnable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 }//CForge

@@ -161,6 +161,7 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/CMN/EigenFWD.cpp
 	"Prototypes/MotionRetarget/CMN/MRMutil.cpp"
 	"Prototypes/MotionRetarget/UI/LineBox.cpp"
+	"Prototypes/MotionRetarget/UI/EditGrid.cpp"
 	 "Prototypes/MotionRetarget/IK/Solver/JacInvSolver.cpp"
 	 #"Prototypes/MotionRetarget/IK/Solver/AnalyticSolver.cpp"
 

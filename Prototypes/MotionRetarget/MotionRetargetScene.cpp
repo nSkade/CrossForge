@@ -64,6 +64,7 @@ void MotionRetargetScene::init() {
 
 	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
 	m_lineBox.init();
+	m_editGrid.init();
 }//initialize
 
 void MotionRetargetScene::clear() {
@@ -403,9 +404,6 @@ void MotionRetargetScene::storeCharPrim(std::string path, IOmeth ioM) {
 }
 void MotionRetargetScene::renderVisualizers() {
 	if (m_settings.renderAABB) {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glDisable(GL_CULL_FACE);
-		glLineWidth(1);
 		if (auto c = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
 			Matrix4f m = MRMutil::buildTransformation(c->sgn);
 			m_lineBox.color = Vector4f(227./255,142./255,48./255,.75);
@@ -416,9 +414,12 @@ void MotionRetargetScene::renderVisualizers() {
 			m_lineBox.color = Vector4f(227./255,142./255,48./255,.25);
 			m_lineBox.render(&m_RenderDev,c->bv.aabb(),m);
 		}
-		glEnable(GL_CULL_FACE);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+
+	//TODOf(skade) rotate grid when ortographic view depending on largest cam view vector component
+		//if (!m_editCam.m_CamIsProj)
+	if (m_settings.renderDebugGrid)
+		m_editGrid.render(&m_RenderDev,m_settings.gridSize);
 
 	for (uint32_t i=0;i<m_charEntities.size();++i) {
 		if (m_charEntities[i]->visible)

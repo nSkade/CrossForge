@@ -620,12 +620,10 @@ void MotionRetargetScene::renderUI_tools() {
 		m_guizmoViewManipChanged = false;
 	m_Cam.cameraMatrix(cameraMat);
 
-	if (m_settings.renderDebugGrid) {
-		//TODOf(skade) rotate grid when ortographic view depending on largest cam view vector component
-		//if (!m_editCam.m_CamIsProj)
-		
-		ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix.data(), m_settings.gridSize);
-	}
+	//TODOff(skade) old imguizmo grid, remove
+	//if (m_settings.renderDebugGrid) {
+	//	ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix.data(), m_settings.gridSize);
+	//}
 
 	ImGui::End();
 }

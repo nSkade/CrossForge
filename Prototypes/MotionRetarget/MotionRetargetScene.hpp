@@ -15,6 +15,7 @@
 
 #include "UI/ViewManipulate.hpp"
 #include "UI/LineBox.hpp"
+#include "UI/EditGrid.hpp"
 
 namespace CForge {
 
@@ -106,6 +107,7 @@ private:
 	EditCamera m_editCam;
 	Picker m_picker;
 	LineBox m_lineBox;
+	EditGrid m_editGrid;
 
 	Guizmo m_guizmo;
 	ViewManipulate m_viewManipulate;
