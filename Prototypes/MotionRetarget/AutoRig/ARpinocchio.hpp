@@ -9,9 +9,14 @@ namespace nsPiT = nsPinocchioTools;
 namespace CForge {
 using namespace Eigen;
 
-class ARpinocchio : IAutoRigger {
+struct ARpinocchioOptions {
+
+};
+
+class ARpinocchio : IAutoRigger<ARpinocchioOptions> {
 public:
-	void rig(T3DMesh<float>* mesh) {
+
+	void rig(T3DMesh<float>* mesh, ARpinocchioOptions options) {
 		nsPiT::CVScalingInfo cvsInfo;
 
 		nsPinocchio::Skeleton skl = nsPinocchio::HumanSkeleton(); //TODOf(skade) other predefined skl in skeleton.h

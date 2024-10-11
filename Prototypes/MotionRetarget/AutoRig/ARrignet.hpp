@@ -10,7 +10,12 @@
 namespace CForge {
 using namespace Eigen;
 
-class ARrignet : IAutoRigger {
+struct ARrignetOptions {
+	float bandwidth = 0.0429;
+	float threshold = 1e-5;
+};
+
+class ARrignet : IAutoRigger<ARrignetOptions> {
 public:
 	//TODO(skade) config
 
@@ -20,7 +25,7 @@ public:
 	// path to rignet root, folder which should contain quick_start.py
 	std::string rignetPath;//"\"C:/Users/Admin/Desktop/BA Shared/5. Autorigging/RigNet\"";
 
-	void rig(T3DMesh<float>* mesh) {
+	void rig(T3DMesh<float>* mesh, ARrignetOptions options) {
 
 		// merge vertices
 		T3DMesh<float> mergedMesh = *mesh;
@@ -51,9 +56,17 @@ public:
 		std::string exePath = std::filesystem::current_path().string();
 
 		command.append(" & cd \""+rignetPath + "/\"");
-		command.append(" & python quick_start.py \"" + exePath + "/" + objPath + "\" mesh");
+		command.append(" & python quick_start.py");
+
+		// rignet arg
+		command.append(" \"" + exePath + "/" + objPath + "\""); // input folder
+		command.append(" mesh"); // filename
+		command.append(" " + std::to_string(options.bandwidth)); // bandwidth
+		command.append(" " + std::to_string(options.threshold)); // treshold
+
 		//command.append(" & cd"); // cd is exe root
 
+		std::cout << command << std::endl;
 		// run script
 		std::system(command.c_str());
 

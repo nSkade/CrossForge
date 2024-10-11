@@ -1000,6 +1000,14 @@ void MotionRetargetScene::renderUI_autorig() {
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 		if (ImGui::Begin("autorig rignet", &popState)) {
+
+			static ARrignetOptions options;
+			ImGui::DragFloat("bandwidth",&options.bandwidth,0.01f,0.f,0.f,"%.10f");
+			ImGui::DragFloat("threshold",&options.threshold,0.01f,0.f,0.f,"%.10f");
+			if (ImGui::Button("reset options")) {
+				options = ARrignetOptions();
+			}
+
 			if (ImGui::Button("Confirm")) {
 				
 				ARrignet arr;
@@ -1007,7 +1015,8 @@ void MotionRetargetScene::renderUI_autorig() {
 				arr.rignetPath = m_settings.pathRignet;
 
 				if (auto e = m_charEntityPrim.lock()) {
-					arr.rig(&e->mesh);
+					arr.rig(&e->mesh,options);
+					options = ARrignetOptions(); // reset params
 					initCharacter(e);
 				}
 				
@@ -1029,7 +1038,7 @@ void MotionRetargetScene::renderUI_autorig() {
 				
 				ARpinocchio arp;
 				if (auto e = m_charEntityPrim.lock()) {
-					arp.rig(&e->mesh);
+					arp.rig(&e->mesh,ARpinocchioOptions());
 					initCharacter(e);
 				}
 				

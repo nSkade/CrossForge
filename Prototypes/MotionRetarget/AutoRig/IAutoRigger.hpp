@@ -4,9 +4,10 @@
 
 namespace CForge {
 
+template<typename AROptions>
 class IAutoRigger {
 public:
-	virtual void rig(T3DMesh<float>* mesh) = 0;
+	virtual void rig(T3DMesh<float>* mesh, AROptions options) = 0;
 };
 
 }//CForge

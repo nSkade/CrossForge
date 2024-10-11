@@ -154,8 +154,8 @@ void EditGrid::render(RenderDevice* pRDev,float fadeOutDist) {
 	m_vertArray.bind();
 
 	Matrix4f sgnT = Matrix4f::Identity(); //TODO(skade) grid scale
-	sgnT[0] = fadeOutDist*20.*2.;
-	sgnT[10] = fadeOutDist*20.*2.;
+	sgnT(0,0) = fadeOutDist*20.*2.;
+	sgnT(2,2) = fadeOutDist*20.*2.;
 	//sgnT[0] = 100.;
 	//sgnT[10] = 100.;
 	

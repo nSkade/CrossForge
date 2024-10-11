@@ -62,8 +62,10 @@ void CharEntity::removeArmature(SGNTransformation* sgnRoot) {
 void CharEntity::applyTransformToMesh(SGNTransformation* sgnRoot) {
 	Matrix4f t = MRMutil::buildTransformation(sgn);
 
+	// apply transfrom on all vertices
 	for (uint32_t i = 0; i < mesh.vertexCount(); ++i) {
-		Vector4f v = mesh.vertex(i);
+		Vector4f v;
+		v.block<3,1>(0,0) = mesh.vertex(i);
 		v.w() = 1.;
 		v = t*v;
 		mesh.vertex(i) = v.block<3,1>(0,0);
@@ -82,7 +84,9 @@ void CharEntity::applyTransformToMesh(SGNTransformation* sgnRoot) {
 		t2.block<3,3>(0,0) = rot.toRotationMatrix();
 
 		mesh.getBone(i)->InvBindPoseMatrix = mesh.getBone(i)->InvBindPoseMatrix * t2.inverse();
-		mesh.getBone(i)->InvBindPoseMatrix.block<3,1>(0,3) *= scale; //TODO(skade) correct?
+		Vector3f ibpPos = mesh.getBone(i)->InvBindPoseMatrix.block<3,1>(0,3);
+		ibpPos = ibpPos.cwiseProduct(scale); //TODO(skade) correct?
+		mesh.getBone(i)->InvBindPoseMatrix.block<3,1>(0,3) = ibpPos;
 	}
 
 	//TODO(skade) animations
@@ -93,7 +97,7 @@ void CharEntity::applyTransformToMesh(SGNTransformation* sgnRoot) {
 		
 		//TODO(skade) scale not ideal? apply all scale to pos instead?
 		for (uint32_t k = 0; k < kf->Scalings.size(); ++k) {
-			kf->Scalings[k] = scale * kf->Scalings[k];
+			kf->Scalings[k] = scale.cwiseProduct(kf->Scalings[k]);
 		}
 
 		for (uint32_t k = 0; k < kf->Rotations.size(); ++k) {
