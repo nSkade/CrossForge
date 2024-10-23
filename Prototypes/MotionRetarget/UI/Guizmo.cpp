@@ -47,7 +47,7 @@ namespace CForge {
 				ImGuizmo::DrawCubes(cameraView, cameraProjection, (*m_pMat).data(), 1);
 			m_manipulated = ImGuizmo::Manipulate(cameraView, cameraProjection, m_CurrentGizmoOperation, m_CurrentGizmoMode,
 								(*m_pMat).data(),NULL,m_useSnap ? snap.data() : NULL);
-			//TODOf(skade) ,boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
+			//TODOfff(skade) ,boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
 		}
 	}
 	void Guizmo::renderOptions() {

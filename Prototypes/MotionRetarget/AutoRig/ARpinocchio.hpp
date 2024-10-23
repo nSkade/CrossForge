@@ -19,12 +19,12 @@ public:
 	void rig(T3DMesh<float>* mesh, ARpinocchioOptions options) {
 		nsPiT::CVScalingInfo cvsInfo;
 
-		nsPinocchio::Skeleton skl = nsPinocchio::HumanSkeleton(); //TODOf(skade) other predefined skl in skeleton.h
-		nsPinocchio::Mesh piM;// = new nsPinocchio::Mesh(); //("MyAssets/muppetshow/Model1.obj"); //TODO(skade) test original
+		nsPinocchio::Skeleton skl = nsPinocchio::HumanSkeleton(); //TODOff(skade) other predefined skl in skeleton.h
+		nsPinocchio::Mesh piM;// = new nsPinocchio::Mesh(); //("MyAssets/muppetshow/Model1.obj"); //TODOff(skade) test original
 		nsPiT::convertMesh(*mesh, &piM);
 		nsPinocchio::PinocchioOutput rig = nsPiT::autorig(skl, &piM);
 
-		//TODOf(skade) fix bones, wrong
+		//TODOff(skade) fix bones, wrong
 		std::vector<T3DMesh<float>::Bone*> bones;
 		{ // create bone list
 			for (auto [name, idx] : skl.jointNames) {
@@ -33,7 +33,7 @@ public:
 				b->ID = idx;
 				b->Name = name;
 
-				//TODO(skade) construct invBindPose mat
+				//TODOff(skade) construct invBindPose mat
 				nsPinocchio::Vector3 piPos = skl.fGraph().verts[idx];
 				Vector3f pos = Vector3f(piPos[0],piPos[1],piPos[2]);
 				b->InvBindPoseMatrix = Matrix4f::Identity();
@@ -89,7 +89,7 @@ public:
 		if (rig.attachment)
 			nsPiT::applyWeights(&skl, &piM, mesh, cvsInfo, rig, mesh->vertexCount());
 		else
-			std::cerr << "ARpinocchio::rig failed, rig contains no attachment." << std::endl; //TODO(skade)
+			std::cerr << "ARpinocchio::rig failed, rig contains no attachment." << std::endl; //TODOff(skade)
 
 		// do not delete, we dont copy bones
 		//for (uint32_t i=0;i<bones.size();++i)

@@ -4,16 +4,15 @@
 #include "UI/ImGuiStyle.hpp"
 #include "Animation/IKSequencer.hpp"
 #include <crossforge/AssetIO/UserDialog.h>
-//TODO(skade) for ImGuiUtility::initImGui replace
+//TODOff(skade) for ImGuiUtility::initImGui replace
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
-//TODO(skade)
 
 #include <imgui_stdlib.h>
 
-#include "AutoRig/ARpinocchio.hpp" //TODO(skade) into Scene instead of here
-#include "AutoRig/ARrignet.hpp" //TODO(skade) into Scene instead of here
+#include "AutoRig/ARpinocchio.hpp" //TODOff(skade) into Scene instead of here
+#include "AutoRig/ARrignet.hpp" //TODOff(skade) into Scene instead of here
 
 #include "CMN/MergeVertices.hpp"
 
@@ -29,7 +28,7 @@ auto ComboStr = [](const char* label, int* current_item, const std::vector<std::
 namespace CForge {
 
 void MotionRetargetScene::initUI() {
-	//TODO(skade) copied out of for now, order important?
+	//TODOff(skade) copied out of for now, order important?
 	//ImGuiUtility::initImGui(&m_RenderWin);
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -53,7 +52,6 @@ void MotionRetargetScene::initUI() {
 
 	ImGui_ImplGlfw_InitForOpenGL(static_cast<::GLFWwindow*>(m_RenderWin.handle()), true);
 	ImGui_ImplOpenGL3_Init("#version 330 core");
-	//TODO(skade) end
 }
 void MotionRetargetScene::cleanUI() {
 	ImGuiUtility::shutdownImGui();
@@ -72,10 +70,11 @@ void MotionRetargetScene::renderUI() {
 	renderUI_tools();
 	renderUI_ik();
 	renderUI_autorig();
+	renderUI_autoMoRe();
 
 	ImGuiUtility::render();
 
-	//TODOf(skade) move imgui outside glfw viewport, windows only
+	//TODOfff(skade) move imgui outside glfw viewport, windows only
 	//ImGuiIO& io = ImGui::GetIO();
 	//if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	//{
@@ -120,7 +119,6 @@ IKController::SkeletalJoint* MotionRetargetScene::renderUI_OutlinerJoints(std::s
 	return clickedNode;
 }
 
-//TODO(skade) cleanup
 void MotionRetargetScene::renderUI_Outliner() {
 
 	ImGui::Begin("Outliner");
@@ -137,7 +135,8 @@ void MotionRetargetScene::renderUI_Outliner() {
 		ImGui::Text(item.c_str());
 	}
 	ImGui::Separator();
-	//TODO(skade) make selectable
+
+	//TODOff(skade) make selectable
 	for (uint32_t i=0;i<m_charEntities.size();++i) {
 		auto c = m_charEntities[i];
 		if (!c)
@@ -146,6 +145,8 @@ void MotionRetargetScene::renderUI_Outliner() {
 			if (ImGui::CollapsingHeader("visiblity options")) {
 				bool oldVis = c->visible;
 				ImGui::Checkbox("visible",&c->visible);
+
+				//TODO(skade) dont detach from rendering because of anim controller update?
 				if (oldVis != c->visible) {
 					if (c->visible)
 						m_sgnRoot.addChild(&c->sgn);
@@ -161,7 +162,7 @@ void MotionRetargetScene::renderUI_Outliner() {
 					for (auto jp : jps)
 						jp.lock()->setOpacity(jpo);
 
-					//TODOf(skade) improve usage
+					//TODOff(skade) improve usage
 					// need to set highlight behavior for all joints
 					static bool hullHighlight = true;
 					ImGui::Checkbox("hull highlight",&hullHighlight);
@@ -213,12 +214,9 @@ void MotionRetargetScene::renderUI_Outliner() {
 		} // if main tree node
 	} // for charEntities
 	
-	//TODO(skade) make Modal window for joint matching
-	
 	ImGui::End();
 }
 
-//TODO(skade)
 void MotionRetargetScene::renderUI_animation() {
 	ImGui::Begin("Animation");
 	auto c = m_charEntityPrim.lock();
@@ -235,6 +233,8 @@ void MotionRetargetScene::renderUI_animation() {
 	ImGui::ComboStr("select animation",&c->animIdx,items,items.size());
 
 	if (c->animIdx > 0) { // anim selected
+
+		//TODOff(skade) move into char entity?
 		if (c->pAnimCurr && c->animIdx - 1 != c->pAnimCurr->AnimationID) { // Animation changed
 			c->controller->destroyAnimation(c->pAnimCurr);
 			c->actor->activeAnimation(nullptr);
@@ -273,14 +273,15 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	ImGui::Begin("Sequencer");
 
 	// sequence with default values
-	//TODO(skade) make member
+	//TODOff(skade) make member
 	static MySequence mySequence;
 	static bool init = false;
 	if (!init) {
 		mySequence.mFrameMin = 0;
 		mySequence.mFrameMax = 1000;
-		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 0, 0, 10, false}); //TODO(skade)
-		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 0, 0, int(pAnim->Duration*pAnim->SamplesPerSecond), false }); //TODO(skade)
+		//TODOff(skade)
+		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 0, 0, 10, false});
+		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 0, 0, int(pAnim->Duration*pAnim->SamplesPerSecond), false });
 		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 1, 20, 30, true });
 		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 3, 12, 60, false });
 		//mySequence.myItems.push_back(MySequence::MySequenceItem{ 2, 61, 90, false });
@@ -293,7 +294,7 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	if (auto c = m_charEntityPrim.lock()) {
 		if (c->pAnimCurr) {
 			int animFrameCount = c->pAnimCurr->Duration * c->pAnimCurr->SamplesPerSecond;
-			//int animFrameCount = c->controller->animation(c->pAnimCurr->AnimationID)->Keyframes[0]->Positions.size(); //TODO(skade)
+			//int animFrameCount = c->controller->animation(c->pAnimCurr->AnimationID)->Keyframes[0]->Positions.size(); //TODOf(skade)
 			animFrameCount -= 1; // visualizer is inclusive
 			mySequence.myItems.push_back(MySequence::MySequenceItem{0,0,animFrameCount,false});
 			animFrameCurr = c->animFrameCurr;
@@ -305,10 +306,20 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	ImGui::SameLine();
 	ImGui::InputInt("Min \t\t", &mySequence.mFrameMin);
 	ImGui::SameLine();
-	ImGui::InputInt("Max", &mySequence.mFrameMax);
+	ImGui::InputInt("Max \t\t", &mySequence.mFrameMax);
 	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	ImGui::Text("Keyframe: ");
+	ImGui::SameLine();
+	if (ImGui::Button("Set")) {
 
-	//TODO(skade) make member
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Get")) {
+
+	}
+
+	//TODOff(skade) make member
 	static int selectedEntry = -1;
 	static int firstFrame = 0;
 	static bool expanded = true;
@@ -321,7 +332,7 @@ void MotionRetargetScene::renderUI_Sequencer() {
 			c->animFrameCurr = 0;
 	}
 	
-	//TODO(skade)
+	//TODOff(skade)
 	// add a UI to edit that particular item
 	//if (selectedEntry != -1) {
 	//	const MySequence::MySequenceItem &item = mySequence.myItems[selectedEntry];
@@ -332,20 +343,15 @@ void MotionRetargetScene::renderUI_Sequencer() {
 }
 
 void MotionRetargetScene::renderUI_menuBar() {
-	//TODO(skade) implement menu bar
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("File"))
 		{
-			//ImGui::MenuItem("(demo menu)", NULL, false, false);
-			//if (ImGui::MenuItem("New")) {}
 			if (ImGui::BeginMenu("Import")) {
 				if (ImGui::MenuItem("GLTF", ".gltf, .glb")) {
-					//TODO(skade) name
 					std::string path = UserDialog::OpenFile("load primary char", "gltf", "*.gltf *.glb");
 					loadCharPrim(path,IOM_GLTFIO);
 				}
 				if (ImGui::MenuItem("Assimp")) {
-					//TODO(skade) list assimp types
 					std::string path = UserDialog::OpenFile("load primary char", "assimp");
 					loadCharPrim(path,IOM_ASSIMP);
 				}
@@ -353,17 +359,14 @@ void MotionRetargetScene::renderUI_menuBar() {
 			}
 			if (ImGui::BeginMenu("Export")) {
 				if (ImGui::MenuItem("GLTF", ".gltf, .glb")) {
-					//TODO(skade) name
 					std::string path = UserDialog::SaveFile("store primary char", "gltf", "*.gltf *.glb");
 					storeCharPrim(path,IOM_GLTFIO);
 				}
 				if (ImGui::MenuItem("Assimp")) {
-					//TODO(skade) list assimp types
 					std::string path = UserDialog::SaveFile("store primary char", "assimp");
 					storeCharPrim(path,IOM_ASSIMP);
 				}
 				if (ImGui::MenuItem("objImport")) {
-					//TODO(skade) list assimp types
 					std::string path = UserDialog::SaveFile("store primary char", "assimp");
 					storeCharPrim(path,IOM_OBJIMP);
 				}
@@ -455,15 +458,22 @@ void MotionRetargetScene::renderUI_menuBar() {
 		//		initCesiumMan();
 		//	ImGui::EndMenu();
 		//}
-		if (ImGui::BeginMenu("Autorig")) {
+		if (ImGui::BeginMenu("AutoRig")) {
 			if (ImGui::MenuItem("rignet"))
 				m_showPop[POP_AR_RIGNET] = true;
 			if (ImGui::MenuItem("pinocchio"))
 				m_showPop[POP_AR_PINOC] = true;
 			ImGui::EndMenu();
 		}
+		if (ImGui::BeginMenu("AutoMoRe")) {
+			if (ImGui::MenuItem("limb"))
+				m_showPop[POP_MR_LIMB] = true;
+			//if (ImGui::MenuItem("pinocchio"))
+			//	m_showPop[POP_AR_PINOC] = true;
+			ImGui::EndMenu();
+		}
 
-		//TODOf(skade) move logic outside
+		//TODOff(skade) move logic outside
 		if (ImGui::BeginMenu("Tools")) {
 			if (ImGui::MenuItem("merge redundent vertices")) {
 				if (auto c = m_charEntityPrim.lock()) {
@@ -505,33 +515,8 @@ void MotionRetargetScene::renderUI_menuBar() {
 
 		ImGui::EndMainMenuBar();
 
-		//TODO(skade) modal, popup prompt (e.g. delete?
-		{
-			// Always center this window when appearing
-			//ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-			//ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-			
-			//if (m_showPopPreferences)
-			//	ImGui::OpenPopup("Preferences Popup");
-
-			//if (ImGui::BeginPopupModal("Preferences Popup",0,ImGuiWindowFlags_AlwaysAutoResize)) {
-			//	ImGui::Text("hi there");
-			//	//ImGui::CloseButton()
-
-			//	if (ImGui::Button("Close")) {
-			//		m_showPopPreferences = false;
-			//		ImGui::CloseCurrentPopup();
-			//	}
-			//	ImGui::EndPopup();
-			//}
-		}
-
 		if (m_showPop[POP_PREF]) {
 			ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
-			//if (!ImGui::Begin("Preferences", &m_showPopPreferences)) {
-			//	ImGui::End();
-			//	return; //TODO(skade)
-			//}
 			bool popState = m_showPop[POP_PREF];
 			if (ImGui::Begin("Preferences", &popState)) {
 				ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); {
@@ -558,17 +543,11 @@ void MotionRetargetScene::renderUI_menuBar() {
 					ImGui::SameLine();
 					ImGui::Text(m_settings.pathRignet.c_str());
 					ImGui::Text("path to rignet root, folder which should contain quick_start.py");
-
-					//if (ImGui::BeginPopupContextItem()) { //TODO(skade)
-					//	if (ImGui::MenuItem("Close"))
-					//		m_showPopPreferences = false;
-					//	ImGui::EndPopup();
-					//}
 				} ImGui::EndChild();
 				
 				if (ImGui::Button("Save Settings")) {
 					m_config.store(m_cesStartupStr.c_str(), m_settings.cesStartup);
-					m_config.store("path.anaconda", m_settings.pathAnaconda); //TODO(skade) path interface
+					m_config.store("path.anaconda", m_settings.pathAnaconda);
 					m_config.store("path.rignet", m_settings.pathRignet);
 					m_config.baseStore();
 					popState = false;
@@ -582,19 +561,17 @@ void MotionRetargetScene::renderUI_menuBar() {
 
 void MotionRetargetScene::renderUI_tools() {
 	ImGui::Begin("Tools");
-	//TODOf(skade) settings tab
 	if (ImGui::CollapsingHeader("Visualizers", ImGuiTreeNodeFlags_None)) {
 		ImGui::Checkbox("Show Joints", &m_settings.showJoints);
 		ImGui::SameLine();
 		ImGui::Checkbox("Show Targets", &m_settings.showTargets);
-		//TODOf(skade)
+		//TODOfff(skade)
 		//if (m_FPSLabelActive)
 		//	m_FPSLabel.render(&m_RenderDev);
 		//if (m_DrawHelpTexts)
 		//	drawHelpTexts();
 	}
 
-	//TODO(skade) cleanup
 	if (ImGui::CollapsingHeader("Guizmo", ImGuiTreeNodeFlags_Selected)) {
 		m_guizmo.renderOptions();
 	}
@@ -610,7 +587,7 @@ void MotionRetargetScene::renderUI_tools() {
 
 	float camDistance = cameraMat.block<3,1>(0,3).norm();
 
-	//TODO(skade) improve focus point
+	//TODOff(skade) improve focus point
 	Matrix4f oldView = cameraMat;
 	m_viewManipulate.render(&cameraMat,camDistance);
 
@@ -664,7 +641,6 @@ void MotionRetargetScene::renderUI_ik() {
 			IKSS_JACINV
 		};
 
-		//TODO(skade) enum
 		auto ikToIdx = [](IIKSolver* s) -> IKMethod {
 			if (auto iksCCD = dynamic_cast<IKSccd*>(s))
 				return IKSS_CCD;
@@ -698,7 +674,7 @@ void MotionRetargetScene::renderUI_ik() {
 			IKMethod idx = ikToIdx(chain.ikSolver.get());
 			IKMethod prevIdx = idx;
 
-			//TODO(skade) cleaner?
+			//TODOfff(skade) cleaner impl with enums
 			ImGui::ComboStr("ik method",(int*) &idx,ikMstr,ikMstr.size());
 			if (prevIdx != idx) {
 				makeIK(&chain,idx);
@@ -763,12 +739,12 @@ void MotionRetargetScene::renderUI_ik() {
 		ImGui::EndListBox();
 	}
 
-	//TODOf(skade) more efficient?
+	//TODOff(skade) more efficient?
 	//for (uint32_t i = 0; i < items.size(); ++i) {
 	//	ikChains[items[i]].
 	//}
 
-	//TODO(skade) adjust when changing to other rigged char
+	//TODOff(skade) adjust when changing to other rigged char
 	// highlight chain joints green
 	if (m_selChainIdx != -1) {
 		auto js = chains[m_selChainIdx].joints;
@@ -802,17 +778,17 @@ void MotionRetargetScene::renderUI_ik() {
 				targetName = t->name;
 		if (ImGui::Button("set target")) {
 			if (auto p = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
-				chains[m_selChainIdx].target = p; //TODO(skade) targets need to be smart ptr when decoupled
+				chains[m_selChainIdx].target = p; //TODOff(skade) targets need to be smart ptr when decoupled
 				// problem when p is from other charEntity
 			}
 		}
 		ImGui::SameLine();
 		ImGui::Text((std::string("target: ") + targetName).c_str());
 		
+		//TODOff(skade) seperate logic from ui
 		if (ImGui::Button("delete selected chain")) {
 			if (chains.size() > 0 && m_selChainIdx != -1) {
 
-				//TODO(skade) improve location
 				auto js = chains[m_selChainIdx].joints;
 				for (uint32_t i = 0; i < js.size(); ++i) {
 					auto jp = c->controller->getJointPickable(js[i]).lock();
@@ -946,7 +922,7 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 	} // if addChainPopup
 	else {
 		m_ikceName = "new"; m_ikceNameInit = false;
-		//TODO(skade) bug rootJoint still from other charentity on swap
+		//TODO potential bug rootJoint still from other charEntity on swap
 		if (m_ikceRootJoint) {
 			auto jp = c->controller->getJointPickable(m_ikceRootJoint).lock();
 			if (jp) {
@@ -964,7 +940,7 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 	}
 }
 void MotionRetargetScene::renderUI_ikTargetEditor() {
-	auto c = m_charEntityPrim.lock(); //TODO(skade) targets global?
+	auto c = m_charEntityPrim.lock();
 	if (!c || !c->controller) {
 		ImGui::End();
 		return;
@@ -1048,6 +1024,24 @@ void MotionRetargetScene::renderUI_autorig() {
 		}
 	}
 	m_showPop[POP_AR_PINOC] = popState;
+}
+
+void MotionRetargetScene::renderUI_autoMoRe() {
+	bool popState = m_showPop[POP_MR_LIMB];
+	if (popState) {
+		// Always center this window when appearing
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+		if (ImGui::Begin("autorig rignet", &popState)) {
+			if (ImGui::Button("Confirm")) {
+				
+				popState = false;
+			}
+			ImGui::End();
+		}
+	}
+	m_showPop[POP_MR_LIMB] = popState;
 }
 
 }//CForge

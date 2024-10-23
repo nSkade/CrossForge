@@ -4,7 +4,7 @@
 #include <crossforge/Graphics/RenderDevice.h>
 #include <crossforge/AssetIO/SAssetIO.h>
 
-//TODOf(skade) use primitiveShapeFectory to generate joint mesh
+//TODOfff(skade) use primitiveShapeFectory to generate joint mesh
 //#include <crossforge/MeshProcessing/PrimitiveShapeFactory.h>
 
 #include <glad/glad.h>
@@ -13,7 +13,7 @@ namespace CForge {
 using namespace Eigen;
 
 JointPickableMesh::JointPickableMesh() {
-	SAssetIO::load("Assets/joint.obj", &mesh); //TODO(skade) use primitive shape factory instead
+	SAssetIO::load("Assets/joint.obj", &mesh); //TODOfff(skade) use primitive shape factory instead
 	eigenMesh = EigenMesh(mesh);
 	mesh.getMaterial(0)->Color.w() = .75;
 	mesh.computeAxisAlignedBoundingBox();
@@ -32,7 +32,6 @@ float JointPickable::getOpacity() {
 void JointPickable::update(Matrix4f sgnT) {
 	m_sgnT = sgnT;
 
-	//TODO(skade) appply sg node transform
 	const Matrix4f R = CForgeMath::rotationMatrix(m_pJoint->LocalRotation);
 	const Matrix4f T = CForgeMath::translationMatrix(m_pJoint->LocalPosition);
 	const Matrix4f S = CForgeMath::scaleMatrix(m_pJoint->LocalScale);
@@ -53,7 +52,6 @@ void JointPickable::update(Matrix4f sgnT) {
 	
 	Quaternionf LR = EigenFWD::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
 
-	//TODO sgnT
 	m_transform = m_sgnT * LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
 	if (!m_highlight)
 		m_transformGuizmo = m_sgnT * LocalTransform;
@@ -62,10 +60,10 @@ void JointPickable::pckMove(const Matrix4f& trans) {
 	if (!m_pJoint) return;
 
 	// extract new rotations from matrix
-	//TODO(skade) unify place with init rest pose
+	//TODOfff(skade) unify place with init rest pose
 	            //function that computes pos scale rot from mat4
 	// 
-	Matrix4f t = m_fromPar.inverse() * m_sgnT.inverse() * trans; //TODO(skade) order correct
+	Matrix4f t = m_fromPar.inverse() * m_sgnT.inverse() * trans; //TODOf(skade) order correct?
 	Vector3f pos = t.block<3,1>(0,3);
 	Vector3f scale = Vector3f(t.block<3,1>(0,0).norm(),
 	                          t.block<3,1>(0,1).norm(),

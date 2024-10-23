@@ -28,7 +28,7 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 	std::weak_ptr<IPickable> pPick;
 	Matrix4f t = Matrix4f::Identity();
 
-	//TODO(skade) rewrite for single object check only and abstract for vector
+	//TODOff(skade) rewrite for single object check only and abstract for vector
 	for (int32_t i = 0; i < objects.size(); ++i) {
 		std::shared_ptr<IPickable> pPobj = objects[i].lock();
 		if (!pPobj) continue;
@@ -66,7 +66,6 @@ void Picker::pick(std::vector<std::weak_ptr<IPickable>> objects) {
 
 		//TODOf(skade) check for distance in case on screenspace overlap of multiple aabb
 		if (hit) {
-			//TODOf(skade) implement mesh intersection test
 			if (EigenMesh* pMesh = pPobj->pckEigenMesh()) {
 				igl::Hit iglHit;
 				hit = igl::ray_mesh_intersect(ro,rd,pMesh->getDV(),pMesh->getDF(),iglHit);

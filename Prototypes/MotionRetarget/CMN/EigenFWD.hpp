@@ -6,7 +6,6 @@
 namespace EigenFWD {
 using namespace Eigen;
 
-//TODOf(skade) this doesnt belong here
 /**
  * @brief functions to test Eigen Object for any nan values. Useful in asserts.
 */

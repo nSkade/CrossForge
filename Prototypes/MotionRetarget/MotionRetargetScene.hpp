@@ -3,7 +3,7 @@
 #include <Examples/exampleSceneBase.hpp>
 #include <crossforge/Graphics/Actors/SkeletalActor.h>
 
-//TODO(skade) move gui outside
+//TODOff(skade) move gui outside
 #include <Prototypes/MotionRetarget/UI/Guizmo.hpp>
 #include <Prototypes/MotionRetarget/UI/EditCamera.hpp>
 #include <Prototypes/MotionRetarget/Config/Config.hpp>
@@ -43,7 +43,7 @@ private:
 	void initCharacter(std::weak_ptr<CharEntity> charEntity);
 	void initCesiumMan();
 
-	//TODO(skade) dim SPOT IKTarget, move actor into IKTarget, + picked highlight
+	//TODOff(skade) dim SPOT IKTarget, move actor into IKTarget, + picked highlight
 	void initIKTargetActor();
 
 	/**
@@ -52,7 +52,7 @@ private:
 	void renderVisualizers();
 	void renderVisualizers(CharEntity* c);
 
-	//TODOf(skade) put in seperate class
+	//TODOff(skade) put in seperate class
 	// UI functions
 	void initUI();
 	void cleanUI();
@@ -65,6 +65,7 @@ private:
 	void renderUI_tools();
 	void renderUI_ik();
 	void renderUI_autorig();
+	void renderUI_autoMoRe();
 	void renderUI_ikChainEditor(int* item_current_idx);
 	void renderUI_ikTargetEditor();
 
@@ -139,6 +140,7 @@ private:
 		POP_CHAINED,
 		POP_AR_PINOC,
 		POP_AR_RIGNET,
+		POP_MR_LIMB,
 		POP_COUNT,
 	};
 	std::vector<bool> m_showPop = std::vector<bool>(POP_COUNT,false);

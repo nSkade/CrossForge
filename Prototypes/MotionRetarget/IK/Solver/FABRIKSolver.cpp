@@ -11,7 +11,7 @@ void IKSfabrik::solve(std::string segmentName, IKController* pController) {
 	if (!target)
 		return;
 
-	//TODO(skade) make member for per chain solver to avoid memory alloc?
+	//TODOff(skade) make member for per chain solver to avoid memory alloc?
 	fbrkPoints.clear(); // global position for fabrik calculation
 	fbrkPoints.reserve(Chain.size()); //TODOff(skade)
 	for (uint32_t i = 0; i < Chain.size(); ++i)
@@ -109,7 +109,7 @@ void IKSfabrik::backwardKinematics(std::string segmentName, IKController* pContr
 		Vector3f rotAxLoc = globToLoc*rotAx;
 
 		Quaternionf rot(AngleAxis(angle,rotAxLoc));
-		//TODO(skade)
+		//TODOff(skade)
 		if (std::abs(angle) < FLT_EPSILON)
 			rot = Quaternionf::Identity();
 		

@@ -22,7 +22,7 @@ const BoundingVolume& CharEntity::pckBV() {
 }
 
 void CharEntity::init(SGNTransformation* sgnRoot) {
-	mesh.computePerVertexNormals(); //TODO(skade) remove
+	mesh.computePerVertexNormals(); //TODOff(skade) remove
 	if (mesh.rootBone()) {
 		controller = std::make_unique<IKController>();
 		controller->init(&mesh);
@@ -34,7 +34,7 @@ void CharEntity::init(SGNTransformation* sgnRoot) {
 		actor = std::make_unique<IKSkeletalActor>();
 		actor->init(&mesh,controller.get());
 
-		//TODO(skade) into function?
+		//TODOff(skade) into function?
 		sgn.init(sgnRoot,actor.get());
 	}
 	else {
@@ -71,7 +71,7 @@ void CharEntity::applyTransformToMesh(SGNTransformation* sgnRoot) {
 		mesh.vertex(i) = v.block<3,1>(0,0);
 	}
 
-	//TODOf(skade) morph support
+	//TODOfff(skade) morph support
 	//mesh.addMorphTarget
 
 	Vector3f pos, scale;
@@ -128,7 +128,7 @@ void CharEntity::updateRestpose(SGNTransformation* sgnRoot) {
 	for (uint32_t i=0;i<mesh.boneCount();++i) {
 		auto* b = mesh.getBone(i);
 
-		//TODO(skade) bad, assumes mesh idx == controller idx
+		//TODOff(skade) bad, assumes mesh idx == controller idx
 		IKJoint ikj = controller->m_IKJoints[controller->getBone(i)];
 
 		// get current global position and rotation

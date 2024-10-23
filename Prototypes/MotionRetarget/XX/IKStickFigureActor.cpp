@@ -84,7 +84,7 @@ namespace CForge {
 		}//for[all bones]
 
 		// estimate a good value for the joint and bone sizes
-		pMesh->computeAxisAlignedBoundingBox(); //TODO(skade) avoid recalculation
+		pMesh->computeAxisAlignedBoundingBox(); //TODO avoid recalculation
 		Vector3f Diag = pMesh->aabb().diagonal();
 
 		m_JointSize = Diag.norm() / 30.0f;				//m_JointSize = Diag.norm() / 75.0f;
@@ -109,7 +109,6 @@ namespace CForge {
 		m_SG.clear();
 		m_RootSGN.clear();
 
-		//TODO(skade)
 		for (auto& i : m_JointSGNs) if (nullptr != i) delete i;	
 		for (auto& i : m_JointTransformSGNs) if (nullptr != i) delete i;	
 		for (auto& i : m_BoneSGNs) if (nullptr != i) delete i;
@@ -123,7 +122,6 @@ namespace CForge {
 		m_BoneSize = 0.0f;
 	}//clear
 
-	//TODO(skade)
 	void IKStickFigureActor::release(void) {
 		delete this;
 	}//release

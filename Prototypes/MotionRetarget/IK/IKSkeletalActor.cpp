@@ -24,7 +24,7 @@ namespace CForge {
 		m_pAnimationController = nullptr;
 	}//clear
 
-	//TODO(skade)
+	//TODOff(skade) does this make sense?
 	void IKSkeletalActor::release(void) {
 		delete this;
 	}//release

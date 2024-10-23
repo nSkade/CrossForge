@@ -2,8 +2,6 @@
 #include <crossforge/Graphics/SceneGraph/ISceneGraphNode.h>
 #include <crossforge/Math/CForgeMath.h>
 
-//TODOf(skade) cpp
-
 namespace CForge {
 using namespace Eigen;
 

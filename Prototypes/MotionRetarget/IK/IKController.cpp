@@ -4,7 +4,7 @@
 #include <crossforge/Math/CForgeMath.h>
 #include <crossforge/Core/SLogger.h>
 
-#include <crossforge/Graphics/RenderDevice.h> //TODO(skade) for JointVis
+#include <crossforge/Graphics/RenderDevice.h> // for JointVis
 
 #include <Prototypes/MotionRetarget/CMN/EigenFWD.hpp>
 
@@ -15,7 +15,7 @@
 namespace CForge {
 using namespace Eigen;
 
-//TODOf(skade) CForgeObject classname wrong
+//TODOfff(skade) CForgeObject classname wrong
 IKController::IKController(void) : SkeletalAnimationController() {
 	m_pRoot = nullptr;
 	//m_pHead = nullptr;
@@ -182,7 +182,7 @@ void IKController::initJointProperties(T3DMesh<float>* pMesh) {
 	}
 }//initJointProperties
 
-//TODO(skade)
+//TODOff(skade) parse constraint / ik config data
 void IKController::initConstraints(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData) {
 	T3DMesh<float>::SkeletalAnimation* pAnimation = pMesh->getSkeletalAnimation(0); // used as initial pose of skeleton
 
@@ -229,7 +229,7 @@ void IKController::initConstraints(T3DMesh<float>* pMesh, const nlohmann::json& 
 		//	pIKJoint->pLimits = pNewLimits;
 		//}
 		
-		////TODO(skade) rewrite and abstract hinge limits
+		////TODOff(skade) rewrite and abstract hinge limits
 
 		//if (Type == "SwingXZTwistY") {
 		//	float MinTwist = CForgeMath::degToRad(JointData.at("MinTwist").get<float>());
@@ -331,12 +331,10 @@ void IKController::buildKinematicChain(std::string name, std::string rootName, s
 		joints.push_back(pCurrent);
 	} while (pCurrent->ID != pEnd->ID);
 
-	//TODO(skade) working?
 	//if (joints.size() < 2)
 	//	throw CForgeExcept("Initialization of chain failed, joints size < 2");
 }//buildKinematicChain
 
-//TODO(skade) decouple targets from chains?
 void IKController::initTargetPoints() {
 	clearTargetPoints();
 	for (auto& c : getJointChains()) {
@@ -353,12 +351,12 @@ void IKController::initTargetPoints() {
 		IKJoint& eff = m_IKJoints[c.joints[0]];
 		m_targets.back()->pos = eff.posGlobal;
 
-		//TODO(skade) unify with add new target
+		//TODOff(skade) unify with add new target
 		c.target = m_targets.back();
 	}
 }//initTargetPoints
 
-//TODO(skade) ui
+//TODOf(skade) ui
 void IKController::clearTargetPoints() {
 	for (auto& c : getJointChains())
 		c.target.reset();
@@ -382,7 +380,7 @@ void IKController::applyAnimation(Animation* pAnim, bool UpdateUBO) {
 	if (pAnim) {
 		SkeletalAnimationController::applyAnimation(pAnim,UpdateUBO);
 
-		//TODO(skade) no chains except
+		// no chains except maybe
 		forwardKinematics(m_pRoot);
 		updateTargetPoints(); //TODO(skade) target points need to be trackable to other animation (controllers?)
 	} else {
@@ -431,95 +429,5 @@ SkeletalAnimationController::SkeletalJoint* IKController::getBone(uint32_t idx) 
 uint32_t IKController::boneCount() {
 	return m_Joints.size();
 }
-
-//TODO(skade) not used anymore, keep hierarchy method for future ref
-//void IKController::renderJointPickables(RenderDevice* pRenderDev) {
-//	throw CForgeExcept("IKController::renderJointPickables deprecated");
-//#if 0 // from hierarchy
-//	std::function<void(SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f parMat)> renderJoint;
-//	renderJoint = [&](SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f fromPar) {
-//		//TODO(skade) appply sg node transform
-//		const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
-//		const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
-//		const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
-//		const Matrix4f JointTransform = T * R * S;
-//		Matrix4f LocalTransform = fromPar * JointTransform;
-//
-//		Vector3f BoneVec; // vector to next bone
-//		if (pJoint->Children.size() > 0)
-//			BoneVec = m_IKController->getBone(pJoint->Children[0])->LocalPosition;
-//		else
-//			BoneVec = pJoint->LocalPosition;
-//		float Length = BoneVec.norm(); // length to next bone
-//
-//		Quaternionf LR = EigenFWD::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
-//		Matrix4f t = LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
-//		
-//		m_RenderDev.modelUBO()->modelMatrix(t);
-//		m_JointVisActor.render(&m_RenderDev,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
-//		for (uint32_t i = 0; i < pJoint->Children.size(); ++i)
-//			renderJoint(m_IKController->getBone(pJoint->Children[i]),LocalTransform);
-//	};
-//	renderJoint(m_IKController->getRoot(),Matrix4f::Identity());
-//#elif 1 // from skinning matrices, should be faster
-//	for (uint32_t i = 0; i < boneCount(); i++) {
-//		SkeletalAnimationController::SkeletalJoint* pJoint = m_Joints[i];
-//		//TODO(skade) appply sg node transform
-//		const Matrix4f R = CForgeMath::rotationMatrix(pJoint->LocalRotation);
-//		const Matrix4f T = CForgeMath::translationMatrix(pJoint->LocalPosition);
-//		const Matrix4f S = CForgeMath::scaleMatrix(pJoint->LocalScale);
-//		const Matrix4f JointTransform = T * R * S;
-//
-//		Matrix4f fromPar = Matrix4f::Identity();
-//		if (pJoint->Parent != -1)
-//			fromPar = m_Joints[pJoint->Parent]->SkinningMatrix
-//			          * m_Joints[pJoint->Parent]->OffsetMatrix.inverse();
-//		Matrix4f LocalTransform = fromPar * JointTransform;
-//
-//		Vector3f BoneVec; // vector to next bone
-//		if (pJoint->Children.size() > 0)
-//			BoneVec = m_Joints[pJoint->Children[0]]->LocalPosition;
-//		else
-//			BoneVec = pJoint->LocalPosition;
-//		float Length = BoneVec.norm(); // length to next bone
-//		//
-//		Quaternionf LR = EigenFWD::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
-//		Matrix4f t = LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
-//		
-//		pRenderDev->modelUBO()->modelMatrix(t);
-//		m_jointPickableMesh.actor.render(pRenderDev,
-//		                                  Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
-//	}
-//#endif
-//}
-
-// TODO(skade) remove, unnused
-//void IKController::updateBones(Animation* pAnim) {
-//	for (uint32_t i = 0; i < m_Joints.size(); ++i) {
-//		T3DMesh<float>::SkeletalAnimation* pAnimData = m_SkeletalAnimations[pAnim->AnimationID];
-//		SkeletalJoint* pJoint = m_Joints[i];
-//		IKJoint* pIKJoint = m_IKJoints[pJoint];
-//
-//		//TODO(skade) insert rest pose values with solver: loc*paret * offset = identity (skinningmat)
-//		pJoint->LocalPosition = Vector3f::Zero();
-//		pJoint->LocalRotation = Quaternionf::Identity();
-//		pJoint->LocalScale = Vector3f(1.f,1.f,1.f);
-//
-//		uint32_t animIdx = 0;
-//
-//		for (uint32_t k = 0; k < pAnimData->Keyframes[i]->Timestamps.size() - 1; ++k) {
-//			float Time = pAnimData->Keyframes[i]->Timestamps[k];
-//			if (Time <= pAnim->t) {
-//				animIdx = k;
-//				break;
-//			}
-//		}
-//		
-//		pJoint->LocalScale = pAnimData->Keyframes[i]->Scalings[animIdx];
-//		pJoint->LocalPosition = pAnimData->Keyframes[i]->Positions[animIdx];
-//		pJoint->LocalRotation = pAnimData->Keyframes[i]->Rotations[animIdx].normalized();
-//		pJoint->LocalScale = pAnimData->Keyframes[i]->Scalings[animIdx];
-//	}
-//}
 
 }//CForge

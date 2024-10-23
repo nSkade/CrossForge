@@ -28,7 +28,7 @@ void MotionRetargetScene::init() {
 	initSkybox();
 	initIKTargetActor(); // initialize end-effector & target markers
 	
-	//TODO(skade)
+	//TODOfff(skade)
 	//LineOfText* pKeybindings = new LineOfText();
 	//pKeybindings->init(CForgeUtility::defaultFont(CForgeUtility::FONTTYPE_SANSERIF, 18), "Movement:(Shift) + W,A,S,D  | Rotation: LMB/RMB + Mouse | F1: Toggle help text");
 	//m_HelpTexts.push_back(pKeybindings);
@@ -42,7 +42,7 @@ void MotionRetargetScene::init() {
 
 	initUI();
 	
-	//TODOf(skade) better clear color impl
+	//TODOfff(skade) better clear color impl
 	m_RenderDev.m_clearColor[0] = .1 * 10;
 	m_RenderDev.m_clearColor[1] = .1 * 10;
 	m_RenderDev.m_clearColor[2] = .1 * 10;
@@ -87,7 +87,8 @@ void MotionRetargetScene::initCameraAndLights(bool CastShadows) {
 	Vector3f SunPos = Vector3f(-5.0f, 15.0f, 35.0f);
 	m_Sun.init(SunPos, -SunDir.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 5.0f);
 
-	//TODOf(skade) depth test for shadow map sometimes wrong because gl clear color affects gPosition
+	//TODOf(skade) make shadow light toggable in preferences
+	//TODOfff(skade) depth test for shadow map sometimes wrong because gl clear color affects gPosition
 	if(CastShadows)
 		m_Sun.initShadowCasting(2048, 2048, Vector2i(2, 2), 0.1f, 1000.0f);
 
@@ -102,12 +103,12 @@ void MotionRetargetScene::initCameraAndLights(bool CastShadows) {
 
 
 void MotionRetargetScene::mainLoop() {
-	//TODO(skade) split brackets into function
+	//TODOfff(skade) split brackets into function
 
-	updateFPS(); //TODOf(skade) improve deltaTime
+	updateFPS(); //TODOfff(skade) improve deltaTime
 
 	{ // passive rendering, only render on update to save energy
-		//TODOf(skade) member
+		//TODOfff(skade) member
 		static uint32_t frameActionIdx = 0;
 		static bool frameAction = true;
 		frameAction = keyboardAnyKeyPressed() || m_IKCupdate || m_animAutoplay
@@ -146,17 +147,18 @@ void MotionRetargetScene::mainLoop() {
 		auto c = m_charEntities[i];
 		if (!c->pAnimCurr)
 			continue;
-		//m_pAnimCurr->Speed = 1./60.; //TODO(skade)
-		//m_pAnimCurr->Duration = 2000.; //TODO(skade) unused when applied?
+		//m_pAnimCurr->Speed = 1./60.; //TODOf(skade)
+		//m_pAnimCurr->Duration = 2000.; //TODOf(skade) unused when applied?
 
+		//TODOf(skade) move into char entity
 		auto* pA = c->pAnimCurr;
 		if (m_animAutoplay) {
 			c->animFrameCurr = pA->t * pA->SamplesPerSecond;
 			pA->t += 1./m_FPS * pA->Speed;
-			if (pA->t > pA->Duration) //TODO(skade) duration sometimes not max
+			if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
 				pA->t = 0.;
 		} else
-			pA->t = c->animFrameCurr / pA->SamplesPerSecond;
+			pA->t = c->animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable
 	}
 
 	bool hoveredImgui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
@@ -173,8 +175,9 @@ void MotionRetargetScene::mainLoop() {
 			m_picker.reset();
 		}
 		else if (auto p = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
-			//TODO(skade) IKTargets best global, for delete but also when letting the target change by another char entity
+			//TODOff(skade) IKTargets better global? for delete but also when letting the target change by another char entity
 
+			//TODOf(skade) delete target
 			//auto pos = std::find(m_charEntities.begin(),m_charEntities.end(),p);
 			//if (pos != m_charEntities.end())
 			//	m_charEntities.erase(pos);
@@ -192,10 +195,9 @@ void MotionRetargetScene::mainLoop() {
 				m_picker.start();
 				for (uint32_t i=0;i<m_charEntities.size();++i) {
 					auto c = m_charEntities[i];
-					if (!c->visible)
-						continue;
+					//if (!c->visible)
+					//	continue;
 
-					//TODO(skade)
 					p.clear(); p.push_back(c);
 					m_picker.pick(p);
 					if (!c->controller)
@@ -263,21 +265,20 @@ void MotionRetargetScene::mainLoop() {
 
 void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
 	std::shared_ptr<CharEntity> c = charEntity.lock();
-	//setMeshShader(mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
+	//setMeshShader(mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
 
-	//TODO(skade)
 	c->init(&m_sgnRoot);
-	//if (c->isStatic)
-	//	c->sgn.init(&m_sgnRoot,c->actorStatic.get());
-	//else
-	//	c->sgn.init(&m_sgnRoot,c->actor.get());
+	if (c->isStatic)
+		c->sgn.init(&m_sgnRoot,c->actorStatic.get());
+	else
+		c->sgn.init(&m_sgnRoot,c->actor.get());
 
-	//TODO(skade) autoscale import option in preferences
+	//TODOff(skade) autoscale import option in preferences
 	// autoscale
-	Vector3f scale = Vector3f(2.f,2.f,2.f)/(c->bv.aabb().diagonal().maxCoeff()); //TODO(skade) standard size
+	Vector3f scale = Vector3f(2.f,2.f,2.f)/(c->bv.aabb().diagonal().maxCoeff()); //TODOff(skade) standard size
 	c->sgn.scale(scale);
 
-	//TODO(skade) SPOT
+	//TODOff(skade) SPOT
 	m_picker.forcePick(c);
 	m_guizmoMat = m_picker.m_guizmoMat;
 	m_charEntitySec = m_charEntityPrim;
@@ -302,12 +303,12 @@ void MotionRetargetScene::initCesiumMan() {
 	std::shared_ptr<CharEntity> c = m_charEntities.back();
 	GLTFIO::load(path, &c->mesh);
 
-	//TODO(skade) special init replacement for IK limb loading,
+	//TODOff(skade) special init replacement for IK limb loading,
 	//            replace with proper skeleton retarget "config" solution
 	{
 		c->name = std::filesystem::path(path).filename().string();
-		//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODO(skade) check not modified export
-		c->mesh.computePerVertexNormals(); //TODO(skade) remove?
+		//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
+		c->mesh.computePerVertexNormals(); //TODOff(skade) remove?
 		c->controller = std::make_unique<IKController>();
 		c->controller->init(&c->mesh, pathIKConfig);
 
@@ -326,7 +327,7 @@ void MotionRetargetScene::initCesiumMan() {
 		c->bv.init(aabb);
 
 		// autoscale
-		Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODO(skade) standard size
+		Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODOff(skade) standard size
 		c->sgn.scale(scale);
 		c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
 	}
@@ -422,43 +423,36 @@ void MotionRetargetScene::renderVisualizers() {
 		m_editGrid.render(&m_RenderDev,m_settings.gridSize);
 
 	for (uint32_t i=0;i<m_charEntities.size();++i) {
-		if (m_charEntities[i]->visible)
+		//if (m_charEntities[i]->visible)
 			renderVisualizers(m_charEntities[i].get());
 	}
 }
 
-//TODO(skade) cleanup
 void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 	Vector3f pos; Quaternionf rot; Vector3f scale;
 	c->sgn.buildTansformation(&pos,&rot,&scale);
 	Matrix4f t = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	if (c->controller && m_settings.showJoints ) { //TODO(skade) put in function
-		//glDisable(GL_DEPTH_TEST);
-		//glEnable(GL_BLEND);
-
+	if (c->controller && m_settings.showJoints) { //TODOff(skade) put in function
 		auto& joints = c->controller->getJointPickables();
-		for (auto j : joints) {
-			if (auto jl = j.lock()) {
-				//TODOf(skade) option to seperate skeleton with translation for visualization
-				
-				jl->update(t);
-				jl->render(&m_RenderDev);
+		if (joints.size() > 0 && joints[0].lock()->getOpacity() != 0.f) {
+			for (auto j : joints) {
+				if (auto jl = j.lock()) {
+					//TODOf(skade) option to seperate skeleton with translation for visualization
+					
+					jl->update(t);
+					jl->render(&m_RenderDev);
+				}
 			}
 		}
-
-		//glDisable(GL_BLEND);
-		//glEnable(GL_DEPTH_TEST);
 	}
 	glDisable(GL_DEPTH_TEST);
-	//glEnable(GL_BLEND); //TODOf(skade) change blendmode in active material forward pass
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (c->controller && m_settings.showTargets) {
 		std::vector<std::shared_ptr<IKTarget>>& tar = c->controller->m_targets;
 		
 		for (uint32_t i = 0; i < tar.size(); ++i) {
-			//TODO(skade) clean sgnT update loc
+			//TODOff(skade) clean sgnT update loc
 			tar[i]->update(t);
 			
 			//Box aabb = t[i]->bv.aabb();
@@ -467,7 +461,7 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 		}
 	}
 
-	//TODO(skade)
+	//TODOf(skade) make toggable
 	// render fabrik points
 	if (c->controller) {
 		auto fbrkChains = c->controller->getFABRIKpoints();
@@ -481,7 +475,7 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 				bool cmg = (i+1) & 2;
 				bool cmb = (i+1) & 4;
 				
-				//TODO(skade) reads drive due to shader init
+				//TODOff(skade) reads drive due to shader init
 				T3DMesh<float> M;
 				PrimitiveShapeFactory::cuboid(&M, Vector3f(0.05f, 0.05f, 0.05f), Vector3i(1, 1, 1));
 				auto* pMat = M.getMaterial(0);

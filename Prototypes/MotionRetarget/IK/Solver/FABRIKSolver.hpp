@@ -15,7 +15,7 @@ public:
 	void backwardKinematics(std::string segmentName, IKController* pController,const std::vector<Vector3f>& fbrkPoints);
 
 	std::vector<Vector3f> fbrkPoints; // global position for fabrik calculation
-	//TODO(skade) single iterations useful?
+	//TODOff(skade) single iterations useful?
 	//void solveForward();
 	//void solveBackward();
 private:

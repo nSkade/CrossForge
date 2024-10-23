@@ -35,9 +35,6 @@ public:
 	SkeletalAnimationController::SkeletalJoint* getBone(uint32_t idx);
 	uint32_t boneCount();
 
-	//TODO(skade) remove, unnused
-	//void updateBones(Animation* pAnim);
-
 	IKChain* getIKChain(std::string name) {
 		for (auto& a : getJointChains()) {
 			if (a.name == name)
@@ -52,7 +49,7 @@ public:
 	void forwardKinematics(SkeletalJoint* pJoint);
 	void forwardKinematics() { forwardKinematics(m_pRoot); };
 
-	//TODO(skade) smart ptr
+	//TODOff(skade) smartptr?
 	std::map<SkeletalJoint*,IKJoint> m_IKJoints; // extends m_Joints
 
 	std::vector<IKChain>& getJointChains() { return m_ikArmature.m_jointChains; };
@@ -80,34 +77,29 @@ public:
 		return m_jointPickables[joint];
 	}
 	
-	//TODO(skade) unused, doc conversion method
-	//void renderJointPickables(RenderDevice* pRenderDev);
-	
 	std::vector<std::shared_ptr<IKTarget>> m_targets;
 private:
 	std::map<SkeletalJoint*,std::shared_ptr<JointPickable>> m_jointPickables;
 	JointPickableMesh m_jointPickableMesh;
 	
-	//TODO(skade) cleanup
 	/**
 	 * @brief Initializes IKJoints
 	*/
 	void initJointProperties(T3DMesh<float>* pMesh);
 
-	//TODO(skade) store armature as json
+	//TODOff(skade) store armature as json
 
 	// Json interface
 
 	void initConstraints(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
 
-	//TODO(skade) unify with chain editor func
+	//TODOff(skade) unify with chain editor func
 	/**
 	 * @brief Builds new IKChain from names and places them into getJointChains()
 	*/
 	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
 
-	//TODO(skade) remove
 	/**
 	 * @brief inits for every skeleton endeffector a target
 	*/
@@ -119,7 +111,7 @@ private:
 	*/
 	void updateTargetPoints();
 
-	//TODO(skade) rotate head
+	//TODOff(skade) rotate head
 	//void rotateGaze();
 };//IKController
 

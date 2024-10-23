@@ -6,9 +6,6 @@ namespace CForge {
 using namespace Eigen;
 class IKController;
 
-//TODO(skade) move into Constraint header
-//TODO(skade)
-
 /**
  * @brief Interface for Joint Constraints, applied during IK.
  * different IK methods need different Constraint Implementations for the same constraint Type.

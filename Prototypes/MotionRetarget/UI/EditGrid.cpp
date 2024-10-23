@@ -10,7 +10,7 @@ namespace CForge {
 
 void EditGrid::init() {
 	// create Shader
-	//TODO(skade) move into file
+	//TODOff(skade) move into file
 	const char* vertexShaderSource = "#version 420 core\n"
 		"layout(std140) uniform CameraData {\n"
 		"	mat4 ViewMatrix;\n"
@@ -31,7 +31,7 @@ void EditGrid::init() {
 		"	WorldPos = Pos.xyz;\n"
 		"}\0";
 
-	//TODO(skade) move into file
+	//TODOff(skade) move into file
 	const char* fragmentShaderSource = "#version 420 core\n"
 		"layout(early_fragment_tests) in;\n"
 		"layout(std140) uniform CameraData {\n"
@@ -153,7 +153,7 @@ void EditGrid::render(RenderDevice* pRDev,float fadeOutDist) {
 	pRDev->activeShader(m_shader);
 	m_vertArray.bind();
 
-	Matrix4f sgnT = Matrix4f::Identity(); //TODO(skade) grid scale
+	Matrix4f sgnT = Matrix4f::Identity();
 	sgnT(0,0) = fadeOutDist*20.*2.;
 	sgnT(2,2) = fadeOutDist*20.*2.;
 	//sgnT[0] = 100.;

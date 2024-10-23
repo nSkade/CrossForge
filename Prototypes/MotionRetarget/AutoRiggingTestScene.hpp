@@ -414,7 +414,7 @@ namespace CForge {
 			m_pShaderMan->release();
 
 		}
-		//TODOf(skade) remove
+		//TODOfff(skade) remove
 		void mergeRedundantVertices(T3DMesh<float>* pMesh) {
 			float Epsilon = /**/std::numeric_limits<float>::min();//*/0.00025f;//TODO
 

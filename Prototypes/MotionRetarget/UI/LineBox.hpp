@@ -3,7 +3,7 @@
 #include <crossforge/Graphics/GLBuffer.h>
 #include <crossforge/Graphics/GLVertexArray.h>
 
-//TODOf(skade) LODActor
+//TODOfff(skade) LODActor
 namespace CForge {
 using namespace Eigen;
 class Box;

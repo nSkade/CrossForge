@@ -75,12 +75,12 @@ void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin, bo
 	
 	// numpad camera movement
 	if (pKeyboard->keyPressed(Keyboard::KEY_KP_5, true)) {
-		//TODO(skade) abstract fov
+		//TODOfff(skade) abstract fov
 		m_CamIsProj = !m_CamIsProj;
 		setCamProj(pCamera,pRWin);
 	}
 
-	//TODO(skade) move into function
+	//TODOfff(skade) move into function
 	auto funcNPO = [&](Keyboard::Key key, float angle, Vector3f axis, bool add = false) {
 		if (pKeyboard->keyPressed(key,true)) {
 			Matrix4f view = pCamera->cameraMatrix();
@@ -104,7 +104,7 @@ void EditCamera::defaultCameraUpdate(VirtualCamera* pCamera, GLWindow* pRWin, bo
 	funcNPO(Keyboard::KEY_KP_6,-15.,Vector3f::UnitY(),true);
 	funcNPO(Keyboard::KEY_KP_8,15.,pCamera->right(),true);
 	if (pKeyboard->keyPressed(Keyboard::KEY_KP_9,true)) {
-		//TODO(skade) mirror position?
+		//TODOfff(skade) mirror position?
 		pCamera->rotY(CForgeMath::degToRad(180.));
 		Vector3f np = CForgeMath::rotationMatrix(180.,pCamera->up()).block<3,3>(0,0)*pCamera->position();
 		pCamera->position(np);

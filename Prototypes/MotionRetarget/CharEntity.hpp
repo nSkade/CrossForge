@@ -15,23 +15,27 @@ using namespace Eigen;
  * @brief compacts info regarding single character
 */
 struct CharEntity : public IPickable {
-	std::string name;
-	T3DMesh<float> mesh;
-	SGNGeometry sgn;
-
-	//TODO(skade) find best way to determine if actor is static or skeletal
-	std::unique_ptr<IKSkeletalActor> actor;
+	// actor
+	//TODOff(skade) find best way to determine if actor is static or skeletal
+	//TODOff(skade) add skeletal actor without mesh data
 	bool isStatic = false;
+	std::unique_ptr<IKSkeletalActor> actor;
 	std::unique_ptr<StaticActor> actorStatic;
 
+	// animation only
 	std::unique_ptr<IKController> controller;
-
-	BoundingVolume bv; // mesh bounding volume
-	bool visible = true;
-
 	int animIdx = 0;
 	int animFrameCurr = 0;
 	SkeletalAnimationController::Animation* pAnimCurr = nullptr;
+
+	// common
+	std::string name;
+	T3DMesh<float> mesh;
+	SGNGeometry sgn;
+	void init(SGNTransformation* sgnRoot);
+
+	BoundingVolume bv; // mesh bounding volume
+	bool visible = true;
 
 	// Picking bindings
 	void pckMove(const Matrix4f& trans);
@@ -39,10 +43,9 @@ struct CharEntity : public IPickable {
 	Matrix4f pckTransPickin(); // used for picking evaluation
 	const BoundingVolume& pckBV();
 
-	void init(SGNTransformation* sgnRoot);
+	// tools //TODOff(skade) move outside
 	void applyTransformToMesh(SGNTransformation* sgnRoot);
 	void removeArmature(SGNTransformation* sgnRoot);
-
 	void updateRestpose(SGNTransformation* sgnRoot);
 };
 

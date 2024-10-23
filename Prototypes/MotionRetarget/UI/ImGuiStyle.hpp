@@ -1,6 +1,5 @@
 #pragma once
 
-//TODOf(skade) put in config / settings
 // https://gist.github.com/dougbinks/8089b4bbaccaaf6fa204236978d165a9#file-imguiutils-h-L9-L93
 inline void SetupImGuiStyle(bool is_dark_style, float alpha_threshold) {
 	//Use a ternary operator

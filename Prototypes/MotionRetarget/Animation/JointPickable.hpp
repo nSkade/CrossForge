@@ -25,7 +25,7 @@ struct JointPickableMesh {
 class JointPickable : public IPickable {
 public:
 	void init() {
-		//TODO(skade) mesh data for every joint in vram, inefficient
+		//TODOfff(skade) mesh data for every joint in vram, inefficient
 		actor.init(&m_pJPMesh->mesh);
 		actorSel.init(&m_pJPMesh->mesh);
 		actorSel.material(0)->color(Vector4f(227./255,142./255,48./255,1.));
@@ -38,7 +38,6 @@ public:
 
 	void pckMove(const Matrix4f& trans);
 
-	//TODO(skade) consider global transform of underlying 
 	Matrix4f pckTransPickin() {
 		return m_transform;
 	};
@@ -72,7 +71,7 @@ private:
 	Matrix4f m_transformGuizmo; // global space transform of joint
 	Matrix4f m_fromPar; // parent joint transform
 	Matrix4f m_sgnT; // parent sgn transform of SkeletalActor
-	IKController* m_pIKC; //TODO(skade) remove refs
+	IKController* m_pIKC; //TODOfff(skade) smartptr
 
 	// visualizer
 	StaticActor actor;

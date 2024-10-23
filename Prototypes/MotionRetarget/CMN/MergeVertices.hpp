@@ -21,7 +21,7 @@ std::map<uint32_t, std::vector<uint32_t>> mergeRedundantVertices(T3DMesh<float>*
 
 	std::vector<std::pair<uint32_t, uint32_t>> RedundantVertices; // <first occurence, copy>
 
-	//TODO(skade) return vertex correlation
+	//TODOf(skade) return vertex correlation
 	// connection between new and old vertex indices
 	std::map<uint32_t, std::vector<uint32_t>> vertCorr;
 	

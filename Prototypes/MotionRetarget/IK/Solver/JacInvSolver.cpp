@@ -1,7 +1,7 @@
 #include "JacInvSolver.hpp"
 #include <Prototypes/MotionRetarget/IK/IKController.hpp>
 
-#include <iostream> //TODO(skade) remove
+//#include <iostream> // dbg
 
 #include <Prototypes/MotionRetarget/CMN/EigenFWD.hpp>
 
@@ -52,10 +52,9 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 		}
 			break;
 		case SVD: { // svd
-			//TODOf(skade) not stable when multiple joints align
+			// not stable when multiple joints align
 			jacI = EigenFWD::JacobiSVDSolve(jac,diff);
-
-			//TODOf(skade)
+			//TODOfff(skade)
 			//jacI = EigenFWD::FullPivLUSolve(jac,diff);
 		}
 			break;
@@ -90,11 +89,11 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 			                 * Quaternionf(AngleAxisf(dz,Vector3f::UnitZ()));
 			rotD.normalize();
 
-			//TODO(skade) not usable with svd
-			//TODO(skade) add delta as parameter
+			// not usable with svd
+			//TODOff(skade) add delta as parameter
 			//{// rotate by dist error
 			//	AngleAxisf rotDaa = AngleAxisf(rotD);
-			//	rotDaa.angle() *= (DistError + 1.)*10.; //.1; //TODO(skade)
+			//	rotDaa.angle() *= (DistError + 1.)*10.; //.1; //TODOff(skade)
 			//	rotD = Quaternionf(rotDaa);
 			//	rotD.normalize();
 			//}

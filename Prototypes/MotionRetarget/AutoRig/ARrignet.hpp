@@ -17,8 +17,6 @@ struct ARrignetOptions {
 
 class ARrignet : IAutoRigger<ARrignetOptions> {
 public:
-	//TODO(skade) config
-
 	// path to anaconda installation, folder which should contain _conda.exe
 	std::string condaPath;//"C:/Users/Admin/miniconda3/";
 
@@ -30,7 +28,7 @@ public:
 		// merge vertices
 		T3DMesh<float> mergedMesh = *mesh;
 
-		//TODO(skade)
+		//TODOf(skade) remove redundant vertices for rignet and create correspondences to assign weights to original mesh
 		//std::map<uint32_t, std::vector<uint32_t>> vertCorr; // vertex correspondences
 		//vertCorr = mergeRedundantVertices(&mergedMesh);
 
@@ -42,8 +40,8 @@ public:
 
 		// assemble command
 
-		//TODOf(skade) linux support / crossplatform
-		//TODOf(skade) no space allowable?
+		//TODOfff(skade) linux support / crossplatform
+		//TODOfff(skade) no space allowable?
 		//std::string command = "\""+condaPath + "/Scripts/activate.bat\" " + "\""+condaPath+"/\"";
 		std::string command = condaPath + "/Scripts/activate.bat " + condaPath;
 
@@ -113,7 +111,7 @@ public:
 
 		ifs.close();
 
-		//TODO(skade)
+		//TODOf(skade)
 		// restore weights onto original mesh with vertCopies
 		//for (uint32_t)
 		//vertCorr

@@ -5,7 +5,6 @@
 namespace CForge {
 using namespace Eigen;
 
-//TODO(skade)
 struct IKTarget : public IPickable {
 
 	IKTarget(std::string name, BoundingVolume bv) {
