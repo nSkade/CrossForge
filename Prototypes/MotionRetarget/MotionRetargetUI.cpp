@@ -14,13 +14,15 @@
 #include "AutoRig/ARpinocchio.hpp" //TODOff(skade) into Scene instead of here
 #include "AutoRig/ARrignet.hpp" //TODOff(skade) into Scene instead of here
 
+#include "AutoMoRe/MRlimb.hpp" //TODOff(skade) into Scene instead of here
+
 #include "CMN/MergeVertices.hpp"
 
 namespace ImGui {
 
-auto ComboStr = [](const char* label, int* current_item, const std::vector<std::string>& items, int items_count, int height_in_items = -1)
+auto ComboStr = [](const char* label, int* current_item, const std::vector<std::string>& items, int height_in_items = -1)
 {
-	return ImGui::Combo(label, current_item, [](void* data, int idx, const char** out_text) { *out_text = ((const std::vector<std::string>*)data)->at(idx).c_str(); return true; }, (void*)&items, items_count, height_in_items);
+	return ImGui::Combo(label, current_item, [](void* data, int idx, const char** out_text) { *out_text = ((const std::vector<std::string>*)data)->at(idx).c_str(); return true; }, (void*)&items, (int) items.size(), height_in_items);
 };
 
 }//ImGui
@@ -62,6 +64,18 @@ void MotionRetargetScene::renderUI() {
 	ImGuizmo::BeginFrame();
 	ImGuiViewport* igViewPort = ImGui::GetMainViewport();
 	ImGui::DockSpaceOverViewport(igViewPort,ImGuiDockNodeFlags_PassthruCentralNode);
+
+	{ // transparent window for status infos
+		ImGui::SetNextWindowBgAlpha(0.0);
+		ImGui::Begin("status",0,ImGuiWindowFlags_::ImGuiWindowFlags_NoTitleBar);
+		bool moReLimb = m_MRlimb.active();
+		ImGui::Checkbox("MoReLimb",&moReLimb);
+		if (!moReLimb)
+			m_MRlimb.reset();
+		ImGui::Checkbox("EditMode",&m_isEditMode);
+		ImGui::End();
+	}
+	//ImGui::ShowDemoWindow();
 
 	renderUI_menuBar();
 	renderUI_Outliner();
@@ -142,17 +156,14 @@ void MotionRetargetScene::renderUI_Outliner() {
 		if (!c)
 			continue;
 		if (ImGui::TreeNode(c->name.c_str())) {
+			ImGui::SameLine();
+			if (ImGui::Button("Pick")) {
+				forcePickCharEntity(c);
+			}
+
 			if (ImGui::CollapsingHeader("visiblity options")) {
-				bool oldVis = c->visible;
 				ImGui::Checkbox("visible",&c->visible);
 
-				//TODO(skade) dont detach from rendering because of anim controller update?
-				if (oldVis != c->visible) {
-					if (c->visible)
-						m_sgnRoot.addChild(&c->sgn);
-					else
-						m_sgnRoot.removeChild(&c->sgn);
-				}
 				if (c->controller) {
 					ImGui::SameLine();
 					auto jps = c->controller->getJointPickables();
@@ -230,7 +241,7 @@ void MotionRetargetScene::renderUI_animation() {
 	items[0] = "none";
 	for (uint32_t i=0;i<c->controller->animationCount();++i)
 		items[i+1] = c->controller->animation(i)->Name;
-	ImGui::ComboStr("select animation",&c->animIdx,items,items.size());
+	ImGui::ComboStr("select animation",&c->animIdx,items);
 
 	if (c->animIdx > 0) { // anim selected
 
@@ -513,6 +524,29 @@ void MotionRetargetScene::renderUI_menuBar() {
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("Armature")) {
+			if (ImGui::MenuItem("Import Armature config")) {
+				if (auto c = m_charEntityPrim.lock()) {
+					std::filesystem::path path = UserDialog::OpenFile("select armature json", "json", "*.json");
+					c->importArmature(path);
+					try {
+						c->parseArmature();
+					}
+					catch (...) {
+						std::cerr << "error parsing armature, make sure joint names are correct"; //TODOfff(skade) proper log
+					}
+				}
+			}
+			if (ImGui::MenuItem("Export Armature config")) {
+				if (auto c = m_charEntityPrim.lock()) {
+					//TODOff(skade) implement
+					//std::filesystem::path path = UserDialog::OpenFile("select armature json", "json", "*.json");
+					//c->exportArmature(path);
+				}
+			}
+			ImGui::EndMenu();
+		}
+
 		ImGui::EndMainMenuBar();
 
 		if (m_showPop[POP_PREF]) {
@@ -675,7 +709,7 @@ void MotionRetargetScene::renderUI_ik() {
 			IKMethod prevIdx = idx;
 
 			//TODOfff(skade) cleaner impl with enums
-			ImGui::ComboStr("ik method",(int*) &idx,ikMstr,ikMstr.size());
+			ImGui::ComboStr("ik method",(int*) &idx,ikMstr);
 			if (prevIdx != idx) {
 				makeIK(&chain,idx);
 			}
@@ -687,7 +721,7 @@ void MotionRetargetScene::renderUI_ik() {
 					"DLS",
 				};
 				subType = iks->m_type;
-				ImGui::ComboStr("inv meth",&subType,meth,meth.size());
+				ImGui::ComboStr("inv meth",&subType,meth);
 				iks->m_type = (IKSjacInv::Type) subType;
 			}
 			if (auto iks = dynamic_cast<IKSccd*>(chain.ikSolver.get())) {
@@ -696,7 +730,7 @@ void MotionRetargetScene::renderUI_ik() {
 					"FORWARD",
 				};
 				subType = iks->m_type;
-				ImGui::ComboStr("inv meth",&subType,meth,meth.size());
+				ImGui::ComboStr("inv meth",&subType,meth);
 				iks->m_type = (IKSccd::Type) subType;
 			}
 
@@ -1028,14 +1062,79 @@ void MotionRetargetScene::renderUI_autorig() {
 
 void MotionRetargetScene::renderUI_autoMoRe() {
 	bool popState = m_showPop[POP_MR_LIMB];
+	static bool init = false;
 	if (popState) {
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
+		static std::vector<int> corr;
+
 		if (ImGui::Begin("autorig rignet", &popState)) {
+
+			auto ct = m_charEntityPrim.lock();
+			auto cs = m_charEntitySec.lock();
+			
+			if (ct && cs) {
+
+				auto& ctc = ct->controller;
+				auto& csc = ct->controller;
+
+				if (ctc && csc) {
+					if (corr.size() != ctc->m_ikArmature.m_jointChains.size())
+						corr.resize(ctc->m_ikArmature.m_jointChains.size(),-1);
+					int i=0;
+					for (auto& jct : ctc->m_ikArmature.m_jointChains) {
+						
+						std::vector<std::string> jcsNames;
+						for (auto& jcs : csc->m_ikArmature.m_jointChains) {
+							jcsNames.push_back(jcs.name);
+						}
+						ImGui::ComboStr(jct.name.c_str(),&corr[i],jcsNames);
+						//ImGui::Select
+
+						//if (ImGui::Selectable(chains[n].name.c_str(), is_selected)) {
+						//	if (ImGui::GetIO().KeyCtrl) { // CTRL+click to toggle
+						//		if (m_selChainIdx == n)
+						//			m_selChainIdx = -1;
+						//	}
+						//	else
+						//		m_selChainIdx = n;
+						//}
+
+						//if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
+						//	int n_next = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
+						//	if (n_next >= 0 && n_next < chains.size()) {
+						//		std::swap(chains[n],chains[n_next]);
+						//		ImGui::ResetMouseDragDelta();
+						//	}
+						//}
+
+						//// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+						//if (is_selected)
+						//	ImGui::SetItemDefaultFocus();
+						i++;
+					}
+				}
+				else {
+					ImGui::Text("make sure both characters are rigged");
+				}
+			}
+			else {
+				ImGui::Text("make sure to primary and secondary select characters");
+			}
 			if (ImGui::Button("Confirm")) {
-				
+
+				if (ct && cs) {
+					//TODO(skade) only once
+					//MRlimb mrLimb;
+					//if (!init)
+					//	mrLimb.initialize(cs->controller.get(),ct->controller.get());
+					
+					//m_MRlimb.initialize();
+					m_MRlimb.initialize(cs,ct,corr);
+				}
+				corr.clear();
 				popState = false;
 			}
 			ImGui::End();

@@ -49,12 +49,9 @@ public:
 	void forwardKinematics(SkeletalJoint* pJoint);
 	void forwardKinematics() { forwardKinematics(m_pRoot); };
 
-	//TODOff(skade) smartptr?
-	std::map<SkeletalJoint*,IKJoint> m_IKJoints; // extends m_Joints
-
+	//TODOff(skade) cleanup
+	// helper functions 
 	std::vector<IKChain>& getJointChains() { return m_ikArmature.m_jointChains; };
-
-	IKArmature m_ikArmature;
 
 	std::vector<std::vector<Vector3f>> getFABRIKpoints() {
 		std::vector<std::vector<Vector3f>> ret;
@@ -76,7 +73,22 @@ public:
 	std::weak_ptr<JointPickable> getJointPickable(SkeletalJoint* joint) {
 		return m_jointPickables[joint];
 	}
-	
+
+	//TODOff(skade) unify with chain editor func
+	/**
+	 * @brief Builds new IKChain from names and places them into getJointChains()
+	*/
+	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
+
+	/**
+	 * @brief inits for every skeleton endeffector a target
+	*/
+	void initTargetPoints();
+	void clearTargetPoints();
+public:
+	// no smartptr needed as controller owns SkeletalJoint
+	std::map<SkeletalJoint*,IKJoint> m_IKJoints; // extends m_Joints
+	IKArmature m_ikArmature;
 	std::vector<std::shared_ptr<IKTarget>> m_targets;
 private:
 	std::map<SkeletalJoint*,std::shared_ptr<JointPickable>> m_jointPickables;
@@ -93,18 +105,6 @@ private:
 
 	void initConstraints(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
-
-	//TODOff(skade) unify with chain editor func
-	/**
-	 * @brief Builds new IKChain from names and places them into getJointChains()
-	*/
-	void buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName);
-
-	/**
-	 * @brief inits for every skeleton endeffector a target
-	*/
-	void initTargetPoints();
-	void clearTargetPoints();
 
 	/**
 	 * @brief update target points from corresponding current animation joint positions.

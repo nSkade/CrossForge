@@ -169,7 +169,7 @@ namespace CForge {
 						}
 					}
 				}
-				// TODO fat
+				//TODOfff(skade) fat
 				
 				bones.push_back(cur);
 			}

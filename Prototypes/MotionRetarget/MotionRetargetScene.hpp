@@ -17,6 +17,8 @@
 #include "UI/LineBox.hpp"
 #include "UI/EditGrid.hpp"
 
+#include "AutoMoRe/MRlimb.hpp"
+
 namespace CForge {
 
 /**
@@ -43,6 +45,7 @@ private:
 	void initCharacter(std::weak_ptr<CharEntity> charEntity);
 	void initCesiumMan();
 
+	// target visualizer
 	//TODOff(skade) dim SPOT IKTarget, move actor into IKTarget, + picked highlight
 	void initIKTargetActor();
 
@@ -85,6 +88,9 @@ private:
 	bool keyboardAnyKeyPressed();
 	void defaultKeyboardUpdate(Keyboard* pKeyboard);
 
+	// helper functions for better structure
+	void forcePickCharEntity(std::weak_ptr<CharEntity> c);
+
 private:
 	struct settings {
 		float gridSize = 3.f;
@@ -100,6 +106,11 @@ private:
 	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
 	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity
 	std::weak_ptr<CharEntity> m_charEntitySec; // secondary char entity for operations
+	bool m_isEditMode = false; // focuses on one charEntity
+	// sgn matrix of charEntity in edit mode for restoration
+	Vector3f m_editModeCachePos = Vector3f::Zero();
+	Vector3f m_editModeCacheScale = Vector3f::Ones();
+	Quaternionf m_editModeCacheRot = Quaternionf::Identity();
 
 	SGNTransformation m_sgnRoot;
 	StaticActor m_TargetPos;
@@ -134,6 +145,8 @@ private:
 	std::string m_ikceName = "new";
 	IKController::SkeletalJoint* m_ikceRootJoint = nullptr;
 	IKController::SkeletalJoint* m_ikceEndEffJoint = nullptr;
+	// motion retarget TODO(skade) organize better
+	MRlimb m_MRlimb;
 	// gui popup
 	enum AppPopups {
 		POP_PREF = 0,

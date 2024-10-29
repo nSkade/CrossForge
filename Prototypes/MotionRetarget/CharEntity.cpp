@@ -2,6 +2,8 @@
 
 #include "CMN/MRMutil.hpp"
 
+#include <fstream>
+
 namespace CForge {
 
 void CharEntity::pckMove(const Matrix4f& trans) {
@@ -85,28 +87,26 @@ void CharEntity::applyTransformToMesh(SGNTransformation* sgnRoot) {
 
 		mesh.getBone(i)->InvBindPoseMatrix = mesh.getBone(i)->InvBindPoseMatrix * t2.inverse();
 		Vector3f ibpPos = mesh.getBone(i)->InvBindPoseMatrix.block<3,1>(0,3);
-		ibpPos = ibpPos.cwiseProduct(scale); //TODO(skade) correct?
+		ibpPos = ibpPos.cwiseProduct(scale); //TODOff(skade) seems correct, but I am not sure
 		mesh.getBone(i)->InvBindPoseMatrix.block<3,1>(0,3) = ibpPos;
 	}
 
-	//TODO(skade) animations
 	for (uint32_t i = 0; i < mesh.skeletalAnimationCount(); ++i) {
 		int32_t rootBoneID = mesh.rootBone()->ID;
 		auto anim = mesh.getSkeletalAnimation(i);
-		auto kf = anim->Keyframes[rootBoneID];
+		auto kfr = anim->Keyframes[rootBoneID];
 		
-		//TODO(skade) scale not ideal? apply all scale to pos instead?
-		for (uint32_t k = 0; k < kf->Scalings.size(); ++k) {
-			kf->Scalings[k] = scale.cwiseProduct(kf->Scalings[k]);
+		for (uint32_t k = 0; k < kfr->Rotations.size(); ++k) {
+			kfr->Rotations[k] = rot * kfr->Rotations[k];
 		}
-
-		for (uint32_t k = 0; k < kf->Rotations.size(); ++k) {
-			kf->Rotations[k] = rot * kf->Rotations[k];
+		for (uint32_t j = 0; j < anim->Keyframes.size(); ++j) {
+			auto kf = anim->Keyframes[j];
+			for (uint32_t k = 0; k < kf->Positions.size(); ++k) {
+				kf->Positions[k] = scale.cwiseProduct(kf->Positions[k]);
+			}
 		}
-		//TODOf(skade) correct?
-		for (uint32_t k = 0; k < kf->Positions.size(); ++k) {
-			kf->Positions[k] = scale.cwiseProduct(kf->Positions[k]);
-			kf->Positions[k] = pos + rot * kf->Positions[k];
+		for (uint32_t k = 0; k < kfr->Positions.size(); ++k) {
+			kfr->Positions[k] = pos + rot*kfr->Positions[k];
 		}
 	}
 
@@ -144,6 +144,21 @@ void CharEntity::updateRestpose(SGNTransformation* sgnRoot) {
 	//TODOf(skade) update animations
 
 	init(sgnRoot);
+}
+
+
+void CharEntity::importArmature(std::filesystem::path path) {
+	armatureInfo.limbs.clear();
+	std::ifstream f(path);
+	const nlohmann::json ConfigData = nlohmann::json::parse(f);
+	auto StructureData = ConfigData.at("SkeletonStructure");
+
+	for (auto it : StructureData.items()) {
+		if(it.value().contains("Root") && it.value().contains("EndEffector"))
+			armatureInfo.limbs.push_back({it.key(),
+			                              it.value().at("Root").get<std::string>(),
+			                              it.value().at("EndEffector").get<std::string>()});
+	}
 }
 
 }//CForge

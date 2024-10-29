@@ -37,6 +37,38 @@ struct CharEntity : public IPickable {
 	BoundingVolume bv; // mesh bounding volume
 	bool visible = true;
 
+	//TODO(skade) cesman test,
+	std::string armatureFilepath = "";
+
+	// exportable armature
+	//TODO(skade) function to get ConfigData from existing m_ikArmature chains
+	struct ArmatureInfo {
+		struct Chain {
+			std::string name;
+			std::string startJoint;
+			std::string endJoint;
+		};
+		std::vector<Chain> limbs;
+		//TODO(skade) joint limits
+	} armatureInfo;
+	void parseArmature() {
+		if (controller) {
+			for (ArmatureInfo::Chain c : armatureInfo.limbs)
+				controller->buildKinematicChain(c.name,c.startJoint,c.endJoint);
+		}
+	}
+	void extractArmature(std::filesystem::path path) {
+		armatureInfo.limbs.clear();
+		if (controller) {
+			for (auto& jc : controller->m_ikArmature.m_jointChains)
+				armatureInfo.limbs.push_back({jc.name,jc.joints[0]->Name,jc.joints.back()->Name});
+		}
+	}
+	void importArmature(std::filesystem::path path);
+	void exportArmature(std::filesystem::path path) {
+		
+	}
+
 	// Picking bindings
 	void pckMove(const Matrix4f& trans);
 	Matrix4f pckTransGuizmo(); // used for guizmo update

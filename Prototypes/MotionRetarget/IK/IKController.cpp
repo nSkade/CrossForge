@@ -291,13 +291,13 @@ void IKController::initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::
 	}
 }//initSkeletonStructure
 
+//TODOff(skade) cleanup
 void IKController::buildKinematicChain(std::string name, std::string rootName, std::string endEffectorName) {
 	//getJointChains().try_emplace(name,IKChain());
 	//getJointChains().at(name).name = name;
 	//std::vector<SkeletalJoint*>& joints = getJointChains().at(name).joints;
 
-	getJointChains().emplace_back();
-	IKChain& nc = getJointChains().back();
+	IKChain nc;
 	nc.name = name;
 	std::vector<SkeletalJoint*>& joints = nc.joints;
 
@@ -331,6 +331,8 @@ void IKController::buildKinematicChain(std::string name, std::string rootName, s
 		joints.push_back(pCurrent);
 	} while (pCurrent->ID != pEnd->ID);
 
+	auto& jc = getJointChains();
+	jc.emplace_back(std::move(nc));
 	//if (joints.size() < 2)
 	//	throw CForgeExcept("Initialization of chain failed, joints size < 2");
 }//buildKinematicChain

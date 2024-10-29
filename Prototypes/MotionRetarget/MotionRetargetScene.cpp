@@ -135,30 +135,89 @@ void MotionRetargetScene::mainLoop() {
 		}
 	}
 
+	//MRlimb
+	m_MRlimb.update();
 	m_SG.update(60.0f / m_FPS);
+	{ // animation update
+		if (m_IKCupdate || m_IKCupdateSingle) {
+			for (uint32_t i=0;i<m_charEntities.size();++i)
+				m_charEntities[i]->controller->update(60.0f / m_FPS);
+			m_IKCupdateSingle = false;
+		}
+		for (uint32_t i=0;i<m_charEntities.size();++i) {
+			auto c = m_charEntities[i];
+			if (!c->pAnimCurr)
+				continue;
+			//m_pAnimCurr->Speed = 1./60.; //TODOf(skade)
+			//m_pAnimCurr->Duration = 2000.; //TODOf(skade) unused when applied?
 
-	if (m_IKCupdate || m_IKCupdateSingle) {
-		for (uint32_t i=0;i<m_charEntities.size();++i)
-			m_charEntities[i]->controller->update(60.0f / m_FPS);
-		m_IKCupdateSingle = false;
+			//TODOf(skade) move into char entity
+			auto* pA = c->pAnimCurr;
+			if (m_animAutoplay) {
+				c->animFrameCurr = pA->t * pA->SamplesPerSecond;
+				pA->t += 1./m_FPS * pA->Speed;
+				if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
+					pA->t = 0.;
+			} else
+				pA->t = c->animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable
+		}
 	}
 
-	for (uint32_t i=0;i<m_charEntities.size();++i) {
-		auto c = m_charEntities[i];
-		if (!c->pAnimCurr)
-			continue;
-		//m_pAnimCurr->Speed = 1./60.; //TODOf(skade)
-		//m_pAnimCurr->Duration = 2000.; //TODOf(skade) unused when applied?
+	{ // edit mode logic
+		// hide all char entities
+		static bool prevIsEditMode = false;
+		if (m_isEditMode != prevIsEditMode) {
+			for (auto c : m_charEntities)
+				c->visible = !m_isEditMode;
+		}prevIsEditMode = m_isEditMode;
 
-		//TODOf(skade) move into char entity
-		auto* pA = c->pAnimCurr;
-		if (m_animAutoplay) {
-			c->animFrameCurr = pA->t * pA->SamplesPerSecond;
-			pA->t += 1./m_FPS * pA->Speed;
-			if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
-				pA->t = 0.;
-		} else
-			pA->t = c->animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable
+		if (m_isEditMode) {
+			static std::shared_ptr<CharEntity> prevC;
+			std::shared_ptr<CharEntity> currC = std::dynamic_pointer_cast<CharEntity>(m_picker.getCurrPick().lock());
+			if (prevC.get() != currC.get()) {
+				// restore old char Entity transform
+				if (auto pc = prevC) {
+					pc->sgn.position(m_editModeCachePos);
+					pc->sgn.scale(m_editModeCacheScale);
+					pc->sgn.rotation(m_editModeCacheRot);
+					m_editModeCachePos = Vector3f::Zero();
+					m_editModeCacheScale = Vector3f::Ones();
+					m_editModeCacheRot = Quaternionf::Identity();
+					pc->visible = false;
+					if (!currC)
+						m_picker.reset();
+				}
+				// set cache to new charEntity
+				if (auto c = currC) {
+					m_editModeCachePos = c->sgn.position();
+					m_editModeCacheScale = c->sgn.scale();
+					m_editModeCacheRot = c->sgn.rotation();
+					c->sgn.position(Vector3f::Zero());
+					c->sgn.scale(Vector3f::Ones());
+					c->sgn.rotation(Quaternionf::Identity());
+					//m_picker.update(MRMutil::buildTransformation(c->sgn));
+					//m_guizmoMat = m_picker.m_guizmoMat;
+					forcePickCharEntity(c);
+					c->visible = true;
+				}
+				prevC = currC;
+			}
+		}
+	}
+
+	// handle visibility
+	{
+		for (auto c : m_charEntities) {
+			//TODOfff(skade) not every frame
+			//bool oldVis = c->visible;
+			//TODO(skade) dont detach from rendering because of anim controller update?
+			//if (oldVis != c->visible) {
+			if (c->visible)
+				m_sgnRoot.addChild(&c->sgn);
+			else
+				m_sgnRoot.removeChild(&c->sgn);
+			//}
+		}
 	}
 
 	bool hoveredImgui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
@@ -187,51 +246,50 @@ void MotionRetargetScene::mainLoop() {
 	} // removing objects
 	
 	{ // Handle Picking
-	if (!hoveredImgui) {
-		if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
+		if (!hoveredImgui) {
+			if (!m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT) && m_LMBDownLastFrame) {
 
-			if (!ImGuizmo::IsUsing()) {
-				std::vector<std::weak_ptr<IPickable>> p;
-				m_picker.start();
-				for (uint32_t i=0;i<m_charEntities.size();++i) {
-					auto c = m_charEntities[i];
-					//if (!c->visible)
-					//	continue;
+				if (!ImGuizmo::IsUsing()) {
+					std::vector<std::weak_ptr<IPickable>> p;
+					m_picker.start();
+					for (uint32_t i=0;i<m_charEntities.size();++i) {
+						auto c = m_charEntities[i];
+						//if (!c->visible)
+						//	continue;
 
-					p.clear(); p.push_back(c);
-					m_picker.pick(p);
-					if (!c->controller)
-						continue;
-					if (m_settings.showTargets) {
-						std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
-						p.assign(t.begin(),t.end());
+						p.clear(); p.push_back(c);
 						m_picker.pick(p);
+						if (!c->controller)
+							continue;
+						if (m_settings.showTargets) {
+							std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
+							p.assign(t.begin(),t.end());
+							m_picker.pick(p);
+						}
+						if (m_settings.showJoints) {
+							std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
+							p.assign(jp.begin(),jp.end());
+							m_picker.pick(p);
+						}
 					}
-					if (m_settings.showJoints) {
-						std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
-						p.assign(jp.begin(),jp.end());
-						m_picker.pick(p);
-					}
-				}
 
-				m_picker.resolve();
-				m_guizmoMat = m_picker.m_guizmoMat;
-				if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
-					m_charEntitySec = m_charEntityPrim;
-					m_charEntityPrim = e;
+					m_picker.resolve();
+					m_guizmoMat = m_picker.m_guizmoMat;
+					if (auto e = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
+						m_charEntitySec = m_charEntityPrim;
+						m_charEntityPrim = e;
+					}
 				}
 			}
+
+			if (auto lp = m_picker.getLastPick().lock())
+				m_guizmo.active(true);
+			else
+				m_guizmo.active(false);
 		}
-
-		if (auto lp = m_picker.getLastPick().lock())
-			m_guizmo.active(true);
-		else
-			m_guizmo.active(false);
-	}
-	m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
-	m_picker.update(m_guizmoMat);
+		m_LMBDownLastFrame = m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT);
+		m_picker.update(m_guizmoMat);
 	} // Handle Picking
-
 
 	{ // View and Rendering
 		m_editCam.defaultCameraUpdate(&m_Cam, &m_RenderWin, !hoveredImgui, 0.05f, .7f, 32.0f);
@@ -277,9 +335,12 @@ void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
 	// autoscale
 	Vector3f scale = Vector3f(2.f,2.f,2.f)/(c->bv.aabb().diagonal().maxCoeff()); //TODOff(skade) standard size
 	c->sgn.scale(scale);
+}
 
-	//TODOff(skade) SPOT
+//TODOfff(skade) better pos
+void MotionRetargetScene::forcePickCharEntity(std::weak_ptr<CharEntity> c) {
 	m_picker.forcePick(c);
+	m_picker.m_guizmoMat = MRMutil::buildTransformation(c.lock()->sgn); // this shouldnt be necessary
 	m_guizmoMat = m_picker.m_guizmoMat;
 	m_charEntitySec = m_charEntityPrim;
 	m_charEntityPrim = c;
@@ -298,39 +359,130 @@ void MotionRetargetScene::initCesiumMan() {
 		SLogger::log("config file missing");
 		return;
 	}
-	
-	m_charEntities.emplace_back(std::make_unique<CharEntity>());
+
+	loadCharPrim(path,IOmeth::IOM_GLTFIO);
 	std::shared_ptr<CharEntity> c = m_charEntities.back();
-	GLTFIO::load(path, &c->mesh);
+	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
+	c->applyTransformToMesh(&m_sgnRoot);
+	c->importArmature(pathIKConfig);
+	c->parseArmature();
+	c->sgn.position({0.,0.,1.});
+	c->controller->forwardKinematics();
+	c->controller->initTargetPoints();
 
-	//TODOff(skade) special init replacement for IK limb loading,
-	//            replace with proper skeleton retarget "config" solution
-	{
-		c->name = std::filesystem::path(path).filename().string();
-		//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
-		c->mesh.computePerVertexNormals(); //TODOff(skade) remove?
-		c->controller = std::make_unique<IKController>();
-		c->controller->init(&c->mesh, pathIKConfig);
+	loadCharPrim(path,IOmeth::IOM_GLTFIO);
+	c = m_charEntities.back();
+	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
+	c->applyTransformToMesh(&m_sgnRoot);
+	c->importArmature(pathIKConfig);
+	c->parseArmature();
+	c->sgn.position({0.,0.,-1.});
+	c->controller->forwardKinematics();
+	c->controller->initTargetPoints();
+	
+	//c->applyTransformToMesh(&m_sgnRoot);
+	//c->sgn.position({0.,0.,1.});
+	//std::unique_ptr<CharEntity> c = std::make_unique<CharEntity>();
+	//GLTFIO::load(path, &c->mesh);
 
-		for (uint32_t i = 0; i < c->mesh.skeletalAnimationCount(); ++i) {
-			if (c->mesh.getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
-				c->controller->addAnimationData(c->mesh.getSkeletalAnimation(i));
-		}
-		c->actor = std::make_unique<IKSkeletalActor>();
-		c->actor->init(&c->mesh, c->controller.get());
+	////TODOff(skade) special init replacement for IK limb loading,
+	////            replace with proper skeleton retarget "config" solution
+	//{
+	//	std::string name = std::filesystem::path(path).filename().string();
+	//	c->name = name;
+	//	//TODOfff(skade) make m_charEntities std::map to avoid name confilcts?
+	//	// for now avoid name conflicts via checking
+	//	bool nameUnique = false;
+	//	int nameNum = 0;
+	//	while (!nameUnique) {
+	//		nameUnique = true;
+	//		for (auto oc : m_charEntities) {
+	//			if (oc->name == c->name) {
+	//				c->name = name + std::to_string(nameNum);
+	//				nameUnique = false; // need to check again
+	//			}
+	//		}
+	//		nameNum++;
+	//	}
+	//	//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
+	//	c->mesh.computePerVertexNormals(); //TODOff(skade) remove?
+	//	c->controller = std::make_unique<IKController>();
+	//	c->controller->init(&c->mesh, pathIKConfig);
 
-		c->sgn.init(&m_sgnRoot, c->actor.get());
+	//	for (uint32_t i = 0; i < c->mesh.skeletalAnimationCount(); ++i) {
+	//		if (c->mesh.getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
+	//			c->controller->addAnimationData(c->mesh.getSkeletalAnimation(i));
+	//	}
+	//	c->actor = std::make_unique<IKSkeletalActor>();
+	//	c->actor->init(&c->mesh, c->controller.get());
 
-		// set bounding volume
-		c->mesh.computeAxisAlignedBoundingBox();
-		Box aabb = c->mesh.aabb();
-		c->bv.init(aabb);
+	//	c->sgn.init(&m_sgnRoot, c->actor.get());
 
-		// autoscale
-		Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODOff(skade) standard size
-		c->sgn.scale(scale);
-		c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
-	}
+	//	// set bounding volume
+	//	c->mesh.computeAxisAlignedBoundingBox();
+	//	Box aabb = c->mesh.aabb();
+	//	c->bv.init(aabb);
+
+	//	// autoscale
+	//	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODOff(skade) standard size
+	//	c->sgn.scale(scale);
+	//	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
+	//}
+	//c->applyTransformToMesh(&m_sgnRoot);
+	//c->sgn.position({0.,0.,1.});
+	//m_charEntities.emplace_back(std::move(c));
+
+	////TODOf(skade) remove until return
+	//// load second ces for retarget test
+	//c = std::make_unique<CharEntity>();
+	//GLTFIO::load(path, &c->mesh);
+
+	////TODOff(skade) special init replacement for IK limb loading,
+	////            replace with proper skeleton retarget "config" solution
+	//{
+	//	std::string name = std::filesystem::path(path).filename().string();
+	//	c->name = name;
+	//	//TODOfff(skade) make m_charEntities std::map to avoid name confilcts?
+	//	// for now avoid name conflicts via checking
+	//	bool nameUnique = false;
+	//	int nameNum = 0;
+	//	while (!nameUnique) {
+	//		nameUnique = true;
+	//		for (auto oc : m_charEntities) {
+	//			if (oc->name == c->name) {
+	//				c->name = name + std::to_string(nameNum);
+	//				nameUnique = false; // need to check again
+	//			}
+	//		}
+	//		nameNum++;
+	//	}
+	//	//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
+	//	c->mesh.computePerVertexNormals(); //TODOff(skade) remove?
+	//	c->controller = std::make_unique<IKController>();
+	//	c->controller->init(&c->mesh, pathIKConfig);
+
+	//	for (uint32_t i = 0; i < c->mesh.skeletalAnimationCount(); ++i) {
+	//		if (c->mesh.getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
+	//			c->controller->addAnimationData(c->mesh.getSkeletalAnimation(i));
+	//	}
+	//	c->actor = std::make_unique<IKSkeletalActor>();
+	//	c->actor->init(&c->mesh, c->controller.get());
+
+	//	c->sgn.init(&m_sgnRoot, c->actor.get());
+
+	//	// set bounding volume
+	//	c->mesh.computeAxisAlignedBoundingBox();
+	//	Box aabb = c->mesh.aabb();
+	//	c->bv.init(aabb);
+
+	//	// autoscale
+	//	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODOff(skade) standard size
+	//	c->sgn.scale(scale);
+	//	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
+	//}
+	//c->applyTransformToMesh(&m_sgnRoot);
+	//c->sgn.position({0.,0.,-1.});
+	//m_charEntities.emplace_back(std::move(c));
 }
 
 void MotionRetargetScene::initIKTargetActor() {
@@ -359,20 +511,50 @@ void MotionRetargetScene::loadCharPrim(std::string path, IOmeth ioM) {
 	{
 	case CForge::MotionRetargetScene::IOM_ASSIMP:
 		if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
-			m_charEntities.emplace_back(std::make_shared<CharEntity>());
-			auto c = m_charEntities.back();
-			c->name = std::filesystem::path(path).filename().string();
+			std::shared_ptr<CharEntity> c = std::make_shared<CharEntity>();
+			std::string name = std::filesystem::path(path).filename().string();
+			c->name = name;
+			//TODOfff(skade) make m_charEntities std::map to avoid name confilcts?
+			// for now avoid name conflicts via checking
+			bool nameUnique = false;
+			int nameNum = 0;
+			while (!nameUnique) {
+				nameUnique = true;
+				for (auto oc : m_charEntities) {
+					if (oc->name == c->name) {
+						c->name = name + std::to_string(nameNum);
+						nameUnique = false; // need to check again
+					}
+				}
+				nameNum++;
+			}
 			SAssetIO::load(path,&c->mesh);
 			initCharacter(c);
+			m_charEntities.emplace_back(std::move(c));
 		}
 		break;
 	case CForge::MotionRetargetScene::IOM_GLTFIO:
 		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_LOAD)) {
-			m_charEntities.emplace_back(std::make_shared<CharEntity>());
-			auto c = m_charEntities.back();
+			std::shared_ptr<CharEntity> c = std::make_shared<CharEntity>();
+			std::string name = std::filesystem::path(path).filename().string();
+			c->name = name;
+			//TODOfff(skade) make m_charEntities std::map to avoid name confilcts?
+			// for now avoid name conflicts via checking
+			bool nameUnique = false;
+			int nameNum = 0;
+			while (!nameUnique) {
+				nameUnique = true;
+				for (auto oc : m_charEntities) {
+					if (oc->name == c->name) {
+						c->name = name + std::to_string(nameNum);
+						nameUnique = false; // need to check again
+					}
+				}
+				nameNum++;
+			}
 			GLTFIO::load(path,&c->mesh);
-			c->name = std::filesystem::path(path).filename().string();
 			initCharacter(c);
+			m_charEntities.emplace_back(std::move(c));
 		}
 		break;
 	case CForge::MotionRetargetScene::IOM_OBJIMP:
