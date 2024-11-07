@@ -150,14 +150,27 @@ void CharEntity::updateRestpose(SGNTransformation* sgnRoot) {
 void CharEntity::importArmature(std::filesystem::path path) {
 	armatureInfo.limbs.clear();
 	std::ifstream f(path);
-	const nlohmann::json ConfigData = nlohmann::json::parse(f);
-	auto StructureData = ConfigData.at("SkeletonStructure");
+	const nlohmann::json configData = nlohmann::json::parse(f);
+	auto StructureData = configData.at("SkeletonStructure");
 
 	for (auto it : StructureData.items()) {
 		if(it.value().contains("Root") && it.value().contains("EndEffector"))
 			armatureInfo.limbs.push_back({it.key(),
 			                              it.value().at("Root").get<std::string>(),
 			                              it.value().at("EndEffector").get<std::string>()});
+	}
+}
+
+void CharEntity::exportArmature(std::filesystem::path path) {
+	nlohmann::json configData;
+
+	std::ofstream f(path);
+	if (f.is_open()) {
+		for (auto l : armatureInfo.limbs) {
+			nlohmann::json limbData = { {"Root", l.startJoint}, {"EndEffector", l.endJoint} };
+			configData["SkeletonStructure"][l.name] = limbData;
+		}
+		f << std::setw(4) << configData << std::endl;
 	}
 }
 

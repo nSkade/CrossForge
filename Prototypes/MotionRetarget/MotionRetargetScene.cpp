@@ -571,11 +571,11 @@ void MotionRetargetScene::storeCharPrim(std::string path, IOmeth ioM) {
 	switch (ioM)
 	{
 	case CForge::MotionRetargetScene::IOM_ASSIMP:
-		if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
+		//if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE)) //TODO(skade)
 			SAssetIO::store(path,&c.get()->mesh);
 		break;
 	case CForge::MotionRetargetScene::IOM_GLTFIO:
-		if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE))
+		//if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE)) //TODO(skade)
 			GLTFIO::store(path,&c.get()->mesh);
 		break;
 	case CForge::MotionRetargetScene::IOM_OBJIMP:

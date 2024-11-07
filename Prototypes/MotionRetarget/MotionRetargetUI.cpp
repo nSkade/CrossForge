@@ -378,7 +378,7 @@ void MotionRetargetScene::renderUI_menuBar() {
 					storeCharPrim(path,IOM_ASSIMP);
 				}
 				if (ImGui::MenuItem("objImport")) {
-					std::string path = UserDialog::SaveFile("store primary char", "assimp");
+					std::string path = UserDialog::SaveFile("store primary char", "objImport", "*.obj");
 					storeCharPrim(path,IOM_OBJIMP);
 				}
 				ImGui::EndMenu();
@@ -528,20 +528,22 @@ void MotionRetargetScene::renderUI_menuBar() {
 			if (ImGui::MenuItem("Import Armature config")) {
 				if (auto c = m_charEntityPrim.lock()) {
 					std::filesystem::path path = UserDialog::OpenFile("select armature json", "json", "*.json");
-					c->importArmature(path);
-					try {
-						c->parseArmature();
-					}
-					catch (...) {
-						std::cerr << "error parsing armature, make sure joint names are correct"; //TODOfff(skade) proper log
+					if (!path.empty()) {
+						c->importArmature(path);
+						try {
+							c->parseArmature();
+						}
+						catch (...) {
+							std::cerr << "error parsing armature, make sure joint names are correct"; //TODOfff(skade) proper log
+						}
 					}
 				}
 			}
 			if (ImGui::MenuItem("Export Armature config")) {
 				if (auto c = m_charEntityPrim.lock()) {
-					//TODOff(skade) implement
-					//std::filesystem::path path = UserDialog::OpenFile("select armature json", "json", "*.json");
-					//c->exportArmature(path);
+					std::filesystem::path path = UserDialog::SaveFile("store armature json", "json", "*.json");
+					c->extractArmature();
+					c->exportArmature(path);
 				}
 			}
 			ImGui::EndMenu();
@@ -1070,7 +1072,7 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 
 		static std::vector<int> corr;
 
-		if (ImGui::Begin("autorig rignet", &popState)) {
+		if (ImGui::Begin("Motion Retarget Limb", &popState)) {
 
 			auto ct = m_charEntityPrim.lock();
 			auto cs = m_charEntitySec.lock();

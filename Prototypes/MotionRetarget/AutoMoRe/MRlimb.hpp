@@ -57,6 +57,7 @@ public:
 			IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 			ct.target = cs.target;
 
+#if 0
 			// imitate joint angles
 			for (auto jt : ct.joints) {
 				Vector3f jtPos = tCtrl->m_IKJoints[jt].posGlobal;
@@ -74,6 +75,7 @@ public:
 				// set local rotation to joint rotation
 				jt->LocalRotation = cj->LocalRotation;
 			}
+#endif
 		}
 	};
 	void reset() {

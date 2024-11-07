@@ -45,8 +45,8 @@ struct CharEntity : public IPickable {
 	struct ArmatureInfo {
 		struct Chain {
 			std::string name;
-			std::string startJoint;
-			std::string endJoint;
+			std::string startJoint; // root of chain
+			std::string endJoint;   // end effector
 		};
 		std::vector<Chain> limbs;
 		//TODO(skade) joint limits
@@ -57,17 +57,15 @@ struct CharEntity : public IPickable {
 				controller->buildKinematicChain(c.name,c.startJoint,c.endJoint);
 		}
 	}
-	void extractArmature(std::filesystem::path path) {
+	void extractArmature() {
 		armatureInfo.limbs.clear();
 		if (controller) {
 			for (auto& jc : controller->m_ikArmature.m_jointChains)
-				armatureInfo.limbs.push_back({jc.name,jc.joints[0]->Name,jc.joints.back()->Name});
+				armatureInfo.limbs.push_back({jc.name,jc.joints.back()->Name,jc.joints[0]->Name});
 		}
 	}
 	void importArmature(std::filesystem::path path);
-	void exportArmature(std::filesystem::path path) {
-		
-	}
+	void exportArmature(std::filesystem::path path);
 
 	// Picking bindings
 	void pckMove(const Matrix4f& trans);
