@@ -313,11 +313,17 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	}
 
 	ImGui::PushItemWidth(130);
-	ImGui::InputInt("Frame \t\t", &animFrameCurr);
+	ImGui::Text("Frame");
 	ImGui::SameLine();
-	ImGui::InputInt("Min \t\t", &mySequence.mFrameMin);
+	ImGui::InputInt("\t\t", &animFrameCurr);
 	ImGui::SameLine();
-	ImGui::InputInt("Max \t\t", &mySequence.mFrameMax);
+	ImGui::Text("Min");
+	ImGui::SameLine();
+	ImGui::InputInt("\t\t", &mySequence.mFrameMin);
+	ImGui::SameLine();
+	ImGui::Text("Max");
+	ImGui::SameLine();
+	ImGui::InputInt("\t\t", &mySequence.mFrameMax);
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 	ImGui::Text("Keyframe: ");
@@ -476,15 +482,7 @@ void MotionRetargetScene::renderUI_menuBar() {
 				m_showPop[POP_AR_PINOC] = true;
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu("AutoMoRe")) {
-			if (ImGui::MenuItem("limb"))
-				m_showPop[POP_MR_LIMB] = true;
-			//if (ImGui::MenuItem("pinocchio"))
-			//	m_showPop[POP_AR_PINOC] = true;
-			ImGui::EndMenu();
-		}
 
-		//TODOff(skade) move logic outside
 		if (ImGui::BeginMenu("Tools")) {
 			if (ImGui::MenuItem("merge redundent vertices")) {
 				if (auto c = m_charEntityPrim.lock()) {
@@ -508,19 +506,6 @@ void MotionRetargetScene::renderUI_menuBar() {
 					c->removeArmature(&m_sgnRoot);
 				m_picker.reset();
 			}
-			if (ImGui::MenuItem("Reset Camera")) {
-				Vector3f c = Vector3f(.5,0.,-.5);
-				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
-			}
-			if (ImGui::MenuItem("Preferences"))
-				m_showPop[POP_PREF] = true;
-			
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu("Debug")) {
-			if (ImGui::MenuItem("Load cesium man"))
-				initCesiumMan();
 			ImGui::EndMenu();
 		}
 
@@ -546,6 +531,37 @@ void MotionRetargetScene::renderUI_menuBar() {
 					c->exportArmature(path);
 				}
 			}
+			if (ImGui::MenuItem("create Targets for limbs")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->autoCreateTargets();
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("AutoMoRe")) {
+			if (ImGui::MenuItem("limb"))
+				m_showPop[POP_MR_LIMB] = true;
+			//if (ImGui::MenuItem("pinocchio"))
+			//	m_showPop[POP_AR_PINOC] = true;
+			ImGui::EndMenu();
+		}
+
+
+		//TODOff(skade) move logic outside
+		if (ImGui::BeginMenu("Options")) {
+			if (ImGui::MenuItem("Reset Camera")) {
+				Vector3f c = Vector3f(.5,0.,-.5);
+				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
+			}
+			if (ImGui::MenuItem("Preferences"))
+				m_showPop[POP_PREF] = true;
+			
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Debug")) {
+			if (ImGui::MenuItem("Load cesium man"))
+				initCesiumMan();
 			ImGui::EndMenu();
 		}
 
@@ -1083,8 +1099,17 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 				auto& csc = ct->controller;
 
 				if (ctc && csc) {
-					if (corr.size() != ctc->m_ikArmature.m_jointChains.size())
+					//if (corr.size() != ctc->m_ikArmature.m_jointChains.size())
+					//	corr.resize(ctc->m_ikArmature.m_jointChains.size(),-1);
+
+					//TODO(skade) limb matching initial guess
+					if (corr.size() != ctc->m_ikArmature.m_jointChains.size()) {
 						corr.resize(ctc->m_ikArmature.m_jointChains.size(),-1);
+						for (int i = 0; i < corr.size(); ++i) {
+							corr[i] = std::min(i, (int) csc->m_ikArmature.m_jointChains.size()-1);
+						}
+					}
+
 					int i=0;
 					for (auto& jct : ctc->m_ikArmature.m_jointChains) {
 						

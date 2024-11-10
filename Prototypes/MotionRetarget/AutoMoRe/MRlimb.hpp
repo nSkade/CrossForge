@@ -57,7 +57,7 @@ public:
 			IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 			ct.target = cs.target;
 
-#if 0
+#if 1
 			// imitate joint angles
 			for (auto jt : ct.joints) {
 				Vector3f jtPos = tCtrl->m_IKJoints[jt].posGlobal;
@@ -76,6 +76,21 @@ public:
 				jt->LocalRotation = cj->LocalRotation;
 			}
 #endif
+		}
+		// copy root position
+		for (int i=0;i< tCtrl->boneCount();++i) {
+			auto jt = tCtrl->getBone(i);
+			if (jt->Parent == -1) {
+				auto jt = tCtrl->getBone(i);
+				for (int j=0;j< sCtrl->boneCount();++j) {
+					auto js = sCtrl->getBone(j);
+					if (js->Parent == -1) {
+						jt->LocalPosition = js->LocalPosition;
+						break;
+					}
+				}
+				break;
+			}
 		}
 	};
 	void reset() {

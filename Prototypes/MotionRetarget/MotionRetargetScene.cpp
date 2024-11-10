@@ -232,6 +232,9 @@ void MotionRetargetScene::mainLoop() {
 				m_charEntities.erase(pos);
 
 			m_picker.reset();
+
+			// reset material in render device to avoid updating it
+			m_RenderDev.activeMaterial(nullptr);
 		}
 		else if (auto p = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
 			//TODOff(skade) IKTargets better global? for delete but also when letting the target change by another char entity
@@ -296,6 +299,7 @@ void MotionRetargetScene::mainLoop() {
 		m_viewManipulate.update(m_RenderWin.mouse()->position(),m_RenderWin.mouse()->buttonState(Mouse::BTN_LEFT),!ImGui::IsDragDropActive());
 
 		// Render Scene
+		m_RenderDev.activeMaterial(nullptr);
 		m_RenderDev.activePass(RenderDevice::RENDERPASS_SHADOW, &m_Sun);
 		m_RenderDev.activeCamera(const_cast<VirtualCamera*>(m_Sun.camera()));
 		m_SG.render(&m_RenderDev);
@@ -347,142 +351,53 @@ void MotionRetargetScene::forcePickCharEntity(std::weak_ptr<CharEntity> c) {
 }
 
 void MotionRetargetScene::initCesiumMan() {
-	std::string path ="MyAssets/ccd-ik/CesiumMan/glTF/CesiumMan.gltf"; 
-	std::ifstream f(path.c_str());
-	if (!f.good()) {
-		SLogger::log("initCesiumMan: not available");
+
+	auto isPathGood = [](std::string path) {
+		std::ifstream f(path.c_str());
+		if (!f.good()) {
+			SLogger::log("path not good D:");
+			return false;
+		}
+		return true;
+	};
+
+	//TODOff(skade) config
+	std::string p1 ="MyAssets/ccd-ik/Longbow Locomotion Pack/MRtest.fbx";
+	std::string p1skl ="MyAssets/ccd-ik/Longbow Locomotion Pack/sklc.json";
+	AngleAxisf r1 = AngleAxisf(CForgeMath::degToRad(90.),Vector3f(0.,1.,0.));
+	IOmeth l1 = IOmeth::IOM_ASSIMP;
+
+	std::string p2 ="MyAssets/ccd-ik/CesiumMan/glTF/CesiumMan.gltf";
+	std::string p2skl ="MyAssets/ccd-ik/ces0/SkeletonConfig.json";
+	IOmeth l2 = IOmeth::IOM_GLTFIO;
+	AngleAxisf r2 = AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.));
+
+	if (!isPathGood(p1)
+		|| !isPathGood(p1skl)
+		|| !isPathGood(p2)
+		|| !isPathGood(p2skl)
+		)
 		return;
-	}
-	std::string pathIKConfig ="MyAssets/ccd-ik/ces0/SkeletonConfig.json"; 
-	f = std::ifstream(pathIKConfig.c_str());
-	if (!f.good()) {
-		SLogger::log("config file missing");
-		return;
-	}
 
-	loadCharPrim(path,IOmeth::IOM_GLTFIO);
-	std::shared_ptr<CharEntity> c = m_charEntities.back();
-	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
-	c->applyTransformToMesh(&m_sgnRoot);
-	c->importArmature(pathIKConfig);
-	c->parseArmature();
-	c->sgn.position({0.,0.,1.});
-	c->controller->forwardKinematics();
-	c->controller->initTargetPoints();
+	loadCharPrim(p1,l1);
+	std::shared_ptr<CharEntity> c1 = m_charEntities.back();
+	c1->sgn.rotation(Quaternionf(r1));
+	c1->applyTransformToMesh(&m_sgnRoot);
+	c1->importArmature(p1skl);
+	c1->parseArmature();
+	c1->sgn.position({0.,0.,1.});
+	c1->controller->forwardKinematics();
+	c1->controller->initTargetPoints();
 
-	loadCharPrim(path,IOmeth::IOM_GLTFIO);
-	c = m_charEntities.back();
-	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
-	c->applyTransformToMesh(&m_sgnRoot);
-	c->importArmature(pathIKConfig);
-	c->parseArmature();
-	c->sgn.position({0.,0.,-1.});
-	c->controller->forwardKinematics();
-	c->controller->initTargetPoints();
-	
-	//c->applyTransformToMesh(&m_sgnRoot);
-	//c->sgn.position({0.,0.,1.});
-	//std::unique_ptr<CharEntity> c = std::make_unique<CharEntity>();
-	//GLTFIO::load(path, &c->mesh);
-
-	////TODOff(skade) special init replacement for IK limb loading,
-	////            replace with proper skeleton retarget "config" solution
-	//{
-	//	std::string name = std::filesystem::path(path).filename().string();
-	//	c->name = name;
-	//	//TODOfff(skade) make m_charEntities std::map to avoid name confilcts?
-	//	// for now avoid name conflicts via checking
-	//	bool nameUnique = false;
-	//	int nameNum = 0;
-	//	while (!nameUnique) {
-	//		nameUnique = true;
-	//		for (auto oc : m_charEntities) {
-	//			if (oc->name == c->name) {
-	//				c->name = name + std::to_string(nameNum);
-	//				nameUnique = false; // need to check again
-	//			}
-	//		}
-	//		nameNum++;
-	//	}
-	//	//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
-	//	c->mesh.computePerVertexNormals(); //TODOff(skade) remove?
-	//	c->controller = std::make_unique<IKController>();
-	//	c->controller->init(&c->mesh, pathIKConfig);
-
-	//	for (uint32_t i = 0; i < c->mesh.skeletalAnimationCount(); ++i) {
-	//		if (c->mesh.getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
-	//			c->controller->addAnimationData(c->mesh.getSkeletalAnimation(i));
-	//	}
-	//	c->actor = std::make_unique<IKSkeletalActor>();
-	//	c->actor->init(&c->mesh, c->controller.get());
-
-	//	c->sgn.init(&m_sgnRoot, c->actor.get());
-
-	//	// set bounding volume
-	//	c->mesh.computeAxisAlignedBoundingBox();
-	//	Box aabb = c->mesh.aabb();
-	//	c->bv.init(aabb);
-
-	//	// autoscale
-	//	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODOff(skade) standard size
-	//	c->sgn.scale(scale);
-	//	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
-	//}
-	//c->applyTransformToMesh(&m_sgnRoot);
-	//c->sgn.position({0.,0.,1.});
-	//m_charEntities.emplace_back(std::move(c));
-
-	////TODOf(skade) remove until return
-	//// load second ces for retarget test
-	//c = std::make_unique<CharEntity>();
-	//GLTFIO::load(path, &c->mesh);
-
-	////TODOff(skade) special init replacement for IK limb loading,
-	////            replace with proper skeleton retarget "config" solution
-	//{
-	//	std::string name = std::filesystem::path(path).filename().string();
-	//	c->name = name;
-	//	//TODOfff(skade) make m_charEntities std::map to avoid name confilcts?
-	//	// for now avoid name conflicts via checking
-	//	bool nameUnique = false;
-	//	int nameNum = 0;
-	//	while (!nameUnique) {
-	//		nameUnique = true;
-	//		for (auto oc : m_charEntities) {
-	//			if (oc->name == c->name) {
-	//				c->name = name + std::to_string(nameNum);
-	//				nameUnique = false; // need to check again
-	//			}
-	//		}
-	//		nameNum++;
-	//	}
-	//	//setMeshShader(&c->mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
-	//	c->mesh.computePerVertexNormals(); //TODOff(skade) remove?
-	//	c->controller = std::make_unique<IKController>();
-	//	c->controller->init(&c->mesh, pathIKConfig);
-
-	//	for (uint32_t i = 0; i < c->mesh.skeletalAnimationCount(); ++i) {
-	//		if (c->mesh.getSkeletalAnimation(i)->Keyframes[0]->ID != -1)
-	//			c->controller->addAnimationData(c->mesh.getSkeletalAnimation(i));
-	//	}
-	//	c->actor = std::make_unique<IKSkeletalActor>();
-	//	c->actor->init(&c->mesh, c->controller.get());
-
-	//	c->sgn.init(&m_sgnRoot, c->actor.get());
-
-	//	// set bounding volume
-	//	c->mesh.computeAxisAlignedBoundingBox();
-	//	Box aabb = c->mesh.aabb();
-	//	c->bv.init(aabb);
-
-	//	// autoscale
-	//	Vector3f scale = Vector3f(2.f,2.f,2.f)/(aabb.diagonal().maxCoeff()); //TODOff(skade) standard size
-	//	c->sgn.scale(scale);
-	//	c->sgn.rotation(Quaternionf(AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.))));
-	//}
-	//c->applyTransformToMesh(&m_sgnRoot);
-	//c->sgn.position({0.,0.,-1.});
-	//m_charEntities.emplace_back(std::move(c));
+	loadCharPrim(p2,l2);
+	std::shared_ptr<CharEntity> c2 = m_charEntities.back();
+	c2->sgn.rotation(Quaternionf(r2));
+	c2->applyTransformToMesh(&m_sgnRoot);
+	c2->importArmature(p2skl);
+	c2->parseArmature();
+	c2->sgn.position({0.,0.,-1.});
+	c2->controller->forwardKinematics();
+	c2->controller->initTargetPoints();
 }
 
 void MotionRetargetScene::initIKTargetActor() {

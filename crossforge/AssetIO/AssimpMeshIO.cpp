@@ -302,17 +302,26 @@ namespace CForge {
 
 				for (uint32_t l = 0; l < pNodeAnim->mNumPositionKeys; l++) {
 					pKeys->Positions.push_back( toEigenVec(pNodeAnim->mPositionKeys[l].mValue) );
-					pKeys->Timestamps.push_back(pNodeAnim->mPositionKeys[l].mTime);
 				}//for[positions]
 
 				for (uint32_t l = 0; l < pNodeAnim->mNumRotationKeys; l++) {
 					pKeys->Rotations.push_back(toEigenQuat(pNodeAnim->mRotationKeys[l].mValue));
+
+					//TODO(skade) sometimes we get a timestamp that is larger than the following one
+					if (pKeys->Timestamps.size() > 1) {
+						if (pNodeAnim->mRotationKeys[l].mTime < pKeys->Timestamps.back()) {
+							// whoops data shouldnt do this
+							pKeys->Timestamps.back() = pNodeAnim->mRotationKeys[l].mTime*.5;
+						}
+						pKeys->Timestamps.push_back(pNodeAnim->mRotationKeys[l].mTime);
+					} else
+						pKeys->Timestamps.push_back(pNodeAnim->mRotationKeys[l].mTime);
 				}//for[rotations]
 					
 				for (uint32_t l = 0; l < pNodeAnim->mNumScalingKeys; l++) {
 					pKeys->Scalings.push_back(toEigenVec(pNodeAnim->mScalingKeys[l].mValue));
 				}
-							
+				
 			}//for[channels]
 
 		}//for[all animations]

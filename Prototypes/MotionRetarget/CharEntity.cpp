@@ -174,4 +174,10 @@ void CharEntity::exportArmature(std::filesystem::path path) {
 	}
 }
 
+void CharEntity::autoCreateTargets() {
+	if (auto ctrl = controller.get()) {
+		ctrl->initTargetPoints();
+	}
+}
+
 }//CForge

@@ -177,11 +177,12 @@ namespace CForge {
 			while (pKeyFrame->Rotations.size() < MaxTimestamps) pKeyFrame->Rotations.push_back(Rot);
 		}
 
-		// scale all timestamps to unit scale
-		for (uint32_t i = 0; i < pAnim->Keyframes.size(); ++i) {
-			auto* pKeyFrame = pAnim->Keyframes[i];
-			for (auto& k : pKeyFrame->Timestamps) k /= pAnim->SamplesPerSecond;
-		}//for[all keyframes]
+		//TODO(skade)
+		//// scale all timestamps to unit scale
+		//for (uint32_t i = 0; i < pAnim->Keyframes.size(); ++i) {
+		//	auto* pKeyFrame = pAnim->Keyframes[i];
+		//	for (auto& k : pKeyFrame->Timestamps) k /= pAnim->SamplesPerSecond;
+		//}//for[all keyframes]
 		
 		//TODO(skade) duration sometimes not set?
 		if (pAnim->Keyframes[0]->Timestamps.size() > 0)

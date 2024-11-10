@@ -67,6 +67,8 @@ struct CharEntity : public IPickable {
 	void importArmature(std::filesystem::path path);
 	void exportArmature(std::filesystem::path path);
 
+	void autoCreateTargets();
+
 	// Picking bindings
 	void pckMove(const Matrix4f& trans);
 	Matrix4f pckTransGuizmo(); // used for guizmo update
