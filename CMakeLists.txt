@@ -151,6 +151,8 @@ add_executable(CForgeSandbox
 
 	Prototypes/MotionRetarget/Animation/JointPickable.cpp
 
+	Prototypes/MotionRetarget/AutoMoRe/MRlimb.cpp
+
 	#Prototypes/MotionRetarget/JointLimits/JointLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/HingeLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/SwingXZTwistYLimits.cpp

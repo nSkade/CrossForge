@@ -135,7 +135,8 @@ void MotionRetargetScene::mainLoop() {
 		}
 	}
 
-	//MRlimb
+	for (uint32_t i=0;i<m_charEntities.size();++i)
+		m_charEntities[i]->controller->forwardKinematics();
 	m_MRlimb.update();
 	m_SG.update(60.0f / m_FPS);
 	{ // animation update
@@ -382,6 +383,7 @@ void MotionRetargetScene::initCesiumMan() {
 	loadCharPrim(p1,l1);
 	std::shared_ptr<CharEntity> c1 = m_charEntities.back();
 	c1->sgn.rotation(Quaternionf(r1));
+	c1->sgn.scale(c1->sgn.scale()*.8); //TODO(skade)
 	c1->applyTransformToMesh(&m_sgnRoot);
 	c1->importArmature(p1skl);
 	c1->parseArmature();
