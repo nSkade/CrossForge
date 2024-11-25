@@ -41,7 +41,7 @@ void JointPickable::update(Matrix4f sgnT) {
 	if (m_pJoint->Parent != -1)
 		m_fromPar = m_pIKC->getBone(m_pJoint->Parent)->SkinningMatrix
 		          * m_pIKC->getBone(m_pJoint->Parent)->OffsetMatrix.inverse();
-	Matrix4f LocalTransform = m_fromPar * JointTransform;
+	Matrix4f GlobalTransform = m_fromPar * JointTransform;
 
 	Vector3f BoneVec; // vector to next bone
 	if (m_pJoint->Children.size() > 0)
@@ -52,9 +52,9 @@ void JointPickable::update(Matrix4f sgnT) {
 	
 	Quaternionf LR = EigenFWD::FromTwoVectors(Vector3f::UnitX(), BoneVec.normalized()); // obj Joint points to +x axis
 
-	m_transform = m_sgnT * LocalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
+	m_transform = m_sgnT * GlobalTransform * CForgeMath::rotationMatrix(LR) * CForgeMath::scaleMatrix(Vector3f(Length,Length,Length));
 	if (!m_highlight)
-		m_transformGuizmo = m_sgnT * LocalTransform;
+		m_transformGuizmo = m_sgnT * GlobalTransform;
 }
 void JointPickable::pckMove(const Matrix4f& trans) {
 	if (!m_pJoint) return;

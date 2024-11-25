@@ -21,6 +21,7 @@ public:
 	void reset();
 	bool active() {return m_active;};
 private:
+	int jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct);
 	bool m_active = false;
 	std::weak_ptr<CharEntity> m_sCE;
 	std::weak_ptr<CharEntity> m_tCE;

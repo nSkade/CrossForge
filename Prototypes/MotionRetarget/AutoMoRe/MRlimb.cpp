@@ -1,5 +1,7 @@
 #include "MRlimb.hpp"
 
+#include "Prototypes/MotionRetarget/CMN/MRMutil.hpp"
+
 namespace CForge {
 using namespace Eigen;
 
@@ -17,6 +19,41 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 	m_ikcorr = corr;
 	m_active = true;
 };
+int MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct) {
+	auto source = m_sCE.lock();
+	auto target = m_tCE.lock();
+	if (!source || !target) {
+		m_active = false;
+		return -1;
+	}
+	auto& sCtrl = source->controller;
+	auto& tCtrl = target->controller;
+#if 0
+	// by distance
+	float closestDist = std::numeric_limits<float>::max();
+	int closestIdx = -1;
+	SkeletalAnimationController::SkeletalJoint* jt = ct.joints[tarIdx];
+	for (int i=0;i<cs.joints.size();++i) {
+		auto* js = cs.joints[i];
+		float dist = (tCtrl->m_IKJoints[jt].posGlobal-sCtrl->m_IKJoints[js].posGlobal).norm(); //TODO(skade) from current pose, need rest pose global pos instead
+		if (dist < closestDist) {
+			closestDist = dist;
+			closestIdx = i;
+		}
+	}
+	return closestIdx;
+#endif
+#if 0
+	// by distribution
+	return std::floor((float(tarIdx)/ct.joints.size())*cs.joints.size());
+#endif
+#if 1
+	// by index
+	if (tarIdx < cs.joints.size())
+		return tarIdx;
+#endif
+	return -1; // no match
+}
 void MRlimb::update() {
 	auto source = m_sCE.lock();
 	auto target = m_tCE.lock();
@@ -27,74 +64,179 @@ void MRlimb::update() {
 	auto& sCtrl = source->controller;
 	auto& tCtrl = target->controller;
 
-	//int idx=0;
-	//for (IKChain& c : target->m_ikArmature.m_jointChains) {
-	//	//TODO(skade) for now match joint by ikchain order make parameter to be configurable by ui
-
-	//	//TODO(skade) find corresponding ikchain and match
-	//	c.target = source->m_ikArmature.m_jointChains[idx].target;
-	//	idx++;
-	//}
 	for (int it = 0; it < m_ikcorr.size();++it) {
 		int is = m_ikcorr[it];
-		//TODO(skade) for now match joint by ikchain order make parameter to be configurable by ui
-
-		//TODO(skade) find corresponding ikchain and match
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 		ct.target = cs.target;
 
-		//TODO(skade) root
-		// get parent rot of root joint for reference
-		auto csRoot = cs.joints.back();
-		Quaternionf rootGlobRot = Quaternionf::Identity();
-		rootGlobRot = sCtrl->m_IKJoints[csRoot].rotGlobal;
-		//if (csRoot->Parent != -1)
-		//	rootGlobRot = sCtrl->m_IKJoints[sCtrl->getBone(csRoot->Parent)].rotGlobal;
-		Quaternionf parRot = rootGlobRot;
+////		// get parent rot of root joint for reference
+////		auto csRoot = cs.joints.back();
+////		Quaternionf rootGlobRot = Quaternionf::Identity();
+////		rootGlobRot = sCtrl->m_IKJoints[csRoot].rotGlobal;
+////		//TODO(skade) parent of root?
+////		//if (csRoot->Parent != -1)
+////		//	rootGlobRot = sCtrl->m_IKJoints[sCtrl->getBone(csRoot->Parent)].rotGlobal;
+////		Quaternionf parRot = rootGlobRot;
+////		
+////		// imitate joint angles, start from root of chain
+//		for (int i=ct.joints.size()-1; i >= 0; --i) {
+//			// joint, apply angle to
+//			SkeletalAnimationController::SkeletalJoint* jt = ct.joints[i];
+//
+//			// find closest source joint to imitate angle from
+//			int matchIdx = jointIndexingFunc(i,cs,ct);
+//			if (matchIdx != -1) {
+//				 // source joint
+//				SkeletalAnimationController::SkeletalJoint* js = cs.joints[matchIdx];
+//#if 1
+//				jt->LocalRotation = js->LocalRotation;
+//				jt->OffsetMatrix = js->OffsetMatrix;
+////				// relative source rot to root
+////				Quaternionf locRot = sCtrl->m_IKJoints[js].rotGlobal;
+////				if (js->Parent != -1)
+////					locRot = locRot * sCtrl->m_IKJoints[sCtrl->getBone(js->Parent)].rotGlobal.inverse();
+////				locRot.normalize();
+////				//parRot = locRot * parRot;
+////				//parRot.normalize();
+////				
+////				//jt->LocalRotation = r * parRot.inverse();
+////				jt->LocalRotation = locRot * jt->OffsetMatrix.block<3,3>(0,0).inverse();
+////				jt->LocalRotation.normalize();
+//#endif
+//			}
+//		}
+	}
 
+	// create map of joints which chains they contain //TODOff(skade) only compute once
+	std::map<SkeletalAnimationController::SkeletalJoint*,std::vector<IKChain*>> jointToChain;
+	auto& chains = tCtrl->m_ikArmature.m_jointChains;
+	for (uint32_t i = 0; i < chains.size(); ++i)
+		for (auto j : chains[i].joints)
+			jointToChain[j].push_back(&chains[i]);
 
-		// imitate joint angles, start from root of chain
-		for (int i=ct.joints.size()-1; i >= 0; --i) {
-			SkeletalAnimationController::SkeletalJoint* jt = ct.joints[i];
+	std::function<void(SkeletalAnimationController::SkeletalJoint* j, Matrix4f parentT)> imitate;
 
-			// find closest source joint to imitate angle from
-			SkeletalAnimationController::SkeletalJoint* js = nullptr;
+	imitate = [&](SkeletalAnimationController::SkeletalJoint* jt, Matrix4f parentT) {
+		IKChain* ct = nullptr;
+		if (jointToChain[jt].size() > 0)
+			ct = jointToChain[jt][0]; //TODOff(skade) multiple chains?
+		bool noMatch = true;
+		if (ct) {
+			//TODO(skade) find corresponding retarget chain
+			int is = 0;
+			for (int it = 0; it < m_ikcorr.size();++it)
+				if (&tCtrl->m_ikArmature.m_jointChains[it] == ct)
+					is = m_ikcorr[it];
+			IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 
-			// by distance
-			//float closestDist = std::numeric_limits<float>::max();
-			//for (auto* js : cs.joints) {
-			//	float dist = (tCtrl->m_IKJoints[jt].posGlobal-sCtrl->m_IKJoints[js].posGlobal).norm(); //TODO(skade) from current pose, need rest pose global pos instead
-			//	if (dist < closestDist) {
-			//		closestDist = dist;
-			//		cj = js;
-			//	}
-			//}
+			int i = std::distance(ct->joints.begin(),std::find(ct->joints.begin(),ct->joints.end(),jt));
+			int matchIdx = jointIndexingFunc(i,cs,*ct);
 
-			// by distribution
-			//cj = cs.joints[std::floor((float(i)/ct.joints.size())*cs.joints.size())];
+			if (matchIdx != -1) {
+				SkeletalAnimationController::SkeletalJoint* js = cs.joints[matchIdx];
+				Eigen::Matrix4f jsT = CForgeMath::translationMatrix(js->LocalPosition)
+				                    * CForgeMath::rotationMatrix(js->LocalRotation)
+				                    * CForgeMath::scaleMatrix(js->LocalScale);
 
-			// by index
-			if (i < cs.joints.size()) {
-				js = cs.joints[i];
-			}
-			if (js) {
-#if 1
-				// relative source rot to root
-				Quaternionf locRot = sCtrl->m_IKJoints[js].rotGlobal;
-				if (js->Parent != -1)
-					locRot = locRot * sCtrl->m_IKJoints[sCtrl->getBone(js->Parent)].rotGlobal.inverse();
-				locRot.normalize();
-				//parRot = locRot * parRot;
-				//parRot.normalize();
+				Eigen::Matrix4f parentS = Matrix4f::Identity();
+				{
+					auto* jsc = js;
+					Matrix4f adjS = Matrix4f::Identity();
+					while (jsc->Parent != -1) {
+						jsc = sCtrl->getBone(jsc->Parent);
+						Eigen::Matrix4f jscT = CForgeMath::translationMatrix(jsc->LocalPosition)
+											* CForgeMath::rotationMatrix(jsc->LocalRotation)
+											* CForgeMath::scaleMatrix(jsc->LocalScale);
+						parentS = jscT * parentS;
+
+						////TODO(skade) adj
+						//// with adjustment
+						//parentS = jscT * adjS * parentS;
+						//Matrix4f adjS = js->OffsetMatrix.inverse() * adjS;
+					}
+				}
 				
-				//jt->LocalRotation = r * parRot.inverse();
-				jt->LocalRotation = locRot * jt->OffsetMatrix.block<3,3>(0,0).inverse();
-				jt->LocalRotation.normalize();
-#endif
+				//Matrix4f t = jt->OffsetMatrix * parentT.inverse() * parentS * js->OffsetMatrix.inverse() * jsT;
+				//Matrix4f t = jt->OffsetMatrix * parentT.inverse() * parentS * js->OffsetMatrix.inverse() * jsT;
+
+				// new local transform
+				Matrix4f t = Matrix4f::Identity();
+
+				// parent target
+				if (jt->Parent != -1 && js->Parent != -1) {
+					auto* jtp = tCtrl->getBone(jt->Parent);
+					auto* jsp = sCtrl->getBone(js->Parent);
+
+					// current global transform of retargeted parent
+					//Matrix4f parentGlobal =  parentT * jtp->OffsetMatrix;
+					//Matrix4f parentGlobalS = parentS * jsp->OffsetMatrix;
+
+					// allign next transform so global transform of target and source are identical
+					//t = jsT;
+
+					////TODO(skade) adj
+					//// get parent relative joint change of restpose
+					//Matrix4f adjS = js->OffsetMatrix.inverse() * jsp->OffsetMatrix;
+					//Matrix4f adjT = jt->OffsetMatrix.inverse() * jtp->OffsetMatrix;
+					
+					// correct but doesnt account for rest pose differences
+					//t = parentT.inverse() * js->SkinningMatrix * jt->OffsetMatrix.inverse();
+					//t = parentT.inverse() * parentS * jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+					t = parentT.inverse() * parentS
+						* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+					////TODO(skade) adj
+					//t = adjT * parentT.inverse() * parentS * adjS
+					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+					//parentS = parentS * js->OffsetMatrix * jsT;
+
+					// correct
+					//parentT = parentT * t;
+					// but also means:
+					parentT = parentS
+						* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+					////TODO(skade) adj
+					//parentT = parentS * adjS
+					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+				}
+				
+				{ // set local rotation of joint
+					Vector3f p,s; Quaternionf r;
+					MRMutil::deconstructMatrix(t,&p,&r,&s);
+					//jt->LocalPosition = p;
+					jt->LocalRotation = r;
+					//jt->LocalScale = s;
+				}
+				noMatch = false;
 			}
 		}
-	}
+		if (noMatch) {
+			Eigen::Matrix4f jtT = CForgeMath::translationMatrix(jt->LocalPosition)
+			                    * CForgeMath::rotationMatrix(jt->LocalRotation)
+			                    * CForgeMath::scaleMatrix(jt->LocalScale);
+			
+			////TODO(skade) adj
+			//Matrix4f adjT = Matrix4f::Identity();
+			//if (jt->Parent != -1) {
+			//	auto* jtp = tCtrl->getBone(jt->Parent);
+			//	Matrix4f adjT = jt->OffsetMatrix.inverse() * jtp->OffsetMatrix;
+			//}
+			//parentT = parentT * jtT * adjT;
+
+			parentT = parentT * jtT;
+		}
+
+		for (auto child : jt->Children) {
+			imitate(tCtrl->getBone(child), parentT);
+		}
+	};
+	//TODO(skade) make toggable
+	imitate(tCtrl->getRoot(), Eigen::Matrix4f::Identity());
+
 	// copy root position
 	for (int i=0;i< tCtrl->boneCount();++i) {
 		auto jt = tCtrl->getBone(i);
@@ -110,6 +252,7 @@ void MRlimb::update() {
 			break;
 		}
 	}
+	tCtrl->forwardKinematics();
 };
 void MRlimb::reset() {
 	m_ikcorr.clear();
