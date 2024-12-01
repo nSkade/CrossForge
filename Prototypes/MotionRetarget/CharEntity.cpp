@@ -2,7 +2,8 @@
 
 #include "CMN/MRMutil.hpp"
 
-#include <fstream>
+#include <fstream>#
+#include <crossforge/Core/SLogger.h>
 
 namespace CForge {
 
@@ -38,19 +39,29 @@ void CharEntity::init(SGNTransformation* sgnRoot) {
 
 		//TODOff(skade) into function?
 		sgn.init(sgnRoot,actor.get());
+		isStatic = false;
 	}
 	else {
 		actorStatic = std::make_unique<StaticActor>();
 		actorStatic->init(&mesh);
-		isStatic = true;
 
 		sgn.init(sgnRoot,actorStatic.get());
+		isStatic = true;
 	}
 
 	// set bounding volume
 	mesh.computeAxisAlignedBoundingBox();
 	Box aabb = mesh.aabb();
 	bv.init(aabb);
+
+	// load armature if one is bound
+	try {
+		parseArmature();
+	}
+	catch (...) {
+		SLogger::log("error occured curing parsing ik armature, deleting armature");
+		armatureInfo.limbs.clear();
+	}
 }
 
 void CharEntity::removeArmature(SGNTransformation* sgnRoot) {

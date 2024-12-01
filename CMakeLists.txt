@@ -167,6 +167,9 @@ add_executable(CForgeSandbox
 	 "Prototypes/MotionRetarget/IK/Solver/JacInvSolver.cpp"
 	 #"Prototypes/MotionRetarget/IK/Solver/AnalyticSolver.cpp"
 
+	 "Prototypes/MotionRetarget/CMN/MergeVertices.cpp"
+	 "Prototypes/MotionRetarget/AutoRig/ARrignet.cpp"
+
 	 "Prototypes/objImport/objImport.cpp"
  )
 

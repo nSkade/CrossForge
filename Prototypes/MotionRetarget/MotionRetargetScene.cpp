@@ -135,8 +135,10 @@ void MotionRetargetScene::mainLoop() {
 		}
 	}
 
-	for (uint32_t i=0;i<m_charEntities.size();++i)
-		m_charEntities[i]->controller->forwardKinematics();
+	for (auto ce : m_charEntities) {
+		if (ce->controller)
+			ce->controller->forwardKinematics();
+	}
 	m_MRlimb.update();
 	m_SG.update(60.0f / m_FPS);
 	{ // animation update

@@ -50,48 +50,22 @@ void IKController::init(T3DMesh<float>* pMesh) {
 	if (pMesh->skeletalAnimationCount() > 0)
 		pAnimation = pMesh->getSkeletalAnimation(0); // used as initial pose of skeleton
 
-	// compute local joint parameters for restpose
-	for (uint32_t i = 0; i < pMesh->boneCount(); ++i)
-		m_Joints.emplace_back(new SkeletalJoint());
-
-	std::function<void(const T3DMesh<float>::Bone* pBone, Matrix4f offP)> initJoint;
-	initJoint = [&](const T3DMesh<float>::Bone* pBone, Matrix4f offP) {
-		Matrix4f iom = pBone->InvBindPoseMatrix.inverse();
-		Matrix4f t = offP.inverse() * iom;
-
-		SkeletalJoint* pJoint = m_Joints[pBone->ID];
-		pJoint->ID = pBone->ID;
-		pJoint->Name = pBone->Name;
-		// https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
-		pJoint->LocalPosition = t.block<3,1>(0,3);
-		pJoint->LocalScale = Vector3f(t.block<3,1>(0,0).norm(),
-		                              t.block<3,1>(0,1).norm(),
-		                              t.block<3,1>(0,2).norm());
-		Matrix3f rotScale;
-		rotScale.row(0) = pJoint->LocalScale;
-		rotScale.row(1) = pJoint->LocalScale;
-		rotScale.row(2) = pJoint->LocalScale;
-		pJoint->LocalRotation = Quaternionf(t.block<3,3>(0,0).cwiseQuotient(rotScale));
-		pJoint->LocalRotation.normalize();
-
-		pJoint->OffsetMatrix = pBone->InvBindPoseMatrix;
-		pJoint->SkinningMatrix = Matrix4f::Identity(); // computed during applyAnimation()
-
-		for (uint32_t i = 0; i < pBone->Children.size(); ++i)
-			initJoint(pBone->Children[i],iom);
-	};
-	initJoint(pMesh->rootBone(),Matrix4f::Identity());
-
 	// copy structure
 	for (uint32_t i = 0; i < pMesh->boneCount(); ++i) {
 		const T3DMesh<float>::Bone* pRef = pMesh->getBone(i);
-		SkeletalJoint* pJoint = m_Joints[i];
+		SkeletalJoint* pJoint = new SkeletalJoint();
 
 		pJoint->Parent = (pRef->pParent != nullptr) ? pRef->pParent->ID : -1;
+
+		pJoint->ID = pRef->ID;
+		pJoint->Name = pRef->Name;
+		pJoint->OffsetMatrix = pRef->InvBindPoseMatrix;
+		pJoint->SkinningMatrix = Matrix4f::Identity(); // computed during applyAnimation()
 
 		pJoint->Children.reserve(pRef->Children.size());
 		for (uint32_t k = 0; k < pRef->Children.size(); ++k)
 			pJoint->Children.push_back(pRef->Children[k]->ID);
+		m_Joints.emplace_back(pJoint);
 	}//for[bones]
 
 	// find root bone
@@ -136,6 +110,7 @@ void IKController::init(T3DMesh<float>* pMesh) {
 		//m_jointPickables.emplace_back(std::make_shared<JointPickable>(&m_jointPickableMesh,m_Joints[i],this));
 
 	initJointProperties(pMesh);
+	initRestpose();
 }
 
 // pMesh has to hold skeletal definition
@@ -150,6 +125,30 @@ void IKController::init(T3DMesh<float>* pMesh, std::string ConfigFilepath) {
 	forwardKinematics(m_pRoot); // initialize global positions and rotations of all joints
 	initTargetPoints();
 }//initialize
+
+void IKController::initRestpose() {
+	std::function<void(SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f offP)> initJoint;
+	initJoint = [&](SkeletalAnimationController::SkeletalJoint* pJoint, Matrix4f offP) {
+		Matrix4f iom = pJoint->OffsetMatrix.inverse();
+		Matrix4f t = offP.inverse() * iom;
+
+		// https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
+		pJoint->LocalPosition = t.block<3,1>(0,3);
+		pJoint->LocalScale = Vector3f(t.block<3,1>(0,0).norm(),
+		                              t.block<3,1>(0,1).norm(),
+		                              t.block<3,1>(0,2).norm());
+		Matrix3f rotScale;
+		rotScale.row(0) = pJoint->LocalScale;
+		rotScale.row(1) = pJoint->LocalScale;
+		rotScale.row(2) = pJoint->LocalScale;
+		pJoint->LocalRotation = Quaternionf(t.block<3,3>(0,0).cwiseQuotient(rotScale));
+		pJoint->LocalRotation.normalize();
+
+		for (uint32_t i = 0; i < pJoint->Children.size(); ++i)
+			initJoint(getBone(pJoint->Children[i]),iom);
+	};
+	initJoint(m_pRoot,Matrix4f::Identity());
+}
 
 void IKController::clear(void) {
 	m_pRoot = nullptr;

@@ -179,6 +179,10 @@ void MRlimb::update() {
 					//// get parent relative joint change of restpose
 					//Matrix4f adjS = js->OffsetMatrix.inverse() * jsp->OffsetMatrix;
 					//Matrix4f adjT = jt->OffsetMatrix.inverse() * jtp->OffsetMatrix;
+					//adjS.block<3,1>(0,3) = Vector3f::Zero();
+					//adjT.block<3,1>(0,3) = Vector3f::Zero();
+					//t = adjT.inverse() * parentT.inverse() * parentS * adjS
+					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
 					
 					// correct but doesnt account for rest pose differences
 					//t = parentT.inverse() * js->SkinningMatrix * jt->OffsetMatrix.inverse();
@@ -187,17 +191,13 @@ void MRlimb::update() {
 					t = parentT.inverse() * parentS
 						* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
 
-					////TODO(skade) adj
-					//t = adjT * parentT.inverse() * parentS * adjS
-					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-
 					//parentS = parentS * js->OffsetMatrix * jsT;
 
 					// correct
-					//parentT = parentT * t;
+					parentT = parentT * t;
 					// but also means:
-					parentT = parentS
-						* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+					//parentT = parentS
+					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
 
 					////TODO(skade) adj
 					//parentT = parentS * adjS

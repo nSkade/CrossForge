@@ -24,6 +24,7 @@ public:
 	// pMesh has to hold skeletal definition
 	void init(T3DMesh<float>* pMesh);
 	void init(T3DMesh<float>* pMesh, std::string ConfigFilepath);
+	void initRestpose();
 	void update(float FPSScale);
 	void clear(void);
 

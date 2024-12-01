@@ -475,13 +475,6 @@ void MotionRetargetScene::renderUI_menuBar() {
 		//		initCesiumMan();
 		//	ImGui::EndMenu();
 		//}
-		if (ImGui::BeginMenu("AutoRig")) {
-			if (ImGui::MenuItem("rignet"))
-				m_showPop[POP_AR_RIGNET] = true;
-			if (ImGui::MenuItem("pinocchio"))
-				m_showPop[POP_AR_PINOC] = true;
-			ImGui::EndMenu();
-		}
 
 		if (ImGui::BeginMenu("Tools")) {
 			if (ImGui::MenuItem("merge redundent vertices")) {
@@ -501,9 +494,11 @@ void MotionRetargetScene::renderUI_menuBar() {
 					c->updateRestpose(&m_sgnRoot);
 				m_picker.reset();
 			}
-			if (ImGui::MenuItem("remove Armature")) {
-				if (auto c = m_charEntityPrim.lock())
-					c->removeArmature(&m_sgnRoot);
+			if (ImGui::MenuItem("current pose to restpose")) {
+				if (auto c = m_charEntityPrim.lock()) {
+					if (c->controller)
+						c->controller->initRestpose();
+				}
 				m_picker.reset();
 			}
 			ImGui::EndMenu();
@@ -535,6 +530,19 @@ void MotionRetargetScene::renderUI_menuBar() {
 				if (auto c = m_charEntityPrim.lock())
 					c->autoCreateTargets();
 			}
+			if (ImGui::MenuItem("remove Armature")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->removeArmature(&m_sgnRoot);
+				m_picker.reset();
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("AutoRig")) {
+			if (ImGui::MenuItem("rignet"))
+				m_showPop[POP_AR_RIGNET] = true;
+			if (ImGui::MenuItem("pinocchio"))
+				m_showPop[POP_AR_PINOC] = true;
 			ImGui::EndMenu();
 		}
 
@@ -1028,13 +1036,14 @@ void MotionRetargetScene::renderUI_autorig() {
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 		if (ImGui::Begin("autorig rignet", &popState)) {
-
+			ImGui::Text("make sure the char is facing z+");
 			static ARrignetOptions options;
 			ImGui::DragFloat("bandwidth",&options.bandwidth,0.01f,0.f,0.f,"%.10f");
 			ImGui::DragFloat("threshold",&options.threshold,0.01f,0.f,0.f,"%.10f");
 			if (ImGui::Button("reset options")) {
 				options = ARrignetOptions();
 			}
+			ImGui::Checkbox("parse last output only", &options.parseOutputOnly);
 
 			if (ImGui::Button("Confirm")) {
 				
