@@ -14,22 +14,22 @@ uint32_t getMatchingVertex(uint32_t RedundantVertexID, std::vector<std::pair<uin
 	return Rval;
 }//getMatchingVertex
 
-std::map<uint32_t, std::vector<uint32_t>> mergeRedundantVertices(T3DMesh<float>* pMesh) {
+std::vector<uint32_t> mergeRedundantVertices(T3DMesh<float>* pMesh) {
 	float Epsilon = /**/std::numeric_limits<float>::min();//*/0.00025f;//TODO
 
 	std::vector<std::pair<uint32_t, uint32_t>> RedundantVertices; // <first occurence, copy>
 
-	//TODOf(skade) return vertex correlation
-	// connection between new and old vertex indices
-	std::map<uint32_t, std::vector<uint32_t>> vertCorr;
+	std::vector<uint32_t> vertCorr; // old to new vertex correspondence
 	
 	std::vector<bool> IsRedundant;
 	std::vector <uint32_t> VertexMapping;
 	for (uint32_t i = 0; i < pMesh->vertexCount(); ++i) {
 		IsRedundant.push_back(false);
 		VertexMapping.push_back(i);
+		vertCorr.push_back(i);
 	}
 
+	// find redundant vertices
 	for (uint32_t i = 0; i < pMesh->vertexCount(); ++i) {
 		if (IsRedundant[i])
 			continue;
@@ -41,6 +41,7 @@ std::map<uint32_t, std::vector<uint32_t>> mergeRedundantVertices(T3DMesh<float>*
 			if ((v2 - v1).dot(v2 - v1) < Epsilon) {
 				RedundantVertices.push_back(std::pair<uint32_t, uint32_t>(i,k));
 				IsRedundant[k] = true;
+				vertCorr[k] = i;
 			}
 		}//for[all remaining vertices]
 	}//for[all vertices]
@@ -54,6 +55,9 @@ std::map<uint32_t, std::vector<uint32_t>> mergeRedundantVertices(T3DMesh<float>*
 		if (!IsRedundant[i])
 			Vertices.push_back(pMesh->vertex(i));
 	}
+
+	for (uint32_t i=0;i<vertCorr.size();++i)
+		vertCorr[i] = VertexMapping[vertCorr[i]];
 
 	std::vector<Eigen::Vector3f> Normals;
 	for (uint32_t i = 0; i < pMesh->normalCount(); ++i) {

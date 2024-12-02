@@ -374,6 +374,7 @@ void MotionRetargetScene::initCesiumMan() {
 	std::string p2skl ="MyAssets/ccd-ik/ces0/SkeletonConfig.json";
 	IOmeth l2 = IOmeth::IOM_GLTFIO;
 	AngleAxisf r2 = AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.));
+	r2 = AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(0.,1.,0.)) * r2;
 
 	if (!isPathGood(p1)
 		|| !isPathGood(p1skl)
@@ -382,16 +383,16 @@ void MotionRetargetScene::initCesiumMan() {
 		)
 		return;
 
-	loadCharPrim(p1,l1);
-	std::shared_ptr<CharEntity> c1 = m_charEntities.back();
-	c1->sgn.rotation(Quaternionf(r1));
-	c1->sgn.scale(c1->sgn.scale()*.8); //TODO(skade)
-	c1->applyTransformToMesh(&m_sgnRoot);
-	c1->importArmature(p1skl);
-	c1->parseArmature();
-	c1->sgn.position({0.,0.,1.});
-	c1->controller->forwardKinematics();
-	c1->controller->initTargetPoints();
+	//loadCharPrim(p1,l1);
+	//std::shared_ptr<CharEntity> c1 = m_charEntities.back();
+	//c1->sgn.rotation(Quaternionf(r1));
+	//c1->sgn.scale(c1->sgn.scale()*.8); //TODO(skade)
+	//c1->applyTransformToMesh(&m_sgnRoot);
+	//c1->importArmature(p1skl);
+	//c1->parseArmature();
+	//c1->sgn.position({0.,0.,1.});
+	//c1->controller->forwardKinematics();
+	//c1->controller->initTargetPoints();
 
 	loadCharPrim(p2,l2);
 	std::shared_ptr<CharEntity> c2 = m_charEntities.back();
@@ -399,7 +400,7 @@ void MotionRetargetScene::initCesiumMan() {
 	c2->applyTransformToMesh(&m_sgnRoot);
 	c2->importArmature(p2skl);
 	c2->parseArmature();
-	c2->sgn.position({0.,0.,-1.});
+	//c2->sgn.position({0.,0.,-1.});
 	c2->controller->forwardKinematics();
 	c2->controller->initTargetPoints();
 }

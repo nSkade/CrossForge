@@ -16,17 +16,21 @@ using namespace Eigen;
 void ARrignet::rig(T3DMesh<float>* mesh, ARrignetOptions options) {
 	std::string objPath = "MyAssets/Cache/Rignet/";
 
+	// merge vertices
+	T3DMesh<float> mergedMesh = *mesh;
+
+	// remove redundant vertices for rignet and create correspondences to assign weights to original mesh
+	std::vector<uint32_t> vertCorr = mergeRedundantVertices(&mergedMesh);
+
+	// compute inverted vertCorr, new vert to old verts
+	std::map<uint32_t,std::vector<uint32_t>> vertCorrI;
+	for (uint32_t i=0;i<vertCorr.size();++i)
+		vertCorrI[vertCorr[i]].push_back(i);
+
 	// delete cache folder
 	if (!options.parseOutputOnly) {
 		std::filesystem::remove_all(objPath);
 		std::filesystem::create_directories(objPath);
-
-		// merge vertices
-		T3DMesh<float>& mergedMesh = *mesh;
-
-		//TODOf(skade) remove redundant vertices for rignet and create correspondences to assign weights to original mesh
-		//std::map<uint32_t, std::vector<uint32_t>> vertCorr; // vertex correspondences
-		//vertCorr = mergeRedundantVertices(&mergedMesh);
 
 		// export file for script
 		objImportExport::exportAsObjFile(objPath+"mesh.obj", &mergedMesh);
@@ -107,11 +111,6 @@ void ARrignet::rig(T3DMesh<float>* mesh, ARrignetOptions options) {
 
 	ifs.close();
 
-	//TODOf(skade)
-	// restore weights onto original mesh with vertCopies
-	//for (uint32_t)
-	//vertCorr
-
 	std::vector<T3DMesh<float>::Bone*>* bones = new std::vector<T3DMesh<float>::Bone*>();
 	std::vector<Vector3f> bonesPos;
 
@@ -127,9 +126,27 @@ void ARrignet::rig(T3DMesh<float>* mesh, ARrignetOptions options) {
 		std::vector<float> weights;
 
 		for(auto& [idx,w] : rig.weights[name]) {
-			influences.emplace_back(idx);
-			weights.emplace_back(w);
+			for (auto oIdx : vertCorrI[idx]) {
+				influences.emplace_back(oIdx);
+				weights.emplace_back(w);
+			}
 		}
+
+		//// sort biggest weight first
+		//std::vector<std::pair<int32_t,float>> pairs;
+		//for (uint32_t i=0;i<influences.size();++i)
+		//	pairs.push_back({influences[i],weights[i]});
+
+		//std::sort(pairs.begin(), pairs.end(),
+		//	[](const std::pair<int32_t, float>& a, const std::pair<int32_t, float>& b) {
+		//	return a.second > b.second;});
+
+		//influences.clear();
+		//weights.clear();
+		//for (auto [i,w] : pairs) {
+		//	influences.push_back(i);
+		//	weights.push_back(w);
+		//}
 
 		b->VertexInfluences = influences;
 		b->VertexWeights = weights;

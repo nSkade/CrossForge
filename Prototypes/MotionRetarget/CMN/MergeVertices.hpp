@@ -4,8 +4,15 @@
 
 namespace CForge {
 
+/**
+ * @brief returns first vertex id of redundant vertex
+*/
 uint32_t getMatchingVertex(uint32_t RedundantVertexID, std::vector<std::pair<uint32_t, uint32_t>> *pRedundantVertices);
 
-std::map<uint32_t, std::vector<uint32_t>> mergeRedundantVertices(T3DMesh<float>* pMesh);
+/**
+ * @brief merges Vertices of Mesh
+ * @return mapping from old mesh vert to reduced vert
+*/
+std::vector<uint32_t> mergeRedundantVertices(T3DMesh<float>* pMesh);
 
 }//CForge
