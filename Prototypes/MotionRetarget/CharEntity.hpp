@@ -68,6 +68,7 @@ struct CharEntity : public IPickable {
 	void exportArmature(std::filesystem::path path);
 
 	void autoCreateTargets();
+	void autoCreateArmature();
 
 	// Picking bindings
 	void pckMove(const Matrix4f& trans);

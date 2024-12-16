@@ -191,4 +191,39 @@ void CharEntity::autoCreateTargets() {
 	}
 }
 
+void CharEntity::autoCreateArmature() {
+
+	if (auto ctrl = controller.get()) {
+		std::map<std::string,std::vector<SkeletalAnimationController::SkeletalJoint*>> ikc;
+
+		std::function<void(SkeletalAnimationController::SkeletalJoint* pJoint, std::string name)> propagate;
+		propagate = [&](SkeletalAnimationController::SkeletalJoint* pJoint, std::string name) {
+			
+			// end current chain and add all childs as new chains
+			int cc = pJoint->Children.size();
+			// add joint to chain
+			if (name != "")
+				ikc[name].insert(ikc[name].begin(),pJoint);
+			if (cc > 1) {
+				for (uint32_t i = 0; i < cc; ++i) {
+					auto c =ctrl->getBone(pJoint->Children[i]);
+					propagate(c,c->Name);
+				}
+			} else if (cc == 1) { // add to current chain
+				auto c =ctrl->getBone(pJoint->Children[0]);
+				propagate(c,name);
+			} //else //(cc == 0)  // end effector nothing to do
+		};
+		propagate(ctrl->getRoot(),"");
+
+		ctrl->m_ikArmature.m_jointChains.clear();
+		for (auto& [k,v] : ikc) {
+			IKChain nc;
+			nc.name = k;
+			nc.joints = v;
+			ctrl->m_ikArmature.m_jointChains.emplace_back(std::move(nc));
+		}
+	}
+}
+
 }//CForge

@@ -535,6 +535,11 @@ void MotionRetargetScene::renderUI_menuBar() {
 					c->removeArmature(&m_sgnRoot);
 				m_picker.reset();
 			}
+			if (ImGui::MenuItem("auto create Armature")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->autoCreateArmature();
+				m_picker.reset();
+			}
 			ImGui::EndMenu();
 		}
 
@@ -970,7 +975,7 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 					} while (j != m_ikceRootJoint);
 				}
 				
-				nChain->pRoot = &c->controller->m_IKJoints[m_ikceRootJoint];
+				//nChain->pRoot = &c->controller->m_IKJoints[m_ikceRootJoint]; //TODO(skade) unused
 				//c->controller->getJointChains()[m_ikceName] = nChain;
 				
 				m_ikceName = "new"; m_ikceNameInit = false;

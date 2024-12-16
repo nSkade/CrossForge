@@ -37,7 +37,7 @@ struct IKChain {
 	std::vector<SkeletalAnimationController::SkeletalJoint*> joints; // front() is end-effector joint
 	std::weak_ptr<IKTarget> target; //TODO(skade) shared pointer
 
-	IKJoint* pRoot = nullptr; //TODO(skade) make sure memory safe, IKChain always deleted before corr controller
+	//IKJoint* pRoot = nullptr; //TODO(skade) make sure memory safe, IKChain always deleted before corr controller
 
 	//float weight = 1.; // weight used for centroid interpolation,
 	                   //TODO(skade) contribution equals: weight / sum(all chain weights on centoid)

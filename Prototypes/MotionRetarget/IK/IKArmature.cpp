@@ -5,6 +5,7 @@ namespace CForge {
 using namespace Eigen;
 
 void IKArmature::solve(IKController* pController) {
+	//TODO(skade)f solve every chain from endeffector to centroids root
 	for (auto& c : m_jointChains) {
 		if (c.ikSolver)
 			c.ikSolver->solve(c.name,pController);
