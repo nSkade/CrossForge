@@ -18,6 +18,47 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 	m_tCE = target;
 	m_ikcorr = corr;
 	m_active = true;
+
+	// assign limb scaling values
+	auto& sCtrl = source->controller;
+	auto& tCtrl = target->controller;
+	for (int it = 0; it < m_ikcorr.size();++it) {
+		int is = m_ikcorr[it];
+		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
+		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
+		
+		float srcLen = 0.;
+		for (int i = 0; i < cs.joints.size(); ++i)
+			srcLen += cs.joints[i]->LocalPosition.norm();
+		m_src_limbLen.push_back(srcLen);
+
+		float tarLen = 0.;
+		for (int i = 0; i < ct.joints.size(); ++i)
+			tarLen += ct.joints[i]->LocalPosition.norm();
+		m_tar_limbLen.push_back(tarLen);
+		m_scale_limbs.push_back(1.);
+	}
+	m_src_rootPos = sCtrl->getRoot()->LocalPosition;
+	m_tar_rootPos = tCtrl->getRoot()->LocalPosition;
+
+	// create copyies of source iktargets for target char
+	m_targets.clear();
+	for (int it = 0; it < m_ikcorr.size();++it) {
+		int is = m_ikcorr[it];
+		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
+		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
+
+		//TODO(skade) create target if it doesnt exist
+		std::shared_ptr<IKTarget> t =
+			std::make_shared<IKTarget>(*sCtrl->m_ikArmature.m_jointChains[is].target.lock().get());
+
+		Vector3f pos; Quaternionf rot; Vector3f scale;
+		target->sgn.buildTansformation(&pos,&rot,&scale);
+		t->m_sgnT = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
+
+		m_targets.emplace_back(t);
+		ct.target = t;
+	}
 };
 int MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct) {
 	auto source = m_sCE.lock();
@@ -68,7 +109,23 @@ void MRlimb::update() {
 		int is = m_ikcorr[it];
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
-		ct.target = cs.target;
+		//ct.target = cs.target; // old way, assign other char entity target 
+		
+		// update target position
+		{ // rescale limb target positions
+			float scale = m_tar_limbLen[it]/m_src_limbLen[is];
+			scale = CForgeMath::lerp(1.f,scale,m_scale_limbs[it]);
+
+			//TODO(skade) srp needs offset of parent chain transform
+			// root pos of chain
+			Vector3f srp = sCtrl->m_IKJoints[cs.joints.back()].posGlobal;
+			Vector3f sdir = cs.target.lock()->pos - srp;
+
+			//TODO(skade) append limb dir to last frame not ideal
+			ct.target.lock()->pos = tCtrl->m_IKJoints[ct.joints.back()].posGlobal + sdir*scale;
+		}
+
+//TODO(skade) look for reusable code
 
 ////		// get parent rot of root joint for reference
 ////		auto csRoot = cs.joints.back();
@@ -245,7 +302,13 @@ void MRlimb::update() {
 			for (int j=0;j< sCtrl->boneCount();++j) {
 				auto js = sCtrl->getBone(j);
 				if (js->Parent == -1) {
-					jt->LocalPosition = js->LocalPosition;
+					if (m_copy_rootPos) {
+						float scale = m_tar_rootPos.norm()/m_src_rootPos.norm();
+						scale = CForgeMath::lerp(1.f,scale,m_scale_rootPos);
+						jt->LocalPosition = js->LocalPosition * scale;
+					}
+					if (m_copy_rootRot)
+						jt->LocalRotation = Quaternionf(js->LocalRotation.toRotationMatrix() * js->OffsetMatrix.block<3,3>(0,0) * jt->OffsetMatrix.inverse().block<3,3>(0,0));
 					break;
 				}
 			}

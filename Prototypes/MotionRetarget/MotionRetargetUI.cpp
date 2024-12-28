@@ -68,11 +68,21 @@ void MotionRetargetScene::renderUI() {
 	{ // transparent window for status infos
 		ImGui::SetNextWindowBgAlpha(0.0);
 		ImGui::Begin("status",0,ImGuiWindowFlags_::ImGuiWindowFlags_NoTitleBar);
+		ImGui::Checkbox("EditMode",&m_isEditMode);
+
 		bool moReLimb = m_MRlimb.active();
-		ImGui::Checkbox("MoReLimb",&moReLimb);
+		if (moReLimb && ImGui::CollapsingHeader("MoRe")) {
+			ImGui::Checkbox("Enabled",&moReLimb);
+			if (ImGui::CollapsingHeader("Root Options")) {
+				ImGui::Checkbox("copy pos",&m_MRlimb.m_copy_rootPos);
+				ImGui::Checkbox("copy rot",&m_MRlimb.m_copy_rootRot);
+				ImGui::SliderFloat("pos scale",&m_MRlimb.m_scale_rootPos,0.,1.);
+			}
+			for (int i = 0; i < m_MRlimb.m_scale_limbs.size(); ++i)
+				ImGui::SliderFloat(m_MRlimb.m_targets[i]->name.c_str(),&m_MRlimb.m_scale_limbs[i],0.,1.);
+		}
 		if (!moReLimb)
 			m_MRlimb.reset();
-		ImGui::Checkbox("EditMode",&m_isEditMode);
 		ImGui::End();
 	}
 	//ImGui::ShowDemoWindow();

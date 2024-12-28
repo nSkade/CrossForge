@@ -114,6 +114,7 @@ private:
 
 	SGNTransformation m_sgnRoot;
 	StaticActor m_TargetPos;
+	StaticActor m_TargetPosForeign;
 
 	Config m_config;
 	EditCamera m_editCam;

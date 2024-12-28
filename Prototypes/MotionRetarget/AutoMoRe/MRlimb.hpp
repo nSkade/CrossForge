@@ -20,11 +20,23 @@ public:
 	void update();
 	void reset();
 	bool active() {return m_active;};
-private:
-	int jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct);
-	bool m_active = false;
+
+	bool m_copy_rootPos = true;
+	float m_scale_rootPos = 1.;
+	bool m_copy_rootRot = false;
+
+	std::vector<float> m_scale_limbs;
+
+	std::vector<std::shared_ptr<IKTarget>> m_targets;
 	std::weak_ptr<CharEntity> m_sCE;
 	std::weak_ptr<CharEntity> m_tCE;
+private:
+	Vector3f m_src_rootPos;
+	Vector3f m_tar_rootPos;
+	std::vector<float> m_src_limbLen;
+	std::vector<float> m_tar_limbLen;
+	int jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct);
+	bool m_active = false;
 	//Matrix4f sourceToTargetTrans; // transform matrix that maps source to target space //TODO(skade)
 
 	// limb correspondences

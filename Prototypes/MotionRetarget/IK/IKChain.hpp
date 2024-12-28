@@ -35,7 +35,7 @@ struct IKJoint {
 struct IKChain {
 	std::string name;
 	std::vector<SkeletalAnimationController::SkeletalJoint*> joints; // front() is end-effector joint
-	std::weak_ptr<IKTarget> target; //TODO(skade) shared pointer
+	std::weak_ptr<IKTarget> target;
 
 	//IKJoint* pRoot = nullptr; //TODO(skade) make sure memory safe, IKChain always deleted before corr controller
 

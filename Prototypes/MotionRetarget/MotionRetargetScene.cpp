@@ -235,20 +235,20 @@ void MotionRetargetScene::mainLoop() {
 				m_charEntities.erase(pos);
 
 			m_picker.reset();
-
-			// reset material in render device to avoid updating it
-			m_RenderDev.activeMaterial(nullptr);
 		}
 		else if (auto p = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
 			//TODOff(skade) IKTargets better global? for delete but also when letting the target change by another char entity
 
-			//TODOf(skade) delete target
-			//auto pos = std::find(m_charEntities.begin(),m_charEntities.end(),p);
-			//if (pos != m_charEntities.end())
-			//	m_charEntities.erase(pos);
-
-			//m_picker.reset();
+			for (auto c : m_charEntities) {
+				auto& ts = c->controller->m_targets;
+				auto pos = std::find(ts.begin(),ts.end(),p);
+				if (pos != ts.end())
+					ts.erase(pos);
+			}
+			m_picker.reset();
 		}
+		// reset material in render device to avoid updating it
+		m_RenderDev.activeMaterial(nullptr);
 	} // removing objects
 	
 	{ // Handle Picking
@@ -267,14 +267,14 @@ void MotionRetargetScene::mainLoop() {
 						m_picker.pick(p);
 						if (!c->controller)
 							continue;
-						if (m_settings.showTargets) {
-							std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
-							p.assign(t.begin(),t.end());
-							m_picker.pick(p);
-						}
 						if (m_settings.showJoints) {
 							std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
 							p.assign(jp.begin(),jp.end());
+							m_picker.pick(p);
+						}
+						if (m_settings.showTargets) {
+							std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
+							p.assign(t.begin(),t.end());
 							m_picker.pick(p);
 						}
 					}
@@ -374,7 +374,7 @@ void MotionRetargetScene::initCesiumMan() {
 	std::string p2skl ="MyAssets/ccd-ik/ces0/SkeletonConfig.json";
 	IOmeth l2 = IOmeth::IOM_GLTFIO;
 	AngleAxisf r2 = AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(1.,0.,0.));
-	r2 = AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(0.,1.,0.)) * r2;
+	//r2 = AngleAxisf(CForgeMath::degToRad(-90.),Vector3f(0.,1.,0.)) * r2;
 
 	if (!isPathGood(p1)
 		|| !isPathGood(p1skl)
@@ -383,16 +383,17 @@ void MotionRetargetScene::initCesiumMan() {
 		)
 		return;
 
-	//loadCharPrim(p1,l1);
-	//std::shared_ptr<CharEntity> c1 = m_charEntities.back();
-	//c1->sgn.rotation(Quaternionf(r1));
+	loadCharPrim(p1,l1);
+	std::shared_ptr<CharEntity> c1 = m_charEntities.back();
+	c1->sgn.rotation(Quaternionf(r1));
 	//c1->sgn.scale(c1->sgn.scale()*.8); //TODO(skade)
-	//c1->applyTransformToMesh(&m_sgnRoot);
-	//c1->importArmature(p1skl);
-	//c1->parseArmature();
-	//c1->sgn.position({0.,0.,1.});
-	//c1->controller->forwardKinematics();
-	//c1->controller->initTargetPoints();
+	c1->sgn.scale(c1->sgn.scale()*2.); //TODO(skade)
+	c1->applyTransformToMesh(&m_sgnRoot);
+	c1->importArmature(p1skl);
+	c1->parseArmature();
+	c1->sgn.position({0.,0.,1.});
+	c1->controller->forwardKinematics();
+	c1->controller->initTargetPoints();
 
 	loadCharPrim(p2,l2);
 	std::shared_ptr<CharEntity> c2 = m_charEntities.back();
@@ -400,8 +401,10 @@ void MotionRetargetScene::initCesiumMan() {
 	c2->applyTransformToMesh(&m_sgnRoot);
 	c2->importArmature(p2skl);
 	c2->parseArmature();
-	//c2->sgn.position({0.,0.,-1.});
-	c2->controller->forwardKinematics();
+
+	c2->sgn.position({0.,0.,-1.});
+	
+c2->controller->forwardKinematics();
 	c2->controller->initTargetPoints();
 }
 
@@ -424,6 +427,13 @@ void MotionRetargetScene::initIKTargetActor() {
 	}
 	M.computePerVertexNormals();
 	m_TargetPos.init(&M);
+	for (uint32_t i = 0; i < M.materialCount(); ++i) {
+		auto* pMat = M.getMaterial(i);
+		pMat->Color = Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
+		pMat->Metallic = 0.3f;
+		pMat->Roughness = 0.2f;
+	}
+	m_TargetPosForeign.init(&M);
 }//initIKTargetActor
 
 void MotionRetargetScene::loadCharPrim(std::string path, IOmeth ioM) {
@@ -560,6 +570,31 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 			//Box aabb = t[i]->bv.aabb();
 			m_RenderDev.modelUBO()->modelMatrix(tar[i]->pckTransPickin());
 			m_TargetPos.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
+		}
+
+		// foreign targets
+		auto& ikcs = c->controller->m_ikArmature.m_jointChains;
+		//for (auto& ikc : ikcs) {
+		//	IKTarget* ikct = ikc.target.lock().get();
+		//	bool isForeign = true;
+		//	for (auto& st : tar) {
+		//		if (ikct && st.get() && st.get() == ikct) {
+		//			isForeign = false;
+		//			break;
+		//		}
+		//	}
+		//	if (!isForeign)
+		//		continue;
+
+		//	IKTarget nikct = *ikct;
+		//	nikct.update(t);
+		//	
+		//	m_RenderDev.modelUBO()->modelMatrix(nikct.pckTransPickin());
+		//	m_TargetPosForeign.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
+		//}
+		for (auto& t : m_MRlimb.m_targets) {
+			m_RenderDev.modelUBO()->modelMatrix(t->pckTransPickin());
+			m_TargetPosForeign.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
 		}
 	}
 
