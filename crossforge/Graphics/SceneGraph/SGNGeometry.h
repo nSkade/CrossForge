@@ -59,6 +59,8 @@ namespace CForge {
 		virtual void visualization(Visualization Mode);
 		virtual Visualization visualization(void)const;
 
+		//TOOD(skade) better name, account for shadow mapping
+		bool m_enableCulling = true;
 	protected:
 		Eigen::Vector3f m_Position;
 		Eigen::Quaternionf m_Rotation;

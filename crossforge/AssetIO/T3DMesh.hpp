@@ -508,11 +508,8 @@ namespace CForge {
 				for (auto i : pRef->m_Bones) {
 					m_Bones[i->ID]->init(i, &m_Bones);
 				}
-				//TODO SPOT bones func
-				// find root bone
-				for (auto i : m_Bones) {
-					if (i->pParent == nullptr) m_pRootBone = i;
-				}//for[all bones]
+
+				findRootBone();
 
 				// copy skeletal animations
 				for (auto i : pRef->m_SkeletalAnimations) {
@@ -656,11 +653,29 @@ namespace CForge {
 				m_Bones = (*pBones);
 			}
 
-			// find root bone
-			for (auto i : m_Bones) {
-				if (i->pParent == nullptr) m_pRootBone = i;
-			}//for[all bones]
+			findRootBone();
 		}//bones
+
+		void findRootBone() {
+			// find root bone
+			//for (auto i : m_Bones) {
+			//	if (i->pParent == nullptr) m_pRootBone = i;
+			//}//for[all bones]
+			
+			// find root bone by traversing bone that has at least one parent to avoid isolated joints,
+			//TODOfff(skade) consider isolated chaints or subtrees
+			if (m_Bones.size()) {
+				T3DMesh<float>::Bone* b = nullptr;
+				for (auto i : m_Bones) {
+					b = i;
+					if (b->pParent)
+						break;
+				}
+				while (b->pParent)
+					b = b->pParent;
+				m_pRootBone = b;
+			}
+		}
 
 		/**
 		* \brief Adds a skeletal animation.

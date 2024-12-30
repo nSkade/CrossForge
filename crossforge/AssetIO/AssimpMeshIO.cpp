@@ -260,12 +260,11 @@ namespace CForge {
 		aiNode* pRoot = pScene->mRootNode;
 		retrieveBoneHierarchy(pRoot, &Bones);
 
+		//TODO(skade) this code is actually useless, remove
 		// find root bone (the one without parent)
-		T3DMesh<float>::Bone* pRootBone = nullptr;
-		for (auto i : Bones) {
-			if (i->pParent == nullptr) pRootBone = i;
-		}//for[all bones]
-
+		//for (auto i : Bones) {
+		//	if (i->pParent == nullptr) m_pRootBone = i;
+		//}//for[all bones]
 
 		std::vector<T3DMesh<float>::SkeletalAnimation*> BoneAnimations;
 

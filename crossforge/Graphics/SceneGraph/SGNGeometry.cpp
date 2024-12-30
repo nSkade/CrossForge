@@ -78,7 +78,7 @@ namespace CForge {
 
 			const BoundingVolume BV = m_pRenderable->boundingVolume();
 
-			if (BV.type() == BoundingVolume::TYPE_UNKNOWN || pRDev->activeCamera()->viewFrustum()->visible(BV, Rot, Pos, S)) {
+			if (!m_enableCulling || BV.type() == BoundingVolume::TYPE_UNKNOWN || pRDev->activeCamera()->viewFrustum()->visible(BV, Rot, Pos, S)) {
 #				ifndef __EMSCRIPTEN__
 				if (m_VisualizationMode != VISUALIZATION_FILL) {
 					switch (m_VisualizationMode) {
