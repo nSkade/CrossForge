@@ -132,10 +132,6 @@ private:
 	// cam
 	bool m_guizmoViewManipChanged = false;
 	Matrix4f m_guizmoMat = Matrix4f::Identity();
-	// anim
-	bool m_IKCupdate = false;
-	bool m_IKCupdateSingle = false;
-	int m_animAutoplay = false;
 	// outliner
 	IKController::SkeletalJoint* m_outlinerSelJoint = nullptr;
 	// ik edit

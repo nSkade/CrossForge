@@ -12,11 +12,10 @@ class IIKSolver {
 public:
 	virtual void solve(std::string segmentName, IKController* pController) {};
 	
-protected:
+	int32_t m_MaxIterations = 50;
 	float m_thresholdDist = 1e-6f;
 	float m_thresholdPosChange = 1e-6f;
-
-	int32_t m_MaxIterations = 50;
+protected:
 };//IIKSolver
 
 }//CForge

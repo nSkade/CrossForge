@@ -111,7 +111,13 @@ void MotionRetargetScene::mainLoop() {
 		//TODOfff(skade) member
 		static uint32_t frameActionIdx = 0;
 		static bool frameAction = true;
-		frameAction = keyboardAnyKeyPressed() || m_IKCupdate || m_animAutoplay
+		bool IKCupdate = false, animAutoplay = false;
+		for (auto& c : m_charEntities) {
+			IKCupdate |= c->m_IKCupdate;
+			animAutoplay |= c->m_animAutoplay;
+		}
+
+		frameAction = keyboardAnyKeyPressed() || IKCupdate || animAutoplay
 					  || ImGui::IsAnyItemHovered()
 					  || ImGuizmo::IsUsing() || m_guizmoViewManipChanged;
 		// need to render on window resize
@@ -142,13 +148,12 @@ void MotionRetargetScene::mainLoop() {
 	m_MRlimb.update();
 	m_SG.update(60.0f / m_FPS);
 	{ // animation update
-		if (m_IKCupdate || m_IKCupdateSingle) {
-			for (uint32_t i=0;i<m_charEntities.size();++i)
-				m_charEntities[i]->controller->update(60.0f / m_FPS);
-			m_IKCupdateSingle = false;
-		}
 		for (uint32_t i=0;i<m_charEntities.size();++i) {
 			auto c = m_charEntities[i];
+			if (c->m_IKCupdate || c->m_IKCupdateSingle) {
+				c->controller->update(60.0f / m_FPS);
+				c->m_IKCupdateSingle = false;
+			}
 			if (!c->pAnimCurr)
 				continue;
 			//m_pAnimCurr->Speed = 1./60.; //TODOf(skade)
@@ -156,7 +161,7 @@ void MotionRetargetScene::mainLoop() {
 
 			//TODOf(skade) move into char entity
 			auto* pA = c->pAnimCurr;
-			if (m_animAutoplay) {
+			if (c->m_animAutoplay) {
 				c->animFrameCurr = pA->t * pA->SamplesPerSecond;
 				pA->t += 1./m_FPS * pA->Speed;
 				if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
@@ -171,7 +176,7 @@ void MotionRetargetScene::mainLoop() {
 		static bool prevIsEditMode = false;
 		if (m_isEditMode != prevIsEditMode) {
 			for (auto c : m_charEntities)
-				c->visible = !m_isEditMode;
+				c->visibility = float(!m_isEditMode);
 		}prevIsEditMode = m_isEditMode;
 
 		if (m_isEditMode) {
@@ -186,7 +191,7 @@ void MotionRetargetScene::mainLoop() {
 					m_editModeCachePos = Vector3f::Zero();
 					m_editModeCacheScale = Vector3f::Ones();
 					m_editModeCacheRot = Quaternionf::Identity();
-					pc->visible = false;
+					pc->visibility = 0.;
 					if (!currC)
 						m_picker.reset();
 				}
@@ -201,7 +206,7 @@ void MotionRetargetScene::mainLoop() {
 					//m_picker.update(MRMutil::buildTransformation(c->sgn));
 					//m_guizmoMat = m_picker.m_guizmoMat;
 					forcePickCharEntity(c);
-					c->visible = true;
+					c->visibility = 1.;
 				}
 				prevC = currC;
 			}
@@ -211,14 +216,27 @@ void MotionRetargetScene::mainLoop() {
 	// handle visibility
 	{
 		for (auto c : m_charEntities) {
+			IRenderableActor* actor;
+			actor = c->actor.get();
+			if (!actor)
+				actor = c->actorStatic.get();
+			if (auto a = actor) {
+				for (int i = 0; i < a->materialCount(); ++i) {
+ //TODO(skade) assumes that amount of renderable material and material is the same might break
+					auto col = c->mesh.getMaterial(i)->Color;
+					col.w() *= c->visibility;
+					a->material(i)->color(col);
+				}
+			}
+			
 			//TODOfff(skade) not every frame
 			//bool oldVis = c->visible;
 			//TODO(skade) dont detach from rendering because of anim controller update?
 			//if (oldVis != c->visible) {
-			if (c->visible)
-				m_sgnRoot.addChild(&c->sgn);
-			else
-				m_sgnRoot.removeChild(&c->sgn);
+			//if (c->visible)
+			//	m_sgnRoot.addChild(&c->sgn);
+			//else
+			//	m_sgnRoot.removeChild(&c->sgn);
 			//}
 		}
 	}
@@ -333,10 +351,6 @@ void MotionRetargetScene::initCharacter(std::weak_ptr<CharEntity> charEntity) {
 	//setMeshShader(mesh, 0.7f, 0.04f); //TODOff(skade) check not modified export
 
 	c->init(&m_sgnRoot);
-	if (c->isStatic)
-		c->sgn.init(&m_sgnRoot,c->actorStatic.get());
-	else
-		c->sgn.init(&m_sgnRoot,c->actor.get());
 
 	//TODOff(skade) autoscale import option in preferences
 	// autoscale

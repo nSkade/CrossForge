@@ -172,10 +172,10 @@ void MotionRetargetScene::renderUI_Outliner() {
 			}
 
 			if (ImGui::CollapsingHeader("visiblity options")) {
-				ImGui::Checkbox("visible",&c->visible);
+				ImGui::SliderFloat("visibility",&c->visibility,0.,1.);
 
 				if (c->controller) {
-					ImGui::SameLine();
+					//ImGui::SameLine();
 					auto jps = c->controller->getJointPickables();
 					float jpo = jps[0].lock()->getOpacity();
 					ImGui::SetNextItemWidth(ImGui::GetWindowWidth()*.5);
@@ -269,13 +269,13 @@ void MotionRetargetScene::renderUI_animation() {
 		T3DMesh<float>::SkeletalAnimation* anim = c->actor->getController()->animation(c->animIdx-1);
 		ImGui::Text("Duration: %f",anim->Duration);
 		ImGui::Text("SamplesPerSecond: %f",anim->SamplesPerSecond);
-		if (!m_animAutoplay) {
+		if (!c->m_animAutoplay) {
 			if(ImGui::Button("Play")) {
-				m_animAutoplay = true;
+				c->m_animAutoplay = true;
 			}
 		} else {
 			if(ImGui::Button("Stop")) {
-				m_animAutoplay = false;
+				c->m_animAutoplay = false;
 			}
 			ImGui::SameLine();
 			ImGui::DragFloat("animSpeed", &(c->pAnimCurr->Speed), 0.01f);
@@ -698,10 +698,10 @@ void MotionRetargetScene::renderUI_ik() {
 	std::vector<IKChain>& chains = c->controller->getJointChains();
 
 	{ // ik method
-		ImGui::Checkbox("enable IK",&m_IKCupdate);
+		ImGui::Checkbox("enable IK",&c->m_IKCupdate);
 		ImGui::SameLine();
 		if (ImGui::Button("singleIK"))
-			m_IKCupdateSingle = true;
+			c->m_IKCupdateSingle = true;
 
 		const std::vector<std::string> ikMstr = {
 			"IKSS_NONE",
@@ -773,6 +773,13 @@ void MotionRetargetScene::renderUI_ik() {
 				subType = iks->m_type;
 				ImGui::ComboStr("inv meth",&subType,meth);
 				iks->m_type = (IKSccd::Type) subType;
+			}
+			if (auto iks = dynamic_cast<IIKSolver*>(chain.ikSolver.get())) {
+				if (ImGui::CollapsingHeader("CMN opt")) {
+					ImGui::InputInt("maxIt",&iks->m_MaxIterations);
+					ImGui::InputFloat("thDist",&iks->m_thresholdDist     ,0.f,0.f,"%.10f");
+					ImGui::InputFloat("thDelt",&iks->m_thresholdPosChange,0.f,0.f,"%.10f");
+				}
 			}
 
 			if (ImGui::Button("all chains to curr setup")) {
@@ -1032,15 +1039,6 @@ void MotionRetargetScene::renderUI_ikTargetEditor() {
 
 		c->controller->m_targets.emplace_back(std::make_shared<IKTarget>(name,bv));
 	}
-
-	if (ImGui::Button("remove selected target")) {
-		if (auto t = std::dynamic_pointer_cast<IKTarget>(m_picker.getLastPick().lock())) {
-			auto& targets = c->controller->m_targets;
-			auto tPos = std::find(targets.begin(),targets.end(),t);
-			if (tPos != targets.end())
-				targets.erase(tPos);
-		}
-	}
 }
 
 void MotionRetargetScene::renderUI_autorig() {
@@ -1120,7 +1118,7 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 			if (ct && cs) {
 
 				auto& ctc = ct->controller;
-				auto& csc = ct->controller;
+				auto& csc = cs->controller;
 
 				if (ctc && csc) {
 					//if (corr.size() != ctc->m_ikArmature.m_jointChains.size())

@@ -28,6 +28,10 @@ struct CharEntity : public IPickable {
 	int animFrameCurr = 0;
 	SkeletalAnimationController::Animation* pAnimCurr = nullptr;
 
+	bool m_IKCupdate = false;
+	bool m_IKCupdateSingle = false;
+	int m_animAutoplay = false;
+
 	// common
 	std::string name;
 	T3DMesh<float> mesh;
@@ -35,7 +39,7 @@ struct CharEntity : public IPickable {
 	void init(SGNTransformation* sgnRoot);
 
 	BoundingVolume bv; // mesh bounding volume
-	bool visible = true;
+	float visibility = 1.;
 
 	//TODO(skade) cesman test,
 	std::string armatureFilepath = "";

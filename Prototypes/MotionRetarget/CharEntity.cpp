@@ -39,6 +39,7 @@ void CharEntity::init(SGNTransformation* sgnRoot) {
 
 		//TODOff(skade) into function?
 		sgn.init(sgnRoot,actor.get());
+		sgn.m_enableCulling = false;
 		isStatic = false;
 	}
 	else {
@@ -46,6 +47,7 @@ void CharEntity::init(SGNTransformation* sgnRoot) {
 		actorStatic->init(&mesh);
 
 		sgn.init(sgnRoot,actorStatic.get());
+		sgn.m_enableCulling = false;
 		isStatic = true;
 	}
 

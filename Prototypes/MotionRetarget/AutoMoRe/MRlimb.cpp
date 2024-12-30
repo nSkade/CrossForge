@@ -27,17 +27,24 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 		
-		float srcLen = 0.;
-		for (int i = 0; i < cs.joints.size(); ++i)
-			srcLen += cs.joints[i]->LocalPosition.norm();
-		m_src_limbLen.push_back(srcLen);
+		m_scale_limbs.push_back(1.);
+	}
 
+	for (int it = 0; it < tCtrl->m_ikArmature.m_jointChains.size(); ++it) {
+		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 		float tarLen = 0.;
 		for (int i = 0; i < ct.joints.size(); ++i)
 			tarLen += ct.joints[i]->LocalPosition.norm();
 		m_tar_limbLen.push_back(tarLen);
-		m_scale_limbs.push_back(1.);
 	}
+	for (int is = 0; is < sCtrl->m_ikArmature.m_jointChains.size(); ++is) {
+		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
+		float srcLen = 0.;
+		for (int i = 0; i < cs.joints.size(); ++i)
+			srcLen += cs.joints[i]->LocalPosition.norm();
+		m_src_limbLen.push_back(srcLen);
+	}
+
 	m_src_rootPos = sCtrl->getRoot()->LocalPosition;
 	m_tar_rootPos = tCtrl->getRoot()->LocalPosition;
 
@@ -98,10 +105,14 @@ int MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct) {
 void MRlimb::update() {
 	auto source = m_sCE.lock();
 	auto target = m_tCE.lock();
-	if (!source || !target) {
+	if (!source || !target)
 		m_active = false;
+	if (!m_active) {
+		//m_ikcorr.clear(); //TODO(skade) more cleanup?
+		m_targets.clear();
 		return;
 	}
+
 	auto& sCtrl = source->controller;
 	auto& tCtrl = target->controller;
 
