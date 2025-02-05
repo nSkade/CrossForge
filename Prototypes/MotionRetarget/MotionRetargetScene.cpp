@@ -401,7 +401,7 @@ void MotionRetargetScene::initCesiumMan() {
 	std::shared_ptr<CharEntity> c1 = m_charEntities.back();
 	c1->sgn.rotation(Quaternionf(r1));
 	//c1->sgn.scale(c1->sgn.scale()*.8); //TODO(skade)
-	c1->sgn.scale(c1->sgn.scale()*2.); //TODO(skade)
+	c1->sgn.scale(c1->sgn.scale()*.8); //TODO(skade)
 	c1->applyTransformToMesh(&m_sgnRoot);
 	c1->importArmature(p1skl);
 	c1->parseArmature();

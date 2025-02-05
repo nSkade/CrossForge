@@ -18,6 +18,7 @@
 #include "UI/EditGrid.hpp"
 
 #include "AutoMoRe/MRlimb.hpp"
+#include "AutoMoRe/SkeletalMatching.hpp"
 
 namespace CForge {
 
@@ -144,6 +145,8 @@ private:
 	IKController::SkeletalJoint* m_ikceEndEffJoint = nullptr;
 	// motion retarget TODO(skade) organize better
 	MRlimb m_MRlimb;
+	SkeletalMatcher m_skeletalMatcher;
+
 	// gui popup
 	enum AppPopups {
 		POP_PREF = 0,

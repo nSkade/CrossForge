@@ -12,7 +12,7 @@ class IIKSolver {
 public:
 	virtual void solve(std::string segmentName, IKController* pController) {};
 	
-	int32_t m_MaxIterations = 50;
+	int32_t m_MaxIterations = 100;
 	float m_thresholdDist = 1e-6f;
 	float m_thresholdPosChange = 1e-6f;
 protected:

@@ -73,6 +73,7 @@ void MotionRetargetScene::renderUI() {
 		bool moReLimb = m_MRlimb.active();
 		if (moReLimb && ImGui::CollapsingHeader("MoRe")) {
 			ImGui::Checkbox("Enabled",&moReLimb);
+			ImGui::Checkbox("imitiate angle",&m_MRlimb.m_imitiateAngle);
 			if (ImGui::CollapsingHeader("Root Options")) {
 				ImGui::Checkbox("copy pos",&m_MRlimb.m_copy_rootPos);
 				ImGui::Checkbox("copy rot",&m_MRlimb.m_copy_rootRot);
@@ -172,6 +173,10 @@ void MotionRetargetScene::renderUI_Outliner() {
 			}
 
 			if (ImGui::CollapsingHeader("visiblity options")) {
+				bool onSG,onSG2; c->sgn.enabled(&onSG,&onSG2);
+				ImGui::Checkbox("onSG",&onSG);
+				c->sgn.enable(onSG,onSG);
+				ImGui::SameLine();
 				ImGui::SliderFloat("visibility",&c->visibility,0.,1.);
 
 				if (c->controller) {
@@ -268,6 +273,7 @@ void MotionRetargetScene::renderUI_animation() {
 
 		T3DMesh<float>::SkeletalAnimation* anim = c->actor->getController()->animation(c->animIdx-1);
 		ImGui::Text("Duration: %f",anim->Duration);
+		ImGui::SameLine();
 		ImGui::Text("SamplesPerSecond: %f",anim->SamplesPerSecond);
 		if (!c->m_animAutoplay) {
 			if(ImGui::Button("Play")) {
@@ -915,6 +921,8 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
+		//TODO(skade) on popup creation fetch currently set chain root and eef if existing, use init bool for it resetting on confirmation
+
 		bool popState = m_showPop[POP_CHAINED];
 		if (ImGui::Begin("add ik chain", &popState)) {
 			if (!m_ikceNameInit) {
@@ -1102,92 +1110,134 @@ void MotionRetargetScene::renderUI_autorig() {
 
 void MotionRetargetScene::renderUI_autoMoRe() {
 	bool popState = m_showPop[POP_MR_LIMB];
-	static bool init = false;
 	if (popState) {
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-		static std::vector<int> corr;
-
 		if (ImGui::Begin("Motion Retarget Limb", &popState)) {
 
 			auto ct = m_charEntityPrim.lock();
 			auto cs = m_charEntitySec.lock();
+
+			{ // reset matching when characters get changed
+				static CharEntity* pPrevCT = nullptr;
+				static CharEntity* pPrevCS = nullptr;
+				if (ct.get() != pPrevCT || cs.get() != pPrevCS)
+					m_skeletalMatcher.reset();
+				pPrevCT = ct.get();
+				pPrevCS = cs.get();
+			}
 			
-			if (ct && cs) {
+			if (ct && cs && ct != cs) {
 
 				auto& ctc = ct->controller;
 				auto& csc = cs->controller;
 
 				if (ctc && csc) {
-					//if (corr.size() != ctc->m_ikArmature.m_jointChains.size())
-					//	corr.resize(ctc->m_ikArmature.m_jointChains.size(),-1);
+					// limb matching initial guess
+					if (m_skeletalMatcher.m_corr.size() != ctc->m_ikArmature.m_jointChains.size())
+						m_skeletalMatcher.skelMatch(csc.get(),ctc.get());
 
-					//TODO(skade) limb matching initial guess
-					if (corr.size() != ctc->m_ikArmature.m_jointChains.size()) {
-						corr.resize(ctc->m_ikArmature.m_jointChains.size(),-1);
-						for (int i = 0; i < corr.size(); ++i) {
-							corr[i] = std::min(i, (int) csc->m_ikArmature.m_jointChains.size()-1);
-						}
-					}
+					bool change = false;
+
+					change |= ImGui::DragFloat("weight root pos",&m_skeletalMatcher.m_wRootPos,.01f);
+					change |= ImGui::DragFloat("weight end effector pos",&m_skeletalMatcher.m_wEefPos,.01f);
+					change |= ImGui::DragFloat("weight direction",&m_skeletalMatcher.m_wDir,.01f);
+					change |= ImGui::DragFloat("weight mean pos",&m_skeletalMatcher.m_wMeanPos,.01f);
+					
+					//TODO(skade) injective only
+					//change |= ImGui::Checkbox("injective matching only",&m_skeletalMatcher.injectiveOnly);
+
+					if (change)
+						m_skeletalMatcher.skelMatch(csc.get(),ctc.get());
 
 					int i=0;
 					for (auto& jct : ctc->m_ikArmature.m_jointChains) {
-						
 						std::vector<std::string> jcsNames;
-						for (auto& jcs : csc->m_ikArmature.m_jointChains) {
+						for (auto& jcs : csc->m_ikArmature.m_jointChains)
 							jcsNames.push_back(jcs.name);
-						}
-						ImGui::ComboStr(jct.name.c_str(),&corr[i],jcsNames);
-						//ImGui::Select
-
-						//if (ImGui::Selectable(chains[n].name.c_str(), is_selected)) {
-						//	if (ImGui::GetIO().KeyCtrl) { // CTRL+click to toggle
-						//		if (m_selChainIdx == n)
-						//			m_selChainIdx = -1;
-						//	}
-						//	else
-						//		m_selChainIdx = n;
-						//}
-
-						//if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
-						//	int n_next = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
-						//	if (n_next >= 0 && n_next < chains.size()) {
-						//		std::swap(chains[n],chains[n_next]);
-						//		ImGui::ResetMouseDragDelta();
-						//	}
-						//}
-
-						//// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-						//if (is_selected)
-						//	ImGui::SetItemDefaultFocus();
+						ImGui::ComboStr(jct.name.c_str(),&m_skeletalMatcher.m_corr[i],jcsNames);
 						i++;
+					}
+
+					// set color coding on current skeletons
+					for (int it = 0; it < m_skeletalMatcher.m_corr.size();++it) {
+						int is = m_skeletalMatcher.m_corr[it];
+						IKChain& cs = csc->m_ikArmature.m_jointChains[is];
+						IKChain& ct = ctc->m_ikArmature.m_jointChains[it];
+						
+						Vector4f col = Vector4f::Zero(); {
+							int isc = is+1;
+							col = Vector4f(
+								float(isc & 1),
+								float(isc >> 1 & 1),
+								float(isc >> 2 & 1),
+								1.f);
+						}
+
+						for (auto j : cs.joints)
+							if (auto jp = csc->getJointPickable(j).lock()) {
+								jp->m_highlight = true;
+								jp->colorSelect = col;
+							}
+						for (auto j : ct.joints)
+							if (auto jp = ctc->getJointPickable(j).lock()) {
+								jp->m_highlight = true;
+								jp->colorSelect = col;
+							}
 					}
 				}
 				else {
 					ImGui::Text("make sure both characters are rigged");
-				}
-			}
-			else {
-				ImGui::Text("make sure to primary and secondary select characters");
-			}
-			if (ImGui::Button("Confirm")) {
+				} // if csc and ctc
 
-				if (ct && cs) {
-					//TODO(skade) only once
-					//MRlimb mrLimb;
-					//if (!init)
-					//	mrLimb.initialize(cs->controller.get(),ct->controller.get());
-					
-					//m_MRlimb.initialize();
-					m_MRlimb.initialize(cs,ct,corr);
+				if (ImGui::Button("Confirm")) {
+
+					if (ct && cs)
+						m_MRlimb.initialize(cs,ct,m_skeletalMatcher.m_corr);
+					popState = false;
 				}
-				corr.clear();
-				popState = false;
+			} // if cs and ct
+			else {
+				if (cs && ct)
+					ImGui::Text("make sure to select two different characters");
+				else
+					ImGui::Text("make sure to primary and secondary select characters");
 			}
+
 			ImGui::End();
 		}
+	}
+
+	//TODO(skade) make sure also callable on closing externally
+	if (m_showPop[POP_MR_LIMB] != popState && popState == false) {
+		// reset color on completion
+		auto ct = m_charEntityPrim.lock();
+		auto cs = m_charEntitySec.lock();
+		if (ct && cs) {
+			auto& ctc = ct->controller;
+			auto& csc = cs->controller;
+			if (ctc && csc) {
+				for (int it = 0; it < m_skeletalMatcher.m_corr.size();++it) {
+					int is = m_skeletalMatcher.m_corr[it];
+					IKChain& cs = csc->m_ikArmature.m_jointChains[is];
+					IKChain& ct = ctc->m_ikArmature.m_jointChains[it];
+					
+					for (auto j : cs.joints)
+						if (auto jp = csc->getJointPickable(j).lock()) {
+							jp->m_highlight = false;
+							jp->restoreColor();
+						}
+					for (auto j : ct.joints)
+						if (auto jp = ctc->getJointPickable(j).lock()) {
+							jp->m_highlight = false;
+							jp->restoreColor();
+						}
+				}
+			}
+		}
+		m_skeletalMatcher.reset();
 	}
 	m_showPop[POP_MR_LIMB] = popState;
 }

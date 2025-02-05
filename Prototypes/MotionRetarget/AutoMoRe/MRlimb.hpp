@@ -21,9 +21,10 @@ public:
 	void reset();
 	bool active() {return m_active;};
 
+	bool m_imitiateAngle = true;
 	bool m_copy_rootPos = true;
 	float m_scale_rootPos = 1.;
-	bool m_copy_rootRot = false;
+	bool m_copy_rootRot = true;
 
 	std::vector<float> m_scale_limbs;
 

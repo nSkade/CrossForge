@@ -6,14 +6,8 @@ namespace CForge {
 using namespace Eigen;
 
 void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<CharEntity> target, std::vector<int> corr) {
-	//int idx=0;
-	//for (IKChain& c : target->m_ikArmature.m_jointChains) {
-	//	//TODO(skade) for now match joint by ikchain order make parameter to be configurable by ui
+	reset();
 
-	//	//TODO(skade) find corresponding ikchain and match
-	//	c.target = source->m_ikArmature.m_jointChains[idx].target;
-	//	idx++;
-	//}
 	m_sCE = source;
 	m_tCE = target;
 	m_ikcorr = corr;
@@ -22,6 +16,7 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 	// assign limb scaling values
 	auto& sCtrl = source->controller;
 	auto& tCtrl = target->controller;
+
 	for (int it = 0; it < m_ikcorr.size();++it) {
 		int is = m_ikcorr[it];
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
@@ -47,6 +42,10 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 
 	m_src_rootPos = sCtrl->getRoot()->LocalPosition;
 	m_tar_rootPos = tCtrl->getRoot()->LocalPosition;
+
+	// reinitialize targets
+	source->autoCreateTargets();
+	target->autoCreateTargets();
 
 	// create copyies of source iktargets for target char
 	m_targets.clear();
@@ -232,9 +231,9 @@ void MRlimb::update() {
 				Matrix4f t = Matrix4f::Identity();
 
 				// parent target
-				if (jt->Parent != -1 && js->Parent != -1) {
-					auto* jtp = tCtrl->getBone(jt->Parent);
-					auto* jsp = sCtrl->getBone(js->Parent);
+				//if (jt->Parent != -1 && js->Parent != -1) {
+				//	auto* jtp = tCtrl->getBone(jt->Parent);
+				//	auto* jsp = sCtrl->getBone(js->Parent);
 
 					// current global transform of retargeted parent
 					//Matrix4f parentGlobal =  parentT * jtp->OffsetMatrix;
@@ -270,7 +269,7 @@ void MRlimb::update() {
 					////TODO(skade) adj
 					//parentT = parentS * adjS
 					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-				}
+				//}
 				
 				{ // set local rotation of joint
 					Vector3f p,s; Quaternionf r;
@@ -302,8 +301,9 @@ void MRlimb::update() {
 			imitate(tCtrl->getBone(child), parentT);
 		}
 	};
-	//TODO(skade) make toggable
-	imitate(tCtrl->getRoot(), Eigen::Matrix4f::Identity());
+
+	if (m_imitiateAngle)
+		imitate(tCtrl->getRoot(), Eigen::Matrix4f::Identity());
 
 	// copy root position
 	for (int i=0;i< tCtrl->boneCount();++i) {
@@ -329,6 +329,10 @@ void MRlimb::update() {
 	tCtrl->forwardKinematics();
 };
 void MRlimb::reset() {
+	m_scale_limbs.clear();
+	m_tar_limbLen.clear();
+	m_src_limbLen.clear();
+
 	m_ikcorr.clear();
 	m_sCE.reset();
 	m_tCE.reset();
