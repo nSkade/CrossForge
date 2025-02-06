@@ -9,7 +9,7 @@ namespace CForge {
 */
 class IMoRe {
 public:
-	//TODO(skade)
+	//TODOff(skade) establish common interface
 	//virtual void retarget() = 0;
 };
 

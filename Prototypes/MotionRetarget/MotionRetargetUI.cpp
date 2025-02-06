@@ -79,8 +79,19 @@ void MotionRetargetScene::renderUI() {
 				ImGui::Checkbox("copy rot",&m_MRlimb.m_copy_rootRot);
 				ImGui::SliderFloat("pos scale",&m_MRlimb.m_scale_rootPos,0.,1.);
 			}
-			for (int i = 0; i < m_MRlimb.m_scale_limbs.size(); ++i)
-				ImGui::SliderFloat(m_MRlimb.m_targets[i]->name.c_str(),&m_MRlimb.m_scale_limbs[i],0.,1.);
+			if (ImGui::CollapsingHeader("limb scalings")) {
+				static bool slider = true;
+				if (slider)
+					for (int i = 0; i < m_MRlimb.m_scale_limbs.size(); ++i)
+						ImGui::SliderFloat(m_MRlimb.m_targets[i]->name.c_str(),&m_MRlimb.m_scale_limbs[i],0.,1.);
+				else
+					for (int i = 0; i < m_MRlimb.m_scale_limbs.size(); ++i)
+						ImGui::DragFloat(m_MRlimb.m_targets[i]->name.c_str(),&m_MRlimb.m_scale_limbs[i],0.01f);
+				ImGui::Checkbox("limit scalings 0-1",&slider);
+			}
+			if(ImGui::Button("Bake Animation")) {
+				//TODO(skade) implement
+			}
 		}
 		if (!moReLimb)
 			m_MRlimb.reset();
@@ -173,11 +184,12 @@ void MotionRetargetScene::renderUI_Outliner() {
 			}
 
 			if (ImGui::CollapsingHeader("visiblity options")) {
-				bool onSG,onSG2; c->sgn.enabled(&onSG,&onSG2);
-				ImGui::Checkbox("onSG",&onSG);
-				c->sgn.enable(onSG,onSG);
+				bool onSGupdate,onSGrender; c->sgn.enabled(&onSGupdate,&onSGrender);
+				ImGui::Checkbox("onSGupdate",&onSGupdate); //TODO(skade) test
+				ImGui::Checkbox("onSGrender",&onSGrender);
+				c->sgn.enable(onSGupdate,onSGrender);
 				ImGui::SameLine();
-				ImGui::SliderFloat("visibility",&c->visibility,0.,1.);
+				//ImGui::SliderFloat("visibility",&c->visibility,0.,1.);
 
 				if (c->controller) {
 					//ImGui::SameLine();
@@ -190,10 +202,15 @@ void MotionRetargetScene::renderUI_Outliner() {
 
 					//TODOff(skade) improve usage
 					// need to set highlight behavior for all joints
-					static bool hullHighlight = true;
+					bool hullHighlight = true;
+					if (jps.size())
+						hullHighlight = jps[0].lock()->highlightBehind;
 					ImGui::Checkbox("hull highlight",&hullHighlight);
 					for (auto jp : jps)
 						jp.lock()->highlightBehind = hullHighlight;
+
+					ImGui::SameLine();
+					ImGui::DragFloat("Target Opacity",&c->controller->m_targetOpacity,.005,0.,1.);
 				}
 			} // visibility
 			if (!c->controller) {
@@ -345,7 +362,7 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	ImGui::Text("Keyframe: ");
 	ImGui::SameLine();
 	if (ImGui::Button("Set")) {
-
+		//TODO(skade) implement
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Get")) {
@@ -982,12 +999,9 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 			}
 
 			if (ImGui::Button("Confirm")) {
-				//IKChain nChain = c->controller->getJointChains()[m_ikceName];
 				IKChain* nChain = c->controller->getIKChain(m_ikceName);
-				if (!nChain) {
+				if (!nChain)
 					nChain = &(c->controller->getJointChains().emplace_back());
-					//nChain = &c->controller->getJointChains().back(); //TODOf(skade)
-				}
 				nChain->name = m_ikceName;
 				
 				nChain->joints.clear();
@@ -999,9 +1013,6 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 						nChain->joints.push_back(j);
 					} while (j != m_ikceRootJoint);
 				}
-				
-				//nChain->pRoot = &c->controller->m_IKJoints[m_ikceRootJoint]; //TODO(skade) unused
-				//c->controller->getJointChains()[m_ikceName] = nChain;
 				
 				m_ikceName = "new"; m_ikceNameInit = false;
 				m_showPop[POP_CHAINED] = false;
@@ -1146,7 +1157,7 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 					change |= ImGui::DragFloat("weight direction",&m_skeletalMatcher.m_wDir,.01f);
 					change |= ImGui::DragFloat("weight mean pos",&m_skeletalMatcher.m_wMeanPos,.01f);
 					
-					//TODO(skade) injective only
+					//TODOff(skade) injective only
 					//change |= ImGui::Checkbox("injective matching only",&m_skeletalMatcher.injectiveOnly);
 
 					if (change)
@@ -1210,9 +1221,8 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 		}
 	}
 
-	//TODO(skade) make sure also callable on closing externally
+	// reset color on completion
 	if (m_showPop[POP_MR_LIMB] != popState && popState == false) {
-		// reset color on completion
 		auto ct = m_charEntityPrim.lock();
 		auto cs = m_charEntitySec.lock();
 		if (ct && cs) {

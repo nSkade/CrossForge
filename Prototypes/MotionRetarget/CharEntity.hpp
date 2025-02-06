@@ -39,13 +39,9 @@ struct CharEntity : public IPickable {
 	void init(SGNTransformation* sgnRoot);
 
 	BoundingVolume bv; // mesh bounding volume
-	float visibility = 1.;
-
-	//TODO(skade) cesman test,
-	std::string armatureFilepath = "";
+	//float visibility = 1.; //TODOff(skade) requires blending
 
 	// exportable armature
-	//TODO(skade) function to get ConfigData from existing m_ikArmature chains
 	struct ArmatureInfo {
 		struct Chain {
 			std::string name;
@@ -53,7 +49,7 @@ struct CharEntity : public IPickable {
 			std::string endJoint;   // end effector
 		};
 		std::vector<Chain> limbs;
-		//TODO(skade) joint limits
+		//TODOff(skade) joint limits
 	} armatureInfo;
 	void parseArmature() {
 		if (controller) {

@@ -11,8 +11,6 @@ using namespace Eigen;
 	
 class MRlimb : IMoRe {
 public:
-	//TODOf(skade) limb matching
-	//TODO(skade) 
 	/*
 	 * @param corr source to target chain correspondence
 	*/
@@ -36,9 +34,9 @@ private:
 	Vector3f m_tar_rootPos;
 	std::vector<float> m_src_limbLen;
 	std::vector<float> m_tar_limbLen;
-	int jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct);
+	std::vector<int> jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct);
 	bool m_active = false;
-	//Matrix4f sourceToTargetTrans; // transform matrix that maps source to target space //TODO(skade)
+	//Matrix4f sourceToTargetTrans; // transform matrix that maps source to target space //TODOff(skade)
 
 	// limb correspondences
 	// source -> target ik chains to retarget

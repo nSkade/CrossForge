@@ -143,7 +143,7 @@ private:
 	std::string m_ikceName = "new";
 	IKController::SkeletalJoint* m_ikceRootJoint = nullptr;
 	IKController::SkeletalJoint* m_ikceEndEffJoint = nullptr;
-	// motion retarget TODO(skade) organize better
+	// motion retarget TODOff(skade) organize better
 	MRlimb m_MRlimb;
 	SkeletalMatcher m_skeletalMatcher;
 

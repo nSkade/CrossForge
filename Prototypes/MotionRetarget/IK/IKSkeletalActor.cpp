@@ -29,10 +29,13 @@ namespace CForge {
 		delete this;
 	}//release
 
+	//TODO(skade)
+	void IKSkeletalActor::update() {
+		m_pAnimationController->applyAnimation(m_pActiveAnimation,true);
+	}
+
 	void IKSkeletalActor::render(RenderDevice* pRDev, Eigen::Quaternionf Rotation, Eigen::Vector3f Translation, Eigen::Vector3f Scale) {
 		if (!pRDev) throw NullpointerExcept("pRDev");
-		
-		m_pAnimationController->applyAnimation(m_pActiveAnimation,true);
 		
 		for (auto i : m_RenderGroupUtility.renderGroups()) {
 

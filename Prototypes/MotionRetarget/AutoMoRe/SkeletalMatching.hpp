@@ -16,7 +16,7 @@ public:
 
 	void reset() { m_corr.clear(); };
 
-	//TODO(skade) incorporate injective only in extra function
+	//TODOff(skade) incorporate injective only in extra function
 	// compute matching with all chains and take one with highest score
 	//	std::map<int,bool> used; // for injective matching
 

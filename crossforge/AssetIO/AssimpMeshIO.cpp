@@ -155,6 +155,29 @@ namespace CForge {
 				pBone->InvBindPoseMatrix = toEigenMat(pM->mBones[k]->mOffsetMatrix);
 				pBone->Name = pM->mBones[k]->mName.C_Str();
 
+				{ //TODO(skade)
+					using namespace Eigen;
+					auto deconstructMatrix = [](Matrix4f t, Vector3f* pos, Quaternionf* rot, Vector3f* scale) {
+						*pos = t.block<3,1>(0,3);
+						*scale = Vector3f(t.block<3,1>(0,0).norm(),
+										  t.block<3,1>(0,1).norm(),
+										  t.block<3,1>(0,2).norm());
+						Matrix3f rotScale;
+						rotScale.row(0) = *scale;
+						rotScale.row(1) = *scale;
+						rotScale.row(2) = *scale;
+						*rot = Quaternionf(t.block<3,3>(0,0).cwiseQuotient(rotScale));
+					};
+					Vector3f pos,scale; Quaternionf rot;
+					deconstructMatrix(pBone->InvBindPoseMatrix,&pos,&rot,&scale);
+					Matrix4f scaleMat = Matrix4f::Identity();
+					scaleMat(0,0) = 1./scale[0];
+					scaleMat(1,1) = 1./scale[1];
+					scaleMat(2,2) = 1./scale[2];
+					pBone->InvBindPoseMatrix = scaleMat * pBone->InvBindPoseMatrix;
+					//pBone->InvBindPoseMatrix.col(3) *= scale;
+				}
+
 				for (uint32_t j = 0; j < pM->mBones[k]->mNumWeights; ++j) {
 					pBone->VertexInfluences.push_back(PositionsOffset + pM->mBones[k]->mWeights[j].mVertexId);
 					pBone->VertexWeights.push_back(pM->mBones[k]->mWeights[j].mWeight);
@@ -431,19 +454,28 @@ namespace CForge {
 					}
 				}//for[influences]
 				
-				if (InfluenceIDs.size() > 0) {
+				//if (InfluenceIDs.size() > 0) {
 					aiBone* pB = new aiBone();
 					pB->mName = pBone->Name.c_str();
 					pB->mOffsetMatrix = toAiMatrix(pBone->InvBindPoseMatrix);
 					//TODO(skade) pB->mOffsetMatrix = /**/toAiMatrix(Eigen::Matrix4f::Identity());//*/toAiMatrix(pBone->OffsetMatrix); // has no influence
-					pB->mNumWeights = InfluenceIDs.size();
-					pB->mWeights = new aiVertexWeight[pB->mNumWeights];
-					for (uint32_t j = 0; j < InfluenceIDs.size(); ++j) {
-						pB->mWeights[j].mVertexId = InfluenceIDs[j];
-						pB->mWeights[j].mWeight = Weights[j];
-					}
+					//if (InfluenceIDs.size()) {
+						pB->mNumWeights = InfluenceIDs.size();
+						pB->mWeights = new aiVertexWeight[pB->mNumWeights];
+						for (uint32_t j = 0; j < InfluenceIDs.size(); ++j) {
+							pB->mWeights[j].mVertexId = InfluenceIDs[j];
+							pB->mWeights[j].mWeight = Weights[j];
+						}
+					//}
+					//else {
+					//	//TODO(skade) add at least one weight so the joint doesnt get omitted
+					//	pB->mNumWeights = 1;
+					//	pB->mWeights = new aiVertexWeight[1];
+					//	pB->mWeights[0].mVertexId = 0;
+					//	pB->mWeights[0].mWeight= 0.001f;
+					//}
 					Bones.push_back(pB);
-				}//if[valid bone]
+				//}//if[valid bone]
 			}//for[all bones]
 
 			if (Bones.size() > 0) {

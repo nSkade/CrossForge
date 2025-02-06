@@ -150,6 +150,9 @@ void MotionRetargetScene::mainLoop() {
 	{ // animation update
 		for (uint32_t i=0;i<m_charEntities.size();++i) {
 			auto c = m_charEntities[i];
+			if (!c->controller)
+				continue;
+			
 			if (c->m_IKCupdate || c->m_IKCupdateSingle) {
 				c->controller->update(60.0f / m_FPS);
 				c->m_IKCupdateSingle = false;
@@ -167,7 +170,17 @@ void MotionRetargetScene::mainLoop() {
 				if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
 					pA->t = 0.;
 			} else
-				pA->t = c->animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable
+				pA->t = c->animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable, see set and get on sequencer
+		}
+		
+		// update actor using anim controller
+		for (uint32_t i=0;i<m_charEntities.size();++i) {
+			auto c = m_charEntities[i];
+			if (!c->controller)
+				continue;
+			bool enabled,_; c->sgn.enabled(&enabled,&_);
+			if (enabled)
+				c->actor->update();
 		}
 	}
 
@@ -176,7 +189,8 @@ void MotionRetargetScene::mainLoop() {
 		static bool prevIsEditMode = false;
 		if (m_isEditMode != prevIsEditMode) {
 			for (auto c : m_charEntities)
-				c->visibility = float(!m_isEditMode);
+				c->sgn.enable(!m_isEditMode,!m_isEditMode);
+				//c->visibility = float(!m_isEditMode);
 		}prevIsEditMode = m_isEditMode;
 
 		if (m_isEditMode) {
@@ -191,7 +205,8 @@ void MotionRetargetScene::mainLoop() {
 					m_editModeCachePos = Vector3f::Zero();
 					m_editModeCacheScale = Vector3f::Ones();
 					m_editModeCacheRot = Quaternionf::Identity();
-					pc->visibility = 0.;
+					//pc->visibility = 0.;
+					pc->sgn.enable(false,false);
 					if (!currC)
 						m_picker.reset();
 				}
@@ -206,7 +221,8 @@ void MotionRetargetScene::mainLoop() {
 					//m_picker.update(MRMutil::buildTransformation(c->sgn));
 					//m_guizmoMat = m_picker.m_guizmoMat;
 					forcePickCharEntity(c);
-					c->visibility = 1.;
+					c->sgn.enable(true,true);
+					//c->visibility = 1.;
 				}
 				prevC = currC;
 			}
@@ -221,12 +237,13 @@ void MotionRetargetScene::mainLoop() {
 			if (!actor)
 				actor = c->actorStatic.get();
 			if (auto a = actor) {
-				for (int i = 0; i < a->materialCount(); ++i) {
- //TODO(skade) assumes that amount of renderable material and material is the same might break
-					auto col = c->mesh.getMaterial(i)->Color;
-					col.w() *= c->visibility;
-					a->material(i)->color(col);
-				}
+				//TODO(skade) requires blending
+				//for (int i = 0; i < a->materialCount(); ++i) {
+				//	//TODOff(skade) assumes that amount of renderable material and material is the same might break
+				//	auto col = c->mesh.getMaterial(i)->Color;
+				//	col.w() *= c->visibility;
+				//	a->material(i)->color(col);
+				//}
 			}
 			
 			//TODOfff(skade) not every frame
@@ -278,6 +295,10 @@ void MotionRetargetScene::mainLoop() {
 					m_picker.start();
 					for (uint32_t i=0;i<m_charEntities.size();++i) {
 						auto c = m_charEntities[i];
+
+						bool enabled, _; c->sgn.enabled(&_,&enabled);
+						if (!enabled)
+							continue;
 						//if (!c->visible)
 						//	continue;
 
@@ -285,12 +306,14 @@ void MotionRetargetScene::mainLoop() {
 						m_picker.pick(p);
 						if (!c->controller)
 							continue;
-						if (m_settings.showJoints) {
+						if (m_settings.showJoints &&
+							c->controller->getJointPickables()[0].lock()->getOpacity() > 0.f) {
+
 							std::vector<std::weak_ptr<JointPickable>> jp = c->controller->getJointPickables();
 							p.assign(jp.begin(),jp.end());
 							m_picker.pick(p);
 						}
-						if (m_settings.showTargets) {
+						if (m_settings.showTargets && c->controller->m_targetOpacity > 0.f) {
 							std::vector<std::shared_ptr<IKTarget>> t = c->controller->m_targets;
 							p.assign(t.begin(),t.end());
 							m_picker.pick(p);
@@ -515,11 +538,11 @@ void MotionRetargetScene::storeCharPrim(std::string path, IOmeth ioM) {
 	switch (ioM)
 	{
 	case CForge::MotionRetargetScene::IOM_ASSIMP:
-		//if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE)) //TODO(skade)
+		//if (SAssetIO::accepted(path, I3DMeshIO::Operation::OP_STORE)) //TODOff(skade)
 			SAssetIO::store(path,&c.get()->mesh);
 		break;
 	case CForge::MotionRetargetScene::IOM_GLTFIO:
-		//if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE)) //TODO(skade)
+		//if (GLTFIO::accepted(path, I3DMeshIO::Operation::OP_STORE)) //TODOff(skade)
 			GLTFIO::store(path,&c.get()->mesh);
 		break;
 	case CForge::MotionRetargetScene::IOM_OBJIMP:
@@ -549,19 +572,24 @@ void MotionRetargetScene::renderVisualizers() {
 		m_editGrid.render(&m_RenderDev,m_settings.gridSize);
 
 	for (uint32_t i=0;i<m_charEntities.size();++i) {
+		//TODOff(skade)
+		//bool enabled, _; m_charEntities[i]->sgn.enabled(&_,&enabled);
+		//if (!enabled)
+		//	continue;
 		//if (m_charEntities[i]->visible)
 			renderVisualizers(m_charEntities[i].get());
 	}
 }
 
 void MotionRetargetScene::renderVisualizers(CharEntity* c) {
+	// joints
 	Vector3f pos; Quaternionf rot; Vector3f scale;
 	c->sgn.buildTansformation(&pos,&rot,&scale);
 	Matrix4f t = CForgeMath::translationMatrix(pos) * CForgeMath::rotationMatrix(rot) * CForgeMath::scaleMatrix(scale);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	if (c->controller && m_settings.showJoints) { //TODOff(skade) put in function
 		auto& joints = c->controller->getJointPickables();
-		if (joints.size() > 0 && joints[0].lock()->getOpacity() != 0.f) {
+		if (joints.size() > 0) { // && joints[0].lock()->getOpacity() != 0.f) { //TODOff(skade) causes bug with target opacity
 			for (auto j : joints) {
 				if (auto jl = j.lock()) {
 					//TODOf(skade) option to seperate skeleton with translation for visualization
@@ -574,42 +602,37 @@ void MotionRetargetScene::renderVisualizers(CharEntity* c) {
 	}
 	glDisable(GL_DEPTH_TEST);
 
+	// targets
 	if (c->controller && m_settings.showTargets) {
 		std::vector<std::shared_ptr<IKTarget>>& tar = c->controller->m_targets;
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		for (uint32_t i = 0; i < tar.size(); ++i) {
 			//TODOff(skade) clean sgnT update loc
 			tar[i]->update(t);
-			
+
+			Vector4f color = m_TargetPos.material(0)->color();
+			color.w() = c->controller->m_targetOpacity;
+			m_TargetPos.material(0)->color(color);
+
 			//Box aabb = t[i]->bv.aabb();
 			m_RenderDev.modelUBO()->modelMatrix(tar[i]->pckTransPickin());
 			m_TargetPos.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
 		}
 
-		// foreign targets
-		auto& ikcs = c->controller->m_ikArmature.m_jointChains;
-		//for (auto& ikc : ikcs) {
-		//	IKTarget* ikct = ikc.target.lock().get();
-		//	bool isForeign = true;
-		//	for (auto& st : tar) {
-		//		if (ikct && st.get() && st.get() == ikct) {
-		//			isForeign = false;
-		//			break;
-		//		}
-		//	}
-		//	if (!isForeign)
-		//		continue;
+		if (m_MRlimb.m_tCE.lock().get()==c) {
+			for (auto& t : m_MRlimb.m_targets) {
+				m_RenderDev.modelUBO()->modelMatrix(t->pckTransPickin());
 
-		//	IKTarget nikct = *ikct;
-		//	nikct.update(t);
-		//	
-		//	m_RenderDev.modelUBO()->modelMatrix(nikct.pckTransPickin());
-		//	m_TargetPosForeign.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
-		//}
-		for (auto& t : m_MRlimb.m_targets) {
-			m_RenderDev.modelUBO()->modelMatrix(t->pckTransPickin());
-			m_TargetPosForeign.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
+				Vector4f color = m_TargetPosForeign.material(0)->color();
+				color.w() = c->controller->m_targetOpacity;
+				m_TargetPosForeign.material(0)->color(color);
+
+				m_TargetPosForeign.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f());
+			}
 		}
+		glDisable(GL_BLEND);
 	}
 
 	//TODOf(skade) make toggable

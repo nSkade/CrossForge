@@ -13,12 +13,12 @@ struct IKJoint {
 	Eigen::Vector3f posGlobal;
 	Eigen::Quaternionf rotGlobal;
 
-	//TODO(skade) target pos needs to be handled by iksolver
+	//TODOff(skade) target pos needs to be handled by iksolver
 	//std::vector<IKTarget> TargetPosGlobal; // Global target Positions the Joint tries to reach
-
 	//JointLimits* pLimits;
 };
-//TODO(skade)
+
+//TODOff(skade) neighbour info for IKChain?
 //class IKSegment {
 //public:
 //private:
@@ -26,9 +26,6 @@ struct IKJoint {
 //	std::vector<IKSegment*> m_pChilds;
 //};
 
-//TODO(skade) new structures
-
-//TODO(skade) priority of IK Segments?
 /**
 * @brief Segment of Skeleton on which IK is applied to.
 */
@@ -37,10 +34,8 @@ struct IKChain {
 	std::vector<SkeletalAnimationController::SkeletalJoint*> joints; // front() is end-effector joint
 	std::weak_ptr<IKTarget> target;
 
-	//IKJoint* pRoot = nullptr; //TODO(skade) make sure memory safe, IKChain always deleted before corr controller
-
 	//float weight = 1.; // weight used for centroid interpolation,
-	                   //TODO(skade) contribution equals: weight / sum(all chain weights on centoid)
+	                   //TODOf(skade) contribution equals: weight / sum(all chain weights on centoid)
 
 	std::unique_ptr<IIKSolver> ikSolver = std::make_unique<IKSjacInv>();
 	//std::vector<std::pair<IKJoint*,IKTarget*>> pEndEff;

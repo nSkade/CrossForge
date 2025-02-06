@@ -112,14 +112,14 @@ void IKSjacInv::solve(std::string segmentName, IKController* pController) {
 
 MatrixXd IKSjacInv::DampedLeastSquare(MatrixXd jac) {
 	float damping = m_dlsDamping;
-	int eefCount = 1; //TODO(skade) multiple endeff
+	int eefCount = 1; //TODOff(skade) multiple endeff
 	MatrixXd jt = jac.transpose();
 	MatrixXd temp = jac * jt + (damping*damping) * MatrixXd::Identity(eefCount*3,eefCount*3);
 	MatrixXd ret = jt * temp.inverse();
 	return ret;
 }
 
-//TODO(skade) implement for multiple endeffectors for use with OMR
+//TODOff(skade) implement for multiple endeffectors for use with OMR
 MatrixXd IKSjacInv::calculateJacobianNumerical(std::string segmentName, IKController* pController) {
 	std::vector<IKController::SkeletalJoint*>& chain = pController->getIKChain(segmentName)->joints;
 	IKTarget* target = pController->getIKChain(segmentName)->target.lock().get();
@@ -137,7 +137,7 @@ MatrixXd IKSjacInv::calculateJacobianNumerical(std::string segmentName, IKContro
 			auto origRot = chain[i]->LocalRotation;
 
 			// rotate in dim by delta
-			float delta = 0.01f; //TODO(skade) j -> eff norm instead of delta?
+			float delta = 0.01f; //TODOff(skade) j -> eff norm instead of delta?
 			switch (j)
 			{
 			case 0:

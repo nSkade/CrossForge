@@ -91,6 +91,7 @@ public:
 	std::map<SkeletalJoint*,IKJoint> m_IKJoints; // extends m_Joints
 	IKArmature m_ikArmature;
 	std::vector<std::shared_ptr<IKTarget>> m_targets;
+	float m_targetOpacity = 1.f;
 private:
 	std::map<SkeletalJoint*,std::shared_ptr<JointPickable>> m_jointPickables;
 	JointPickableMesh m_jointPickableMesh;

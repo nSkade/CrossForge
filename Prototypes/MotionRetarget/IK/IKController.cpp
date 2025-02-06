@@ -364,7 +364,6 @@ void IKController::clearTargetPoints() {
 	m_targets.clear();
 }
 
-//TODO(skade)
 void IKController::updateTargetPoints() {
 	for (auto& c : getJointChains()) {
 		IKJoint& eff = m_IKJoints[c.joints[0]];

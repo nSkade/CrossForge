@@ -63,7 +63,6 @@ void ARrignet::rig(T3DMesh<float>* mesh, ARrignetOptions options) {
 
 		std::cout << command << std::endl;
 
-		//TODO(skade) option to not run script but parse cache instead
 		// run script
 		std::system(command.c_str());
 	}
