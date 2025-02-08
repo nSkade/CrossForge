@@ -228,4 +228,42 @@ void CharEntity::autoCreateArmature() {
 	}
 }
 
+void CharEntity::animationUpdate(float FPS) {
+	if (!controller)
+		return;
+	
+	if (m_IKCupdate || m_IKCupdateSingle) {
+		controller->update(60.0f / FPS);
+		m_IKCupdateSingle = false;
+	}
+	if (pAnimCurr) {
+		//m_pAnimCurr->Speed = 1./60.; //TODOf(skade)
+		//m_pAnimCurr->Duration = 2000.; //TODOf(skade) unused when applied?
+
+		int animRotSize = controller->animation(pAnimCurr->AnimationID)->Keyframes[0]->Rotations.size();
+		float animTime = controller->animation(pAnimCurr->AnimationID)->Keyframes[0]->Timestamps.back();
+
+		//TODOf(skade) move into char entity
+		auto* pA = pAnimCurr;
+		if (controller->m_animAutoplay) {
+			pA->t += 1./FPS * pA->Speed;// * pA->SamplesPerSecond;
+			if (pA->t > animTime)
+				pA->t = 0.;
+			animFrameCurr = pA->t / animTime * animRotSize;
+
+
+			//TODOff(skade) old rendering, remove
+			//animFrameCurr = pA->t * pA->SamplesPerSecond;
+			//pA->t += 1./FPS * pA->Speed;
+			//if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
+			//	pA->t = 0.;
+		} else
+			pA->t = float(animFrameCurr) / animRotSize * animTime; //TODO(skade) make pose configurable, see set and get on sequencer
+			//pA->t = animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable, see set and get on sequencer
+	}
+	bool enabled,_; sgn.enabled(&enabled,&_);
+	if (enabled)
+		actor->update();
+}
+
 }//CForge

@@ -2,6 +2,8 @@
 
 #include "Prototypes/MotionRetarget/CMN/MRMutil.hpp"
 
+#include <iostream>
+
 namespace CForge {
 using namespace Eigen;
 
@@ -456,6 +458,96 @@ void MRlimb::reset() {
 	m_sCE.reset();
 	m_tCE.reset();
 	m_active = false;
+}
+
+void MRlimb::bakingInit() {
+	m_isBaking = true;
+	m_bakingInit = false;
+}
+void MRlimb::bakingUpdate(float FPS) {
+	auto& sce = m_sCE.lock();
+	auto& tce = m_tCE.lock();
+	if (!sce || !tce || !sce->pAnimCurr) {
+		if (!sce->pAnimCurr)
+			std::cerr << "error baking: source has no animation selected";
+		m_isBaking = false;
+		return;
+	}
+
+	static T3DMesh<float>::SkeletalAnimation* newAnim = nullptr;
+
+	static bool finished = true;
+	static float t = 0.;
+
+	if (!m_bakingInit) {
+		finished = false;
+		// create new pAnim for source
+		sce->pAnimCurr->t = 0.;
+		auto* sourceAnim = sce->controller->animation(sce->pAnimCurr->AnimationID);
+
+		//create new animation container to write keyframes back to
+		newAnim = new T3DMesh<float>::SkeletalAnimation();
+		newAnim->Duration = sce->pAnimCurr->Duration;
+		newAnim->Name = sourceAnim->Name;
+		newAnim->SamplesPerSecond = sce->pAnimCurr->SamplesPerSecond;
+		tce->mesh.addSkeletalAnimation(newAnim,false);
+		m_bakingInit = true;
+
+		for (int i=0;i<tce->mesh.boneCount();++i) {
+			auto b = tce->mesh.getBone(i);
+			T3DMesh<float>::BoneKeyframes* nkf = new T3DMesh<float>::BoneKeyframes();
+			nkf->BoneID = b->ID;
+			nkf->BoneName = b->Name;
+			nkf->ID = i;
+			newAnim->Keyframes.push_back(nkf);
+		}
+	}
+	assert(newAnim);
+
+	{// source do normal playback but snap to keyframes instead of interpolating
+		auto* pA = sce->pAnimCurr;
+		int animRotSize = sce->controller->animation(pA->AnimationID)->Keyframes[0]->Rotations.size()-1;
+		float animTime = sce->controller->animation(pA->AnimationID)->Keyframes[0]->Timestamps.back();
+
+		t += 1./FPS * pA->Speed; // make sure no individual keyframes are skipped here
+		sce->animFrameCurr = t / animTime * animRotSize;
+
+		// clamp timing back to keyframe so it ggets correctly displayed
+		pA->t = float(sce->animFrameCurr) / (animRotSize) * animTime; //TODO(skade) make pose configurable, see set and get on sequencer
+
+		if (sce->animFrameCurr > animRotSize)
+			finished = true; //baking completed
+		sce->actor->update();
+	}
+	sce->controller->forwardKinematics();
+	tce->controller->forwardKinematics();
+
+	update();
+	// target complete ik
+	if (tce->m_IKCupdate)
+		tce->controller->update(60.0f / FPS);
+	tce->actor->update();
+
+	if (newAnim->Keyframes[0]->Timestamps.size() == 0 || sce->pAnimCurr->t > newAnim->Keyframes[0]->Timestamps.back()) {
+		// read back target keyframe data into container
+		for (int i=0;i<tce->controller->boneCount(); ++i) {
+			auto* b = tce->controller->getBone(i);
+
+			//TODO(skade) assumes that mesh and controller bones are the same
+			newAnim->Keyframes[i]->Positions.push_back(b->LocalPosition);
+			newAnim->Keyframes[i]->Rotations.push_back(b->LocalRotation);
+			newAnim->Keyframes[i]->Scalings.push_back(b->LocalScale);
+			newAnim->Keyframes[i]->Timestamps.push_back(sce->pAnimCurr->t);
+		}
+	}
+
+	if (finished) {
+		t = 0.;
+
+		tce->controller->addAnimationData(newAnim);
+		m_isBaking = false;
+		newAnim = nullptr;
+	}
 }
 
 }//CForge

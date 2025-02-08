@@ -114,10 +114,11 @@ void MotionRetargetScene::mainLoop() {
 		bool IKCupdate = false, animAutoplay = false;
 		for (auto& c : m_charEntities) {
 			IKCupdate |= c->m_IKCupdate;
-			animAutoplay |= c->m_animAutoplay;
+			if (c->controller)
+				animAutoplay |= c->controller->m_animAutoplay;
 		}
 
-		frameAction = keyboardAnyKeyPressed() || IKCupdate || animAutoplay
+		frameAction = keyboardAnyKeyPressed() || IKCupdate || animAutoplay || m_MRlimb.m_isBaking
 					  || ImGui::IsAnyItemHovered()
 					  || ImGuizmo::IsUsing() || m_guizmoViewManipChanged;
 		// need to render on window resize
@@ -145,42 +146,14 @@ void MotionRetargetScene::mainLoop() {
 		if (ce->controller)
 			ce->controller->forwardKinematics();
 	}
-	m_MRlimb.update();
 	m_SG.update(60.0f / m_FPS);
-	{ // animation update
+	if (m_MRlimb.m_isBaking) {
+		m_MRlimb.bakingUpdate(m_FPS);
+	} else { // animation update
+		m_MRlimb.update();
 		for (uint32_t i=0;i<m_charEntities.size();++i) {
 			auto c = m_charEntities[i];
-			if (!c->controller)
-				continue;
-			
-			if (c->m_IKCupdate || c->m_IKCupdateSingle) {
-				c->controller->update(60.0f / m_FPS);
-				c->m_IKCupdateSingle = false;
-			}
-			if (!c->pAnimCurr)
-				continue;
-			//m_pAnimCurr->Speed = 1./60.; //TODOf(skade)
-			//m_pAnimCurr->Duration = 2000.; //TODOf(skade) unused when applied?
-
-			//TODOf(skade) move into char entity
-			auto* pA = c->pAnimCurr;
-			if (c->m_animAutoplay) {
-				c->animFrameCurr = pA->t * pA->SamplesPerSecond;
-				pA->t += 1./m_FPS * pA->Speed;
-				if (pA->t > pA->Duration) //TODOf(skade) duration sometimes not max
-					pA->t = 0.;
-			} else
-				pA->t = c->animFrameCurr / pA->SamplesPerSecond; //TODO(skade) make pose configurable, see set and get on sequencer
-		}
-		
-		// update actor using anim controller
-		for (uint32_t i=0;i<m_charEntities.size();++i) {
-			auto c = m_charEntities[i];
-			if (!c->controller)
-				continue;
-			bool enabled,_; c->sgn.enabled(&enabled,&_);
-			if (enabled)
-				c->actor->update();
+			c->animationUpdate(m_FPS);
 		}
 	}
 

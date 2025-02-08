@@ -376,16 +376,54 @@ void IKController::update(float FPSScale) {
 	m_ikArmature.solve(this);
 }//update
 
-void IKController::applyAnimation(Animation* pAnim, bool UpdateUBO) {
+void IKController::applyKeyframe(Animation* pAnim) {
+	// fetch keyframe from animation data
 	if (pAnim) {
-		SkeletalAnimationController::applyAnimation(pAnim,UpdateUBO);
-
+		SkeletalAnimationController::applyAnimation(pAnim,false);
 		// no chains except maybe
 		forwardKinematics(m_pRoot);
-		updateTargetPoints(); //TODO(skade) target points need to be trackable to other animation (controllers?)
+		updateTargetPoints();
+	}
+}
+
+void IKController::writeKeyframe(Animation* pAnim) {
+	if (pAnim) {
+		auto& keyframes = m_SkeletalAnimations[pAnim->AnimationID]->Keyframes;
+		int i=0;
+		for (auto& kf : keyframes) {
+			for (uint32_t k = 0; k < kf->Timestamps.size() - 1; ++k) {
+				float Time = kf->Timestamps[k];
+				float TimeP1 = kf->Timestamps[k + 1];
+
+				if (Time <= pAnim->t && TimeP1 > pAnim->t) {
+					kf->Positions[k] = m_Joints[i]->LocalPosition;
+					kf->Rotations[k] = m_Joints[i]->LocalRotation;
+					kf->Scalings[k] = m_Joints[i]->LocalScale;
+				}
+			}
+			++i;
+		}
+	}
+}
+
+void IKController::applyAnimation(Animation* pAnim, bool UpdateUBO) {
+
+	if (pAnim) {
+		if (pAnim->t != m_animLastTimestamp) {// if (m_animAutoplay) { // this should be implicitly
+			SkeletalAnimationController::applyAnimation(pAnim,UpdateUBO);
+			// no chains except maybe
+			forwardKinematics(m_pRoot);
+			updateTargetPoints();
+		} else {
+			// passive animatin mode, only fetch parameters on frame change
+			transformSkeleton(m_pRoot, Matrix4f::Identity());
+		}
+		m_animLastTimestamp = pAnim->t;
 	} else {
+		m_animLastTimestamp = -1.f;
 		transformSkeleton(m_pRoot, Matrix4f::Identity());
 	}
+
 	if (UpdateUBO) {
 		for (uint32_t i = 0; i < m_Joints.size(); ++i)
 			m_UBO.skinningMatrix(i, m_Joints[i]->SkinningMatrix);

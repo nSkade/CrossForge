@@ -29,7 +29,11 @@ public:
 	void clear(void);
 
 	//void applyAnimation(bool UpdateUBO = true);
+	void applyKeyframe(Animation* pAnim);
+	void writeKeyframe(Animation* pAnim);
 	void applyAnimation(Animation* pAnim, bool UpdateUBO = true);
+	bool m_animAutoplay = false;
+	float m_animLastTimestamp = -1.f;
 
 	void retrieveSkinningMatrices(std::vector<Eigen::Matrix4f>* pSkinningMats);
 

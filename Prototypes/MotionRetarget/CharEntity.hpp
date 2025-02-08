@@ -30,7 +30,6 @@ struct CharEntity : public IPickable {
 
 	bool m_IKCupdate = false;
 	bool m_IKCupdateSingle = false;
-	int m_animAutoplay = false;
 
 	// common
 	std::string name;
@@ -80,6 +79,9 @@ struct CharEntity : public IPickable {
 	void applyTransformToMesh(SGNTransformation* sgnRoot);
 	void removeArmature(SGNTransformation* sgnRoot);
 	void updateRestpose(SGNTransformation* sgnRoot);
+
+	// anim
+	void animationUpdate(float FPS);
 };
 
 }//CForge

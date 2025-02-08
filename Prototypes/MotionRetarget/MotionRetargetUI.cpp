@@ -90,7 +90,7 @@ void MotionRetargetScene::renderUI() {
 				ImGui::Checkbox("limit scalings 0-1",&slider);
 			}
 			if(ImGui::Button("Bake Animation")) {
-				//TODO(skade) implement
+				m_MRlimb.bakingInit();
 			}
 		}
 		if (!moReLimb)
@@ -282,33 +282,38 @@ void MotionRetargetScene::renderUI_animation() {
 			c->controller->destroyAnimation(c->pAnimCurr);
 			c->actor->activeAnimation(nullptr);
 			c->pAnimCurr = nullptr;
+			c->controller->m_animLastTimestamp = -1.f;
 		}
 		if (!c->pAnimCurr) { // create animation if not existing
 			c->pAnimCurr = c->controller->createAnimation(c->animIdx-1,1.f,0.f);
 			c->actor->activeAnimation(c->pAnimCurr);
+			c->controller->m_animLastTimestamp = -1.f;
 		}
 
 		T3DMesh<float>::SkeletalAnimation* anim = c->actor->getController()->animation(c->animIdx-1);
 		ImGui::Text("Duration: %f",anim->Duration);
-		ImGui::SameLine();
-		ImGui::Text("SamplesPerSecond: %f",anim->SamplesPerSecond);
-		if (!c->m_animAutoplay) {
+
+		//ImGui::SameLine(); //TODOff(skade) highly controversial variable
+		//ImGui::Text("SamplesPerSecond: %f",anim->SamplesPerSecond);
+
+		if (!c->controller->m_animAutoplay) {
 			if(ImGui::Button("Play")) {
-				c->m_animAutoplay = true;
+				c->controller->m_animAutoplay = true;
 			}
 		} else {
 			if(ImGui::Button("Stop")) {
-				c->m_animAutoplay = false;
+				c->controller->m_animAutoplay = false;
 			}
-			ImGui::SameLine();
-			ImGui::DragFloat("animSpeed", &(c->pAnimCurr->Speed), 0.01f);
 		}
+		ImGui::SameLine();
+		ImGui::DragFloat("animSpeed", &(c->pAnimCurr->Speed), 0.01f);
 		ImGui::Text("pAnim->t: %f",c->pAnimCurr->t);
 	}
 	else {
 		c->controller->destroyAnimation(c->pAnimCurr);
 		c->actor->activeAnimation(nullptr);
 		c->pAnimCurr = nullptr;
+		c->controller->m_animLastTimestamp = -1.f;
 	}
 	ImGui::End();
 }
@@ -333,12 +338,14 @@ void MotionRetargetScene::renderUI_Sequencer() {
 		init = true;
 	}
 
+	//TODOff(skade) seperate logic from ui
 	int animFrameCurr = 0;
 	mySequence.myItems.clear();
 	if (auto c = m_charEntityPrim.lock()) {
 		if (c->pAnimCurr) {
-			int animFrameCount = c->pAnimCurr->Duration * c->pAnimCurr->SamplesPerSecond;
-			//int animFrameCount = c->controller->animation(c->pAnimCurr->AnimationID)->Keyframes[0]->Positions.size(); //TODOf(skade)
+			int animFrameCount = c->controller->animation(c->pAnimCurr->AnimationID)->Keyframes[0]->Rotations.size();
+			//int animFrameCount = c->pAnimCurr->Duration * c->pAnimCurr->SamplesPerSecond;
+
 			animFrameCount -= 1; // visualizer is inclusive
 			mySequence.myItems.push_back(MySequence::MySequenceItem{0,0,animFrameCount,false});
 			animFrameCurr = c->animFrameCurr;
@@ -362,11 +369,24 @@ void MotionRetargetScene::renderUI_Sequencer() {
 	ImGui::Text("Keyframe: ");
 	ImGui::SameLine();
 	if (ImGui::Button("Set")) {
-		//TODO(skade) implement
+		if (auto c = m_charEntityPrim.lock())
+			if (c->pAnimCurr)
+				c->controller->writeKeyframe(c->pAnimCurr);
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Get")) {
-
+		if (auto c = m_charEntityPrim.lock())
+			if (c->pAnimCurr)
+				c->controller->applyKeyframe(c->pAnimCurr);
+	}
+	if (m_MRlimb.m_isBaking) {
+		std::string bks = "\t\tBAKING";
+		static int bksAnim = 0;
+		bksAnim = (bksAnim+1)%std::max(1,int(4 *m_FPS*.125));
+		for (int i=0;i<bksAnim/(m_FPS*.125);++i)
+			bks = bks+".";
+		ImGui::SameLine();
+		ImGui::Text(bks.c_str());
 	}
 
 	//TODOff(skade) make member

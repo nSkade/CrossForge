@@ -19,6 +19,11 @@ public:
 	void reset();
 	bool active() {return m_active;};
 
+	// animation baking
+	bool m_isBaking = false;
+	void bakingInit();
+	void bakingUpdate(float FPS);
+
 	bool m_imitiateAngle = true;
 	bool m_copy_rootPos = true;
 	float m_scale_rootPos = 1.;
@@ -41,6 +46,8 @@ private:
 	// limb correspondences
 	// source -> target ik chains to retarget
 	std::vector<int> m_ikcorr;
+
+	bool m_bakingInit = true;
 };
 
 }//CForge
