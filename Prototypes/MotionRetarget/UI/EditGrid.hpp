@@ -18,6 +18,8 @@ class EditGrid {
 public:
 	void init();
 	void render(RenderDevice* pRDev,float fadeOutDist);
+	Vector4f m_colorThick = Vector4f(0.,0.,0.,1.);
+	Vector4f m_colorThin = Vector4f(0.075,0.075,0.075,1.);
 private:
 	GLVertexArray m_vertArray;
 	GLBuffer m_vertBuffer;

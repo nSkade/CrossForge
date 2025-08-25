@@ -48,7 +48,7 @@ void MotionRetargetScene::initUI() {
 	//	style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	//}
 
-	SetupImGuiStyle(true,0.5f);
+	setTheme(m_settings.theme_darkmode,m_settings.theme_alpha,m_settings.theme_fontScale);
 
 	io.Fonts->AddFontDefault();
 
@@ -619,6 +619,9 @@ void MotionRetargetScene::renderUI_menuBar() {
 				Vector3f c = Vector3f(.5,0.,-.5);
 				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
 			}
+			if (ImGui::MenuItem("Lighting")) {
+				m_showPop[POP_LIGHTING] = true;
+			}
 			if (ImGui::MenuItem("Preferences"))
 				m_showPop[POP_PREF] = true;
 			
@@ -661,17 +664,94 @@ void MotionRetargetScene::renderUI_menuBar() {
 					ImGui::SameLine();
 					ImGui::Text(m_settings.pathRignet.c_str());
 					ImGui::Text("path to rignet root, folder which should contain quick_start.py");
+					ImGui::Separator();
+					ImGui::Text("Theme");
+					if (ImGui::Checkbox("darkmode",&m_settings.theme_darkmode) ||
+						ImGui::DragFloat("alpha",&m_settings.theme_alpha,.01f) ||
+						ImGui::DragFloat("font scale",&m_settings.theme_fontScale,.1f,1.f,5.f))
+						setTheme(m_settings.theme_darkmode,m_settings.theme_alpha,m_settings.theme_fontScale);
+					ImGui::Separator();
 				} ImGui::EndChild();
 				
 				if (ImGui::Button("Save Settings")) {
+					//TODOff(skade) abstract strings
 					m_config.store(m_cesStartupStr.c_str(), m_settings.cesStartup);
 					m_config.store("path.anaconda", m_settings.pathAnaconda);
 					m_config.store("path.rignet", m_settings.pathRignet);
+					m_config.store("theme.darkmode",m_settings.theme_darkmode);
+					m_config.store("theme.alpha",m_settings.theme_alpha);
+					m_config.store("theme.fontScale",m_settings.theme_fontScale);
 					m_config.baseStore();
 					popState = false;
 				}
 			}
 			m_showPop[POP_PREF] = popState;
+			ImGui::End();
+		}
+
+		
+		if (m_showPop[POP_LIGHTING]) {
+			bool popState = m_showPop[POP_LIGHTING];
+			if (ImGui::Begin("Lighting", &popState)) {
+
+				Vector3f SunDir = Vector3f(-5.0f, 15.0f, 35.0f);
+				Vector3f SunPos = Vector3f(-5.0f, 15.0f, 35.0f);
+
+				static float sunAngleY = 1.;
+				static float sunAngleX = 1.;
+				static bool sunEnable = true;
+				static float sunIntensity = 5.;
+
+				ImGui::PushID("Sun"); // push id so we can use same options as labels
+				ImGui::Text("Sun");
+				ImGui::Checkbox("enable",&sunEnable);
+				ImGui::SliderFloat("Angle X",&sunAngleX,0.,360.);
+				ImGui::SliderFloat("Angle Y",&sunAngleY,0.,360.);
+				ImGui::SliderFloat("intensity",&sunIntensity,0.,100.);
+
+				Eigen::Vector4f sd = CForgeMath::rotationMatrix(Quaternionf(AngleAxisf(CForgeMath::degToRad(sunAngleY),Vector3f(0.0,1.0,0.0))))
+									 * CForgeMath::rotationMatrix(Quaternionf(AngleAxisf(CForgeMath::degToRad(sunAngleX),Vector3f(1.0,0.0,0.0))))
+									 * Eigen::Vector4f(0.0,0.0,-1.0,1.0);
+				Eigen::Vector3f sunDir(sd[0],sd[1],sd[2]);
+				
+				m_Sun.position(sunDir * 38.);
+				m_Sun.direction(-sunDir);
+				m_Sun.intensity(sunIntensity);
+				if (!sunEnable)
+					m_Sun.intensity(0.);
+				ImGui::Separator();
+				ImGui::PopID();
+
+				ImGui::PushID("BGLight");
+				ImGui::Text("BGLight");
+				static Vector3f BGLightPos = Vector3f(0.0f, 5.0f, -30.0f);
+				static bool BGLEnable = true;
+				static float BGLIntensity = 5.;
+				//m_BGLight.init(BGLightPos, -BGLightPos.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 1.5f, Vector3f(0.0f, 0.0f, 0.0f));
+
+				ImGui::Checkbox("enable",&BGLEnable);
+				ImGui::DragFloat3("pos",BGLightPos.data());
+				ImGui::SliderFloat("intensity",&BGLIntensity,0.,100.);
+				m_BGLight.position(BGLightPos);
+				m_BGLight.intensity(BGLIntensity);
+				if (!BGLEnable)
+					m_BGLight.intensity(0.);
+				ImGui::Separator();
+				ImGui::PopID();
+
+				ImGui::PushID("ambient Light");
+				ImGui::Text("ambient Light");
+				static float ambientI = 1.;
+				ImGui::SliderFloat("strength",&ambientI,0.,100.);
+				m_RenderDev.m_ambientLightStrength = ambientI;
+				
+				ImGui::Separator();
+				ImGui::PopID();
+
+				//TODOf(skade) make config
+			}
+
+			m_showPop[POP_LIGHTING] = popState;
 			ImGui::End();
 		}
 	}
@@ -1269,7 +1349,28 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 		}
 		m_skeletalMatcher.reset();
 	}
+	
 	m_showPop[POP_MR_LIMB] = popState;
 }
+
+void MotionRetargetScene::setTheme(bool darkmode,float alpha, float fontScale) {
+	SetupImGuiStyle(darkmode,alpha,fontScale);
+	if (darkmode) {
+		m_RenderDev.m_clearColor[0] = 1.;
+		m_RenderDev.m_clearColor[1] = 1.;
+		m_RenderDev.m_clearColor[2] = 1.;
+		m_RenderDev.m_clearColor[3] = 0.;
+		m_editGrid.m_colorThick = Vector4f(0.,0.,0.,1.);
+		m_editGrid.m_colorThin = Vector4f(0.075,0.075,0.075,1.);
+	} else {
+		m_RenderDev.m_clearColor[0] = 4.;
+		m_RenderDev.m_clearColor[1] = 4.;
+		m_RenderDev.m_clearColor[2] = 4.;
+		m_RenderDev.m_clearColor[3] = 0.;
+		m_editGrid.m_colorThick = Vector4f(0.5,0.5,0.5,1.);
+		m_editGrid.m_colorThin = Vector4f(0.4,0.4,0.4,1.);
+	}
+}
+
 
 }//CForge

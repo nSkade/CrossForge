@@ -43,6 +43,7 @@ public:
 	void initCameraAndLights(bool CastShadows = true);
 
 private:
+	void setTheme(bool darkmode,float alpha, float fontScale);
 	void initCharacter(std::weak_ptr<CharEntity> charEntity);
 	void initCesiumMan();
 
@@ -72,6 +73,7 @@ private:
 	void renderUI_autoMoRe();
 	void renderUI_ikChainEditor(int* item_current_idx);
 	void renderUI_ikTargetEditor();
+	void setdarkmode(bool enabled);
 
 	/**
 	 * @brief loading logic for primary actor
@@ -102,6 +104,10 @@ private:
 		bool  renderAABB = true; // render line aabb around charEntities when selected
 		std::string pathAnaconda = "";
 		std::string pathRignet = "";
+		// theme
+		bool  theme_darkmode = false; // render line aabb around charEntities when selected
+		float theme_alpha = .5f; // render line aabb around charEntities when selected
+		float theme_fontScale = 1.f; // render line aabb around charEntities when selected
 	} m_settings;
 
 	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
@@ -154,6 +160,7 @@ private:
 		POP_AR_PINOC,
 		POP_AR_RIGNET,
 		POP_MR_LIMB,
+		POP_LIGHTING,
 		POP_COUNT,
 	};
 	std::vector<bool> m_showPop = std::vector<bool>(POP_COUNT,false);

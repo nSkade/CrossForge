@@ -139,6 +139,7 @@ std::vector<int> MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct)
 		//}
 
 //////////
+#if 0 // old distributed matching function, does not consider already distributed source joints (source joints can be mapped twice)
 	// Compute cumulative lengths from end effector to root
 		std::vector<float> srcCumulative, tarCumulative;
 		float totalLenS = 0.f, totalLenT = 0.f;
@@ -200,6 +201,118 @@ std::vector<int> MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct)
 				return {};
 			}
 		}
+#endif
+#if 1
+		// 1. Normalization of Cumulative Lengths
+		// Calculate cumulative lengths for source skeleton
+		std::vector<float> srcCumulative;
+		float totalLenS = 0.f;
+		for (int i = 0; i < cs.joints.size(); ++i) {
+			totalLenS += cs.joints[i]->LocalPosition.norm();
+			srcCumulative.push_back(totalLenS);
+		}
+
+		// Calculate cumulative lengths for target skeleton
+		std::vector<float> tarCumulative;
+		float totalLenT = 0.f;
+		for (int i = 0; i < ct.joints.size(); ++i) {
+			totalLenT += ct.joints[i]->LocalPosition.norm();
+			tarCumulative.push_back(totalLenT);
+		}
+
+		// Normalize cumulative lengths for source
+		std::vector<float> srcNorm;
+		for (float len : srcCumulative) {
+			srcNorm.push_back((totalLenS > 0) ? (len / totalLenS) : 0.f);
+		}
+
+		// Normalize cumulative lengths for target
+		std::vector<float> tarNorm;
+		for (float len : tarCumulative) {
+			tarNorm.push_back((totalLenT > 0) ? (len / totalLenT) : 0.f);
+		}
+
+		// Get sizes of source and target joint lists
+		int m = cs.joints.size(); // Number of source joints
+		int n = ct.joints.size(); // Number of target joints
+
+		// Ensure tarIdx is within valid bounds
+		if (tarIdx < 0 || tarIdx >= n) {
+			// Handle out-of-bounds tarIdx gracefully
+			return {};
+		}
+
+		// 2. Conditional Mapping Logic - Compute the WHOLE distribution first
+
+		if (m > n) {
+			// Case 1: Source Skeleton has More Joints than Target (m > n)
+			// In this case, multiple source joints can map to a single target joint.
+			// The original logic for this case is already correct for a single tarIdx,
+			// as each source joint naturally falls into one target's interval.
+			// We just compute the specific set for the requested tarIdx.
+			float start_interval = (tarIdx == 0) ? -std::numeric_limits<float>::infinity() : tarNorm[tarIdx - 1];
+			float end_interval = tarNorm[tarIdx];
+			std::vector<int> indices_for_tarIdx;
+
+			for (int j = 0; j < m; ++j) {
+				if (srcNorm[j] > start_interval && srcNorm[j] <= end_interval) {
+					indices_for_tarIdx.push_back(j);
+				}
+			}
+			return indices_for_tarIdx;
+
+		} else {
+			// Case 2: Source Skeleton has Fewer or Equal Joints than Target (m <= n)
+			// Here, we need to compute the *entire* mapping to ensure each source joint
+			// is used at most once. A greedy assignment strategy is used.
+
+			// This vector will store the mapped source index for each target index.
+			// Initialized to -1, indicating no mapping yet.
+			std::vector<int> targetToSourceMapping(n, -1);
+
+			// This boolean vector tracks if a source joint has already been assigned.
+			std::vector<bool> sourceJointUsed(m, false);
+
+			// Calculate the threshold once (assuming m > 1 as per user's request)
+			// If m <= 1, avgInterval is 1.0f, threshold 0.5f, which is reasonable.
+			float avgInterval = (m > 1) ? (1.0f / (m - 1)) : 1.0f;
+			float threshold = 0.5f * avgInterval;
+
+			// Iterate through all target joints (from 0 to n-1) to build the complete mapping
+			for (int i = 0; i < n; ++i) {
+				float currentTarValue = tarNorm[i];
+				int closestJ = -1;
+				float minDist = std::numeric_limits<float>::max();
+
+				// Find the closest *available* source joint
+				for (int j = 0; j < m; ++j) {
+					if (!sourceJointUsed[j]) { // Only consider source joints that haven't been used yet
+						float dist = std::abs(srcNorm[j] - currentTarValue);
+						if (dist < minDist) {
+							minDist = dist;
+							closestJ = j;
+						}
+					}
+				}
+
+				// If a closest available joint is found and its distance is within the threshold
+				if (closestJ != -1 && minDist <= threshold) {
+					targetToSourceMapping[i] = closestJ; // Assign this source joint to the current target joint
+					sourceJointUsed[closestJ] = true;    // Mark this source joint as used
+				}
+				// If closestJ is -1 (no available source joint) or doesn't meet the threshold,
+				// targetToSourceMapping[i] remains -1, meaning this target joint is unmapped.
+			}
+
+			// After computing the complete mapping for all target joints,
+			// return the specific result for the requested tarIdx.
+			if (targetToSourceMapping[tarIdx] != -1) {
+				return {targetToSourceMapping[tarIdx]}; // Return a vector containing the single mapped source index
+			} else {
+				return {}; // Return an empty vector if no source joint was mapped to tarIdx
+			}
+		}
+#endif
 	}
 
 #endif
@@ -304,10 +417,34 @@ void MRlimb::update() {
 
 			int i = std::distance(ct->joints.begin(),std::find(ct->joints.begin(),ct->joints.end(),jt));
 			std::vector<int> matchIdx = jointIndexingFunc(i,cs,*ct);
+			//TODO(skade) check why i need to do this here
+			std::reverse(matchIdx.begin(), matchIdx.end());
+
+			{//TODO(skade) debug visualize joint matching
+				Vector4f col = Vector4f::Zero(); {
+					int isc = jt->ID;
+					col = Vector4f(
+						float(isc & 1),
+						float(isc >> 1 & 1),
+						float(isc >> 2 & 1),
+						1.f);
+				}
+				if (auto& jp = tCtrl->getJointPickable(jt).lock()) {
+
+					jp->colorSelect = col;
+					//jp->m_highlight = true;
+				}
+				for (auto& idx : matchIdx) {
+					if (auto& jp = sCtrl->getJointPickable(cs.joints[idx]).lock()) {
+						jp->colorSelect = col;
+						//jp->m_highlight = true;
+					}
+				}
+			}
 
 			if (matchIdx.size()) {
 				// old parent joint retrival
-				SkeletalAnimationController::SkeletalJoint* js = cs.joints[matchIdx[0]];
+				SkeletalAnimationController::SkeletalJoint* js = cs.joints[matchIdx[matchIdx.size()-1]];
 				Eigen::Matrix4f jsT = CForgeMath::translationMatrix(js->LocalPosition)
 				                    * CForgeMath::rotationMatrix(js->LocalRotation)
 				                    * CForgeMath::scaleMatrix(js->LocalScale);
@@ -366,8 +503,11 @@ void MRlimb::update() {
 					//TODO(skade) optionally insert multiple source joints
 					//if (js->Parent != -1) {
 						Quaternionf combinedSourceRot = sCtrl->m_IKJoints[js].rotGlobal;
-						for (int j=1;j<matchIdx.size();++j) {
-							combinedSourceRot = cs.joints[j]->LocalRotation * combinedSourceRot;
+						for (int j=0;j<matchIdx.size()-1;++j) {
+							//combinedSourceRot = cs.joints[j]->LocalRotation * combinedSourceRot;
+							combinedSourceRot =  combinedSourceRot * cs.joints[j]->LocalRotation; //TODO(skade) this order correct?
+							//* Quaternionf(cs.joints[j]->OffsetMatrix.block<3,3>(0,0))
+							//* Quaternionf(cs.joints[j-1]->OffsetMatrix.block<3,3>(0,0).inverse());
 						}
 
 						t = parentT.inverse() //* parentS

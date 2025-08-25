@@ -1,7 +1,7 @@
 #pragma once
 
 // https://gist.github.com/dougbinks/8089b4bbaccaaf6fa204236978d165a9#file-imguiutils-h-L9-L93
-inline void SetupImGuiStyle(bool is_dark_style, float alpha_threshold) {
+inline void SetupImGuiStyle(bool is_dark_style, float alpha_threshold, float font_scale) {
 	//Use a ternary operator
 	is_dark_style ? ImGui::StyleColorsDark() : ImGui::StyleColorsLight();
 
@@ -22,4 +22,7 @@ inline void SetupImGuiStyle(bool is_dark_style, float alpha_threshold) {
 	style.WindowBorderSize = 0.0f;
 	style.FrameRounding = 3.0f;
 	style.Alpha = 1.0f;
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.FontGlobalScale = font_scale;
 }

@@ -39,16 +39,7 @@ void MotionRetargetScene::init() {
 	std::string GLError = "";
 	CForgeUtility::checkGLError(&GLError);
 	if (!GLError.empty()) printf("GLError occurred: %s\n", GLError.c_str());
-
-	initUI();
 	
-	//TODOfff(skade) better clear color impl
-	m_RenderDev.m_clearColor[0] = .1 * 10;
-	m_RenderDev.m_clearColor[1] = .1 * 10;
-	m_RenderDev.m_clearColor[2] = .1 * 10;
-	m_RenderWin.position(0,31);
-	m_RenderWin.size(1920,1009);
-
 	m_config.baseLoad();
 	m_config.load(&m_Cam);
 	m_config.load(&m_RenderWin);
@@ -58,6 +49,19 @@ void MotionRetargetScene::init() {
 
 	m_config.load("path.anaconda", &m_settings.pathAnaconda);
 	m_config.load("path.rignet", &m_settings.pathRignet);
+	m_config.load("theme.darkmode",&m_settings.theme_darkmode);
+	m_config.load("theme.alpha",&m_settings.theme_alpha);
+	m_config.load("theme.fontScale",&m_settings.theme_fontScale);
+
+	initUI();
+	
+	//TODOfff(skade) better clear color impl
+	//TODO alread set with darkmode
+	//m_RenderDev.m_clearColor[0] = .1 * 10;
+	//m_RenderDev.m_clearColor[1] = .1 * 10;
+	//m_RenderDev.m_clearColor[2] = .1 * 10;
+	m_RenderWin.position(0,31);
+	m_RenderWin.size(1920,1009);
 
 	if (m_settings.cesStartup)
 		initCesiumMan();

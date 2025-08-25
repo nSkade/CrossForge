@@ -43,6 +43,8 @@ void EditGrid::init() {
 		"out vec4 FragColor;\n"
 
 		"uniform float u_fadeOutDist;\n"
+		"uniform vec4 u_cThick;\n"
+		"uniform vec4 u_cThin;\n"
 	
 		// log10 func
 		"float log10(float x) {\n"
@@ -74,8 +76,8 @@ void EditGrid::init() {
 		"	vec2 Lod2a2 = vec2(1.)-abs(mod_div_dudv*2.-1.);\n"
 		"	float Lod2a = max(Lod2a2.x,Lod2a2.y);\n"
 
-		"	vec4 gridColorThick = vec4(vec3(0.),1.);\n"
-		"	vec4 gridColorThin = vec4(vec3(0.075),1.);\n"
+		"	vec4 gridColorThick = u_cThick;\n"
+		"	vec4 gridColorThin = u_cThin;\n"
 
 		// tint basis axis
 		"	if (abs(WorldPos.x) < gridCellSize*lx*20.)\n" // z axis
@@ -161,6 +163,18 @@ void EditGrid::render(RenderDevice* pRDev,float fadeOutDist) {
 	
 	pRDev->modelUBO()->modelMatrix(sgnT);
 	glUniform1f(m_shader->uniformLocation("u_fadeOutDist"),fadeOutDist*20.);
+	glUniform4f(m_shader->uniformLocation("u_cThick"),
+		m_colorThick.x(),
+		m_colorThick.y(),
+		m_colorThick.z(),
+		m_colorThick.w()
+	);
+	glUniform4f(m_shader->uniformLocation("u_cThin"),
+		m_colorThin.x(),
+		m_colorThin.y(),
+		m_colorThin.z(),
+		m_colorThin.w()
+	);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
