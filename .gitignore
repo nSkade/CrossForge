@@ -6,6 +6,7 @@ Prototypes/MotionRetarget/latex/
 .vscode/
 .idea/
 out/
+vcpkg_installed/
 build/
 cmake-build-debug/**/*
 Libraries/

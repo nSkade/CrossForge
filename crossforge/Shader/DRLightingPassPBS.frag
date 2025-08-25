@@ -65,12 +65,14 @@ layout(std140) uniform SpotLightsData{
 }SpotLights;
 #endif
 
-in vec2 UV; 
+in vec2 UV;
 
 uniform sampler2D TexDepth; // gBuffer position data 
 uniform sampler2D TexAlbedo; // gBuffer albedo/spec data
 uniform sampler2D TexNormal; // gBuffer normal data 
 uniform sampler2D TexShadow[ShadowMapCount];
+
+uniform float u_ambientLightStrength;
 
 out vec4 FragColor;
 
@@ -299,6 +301,10 @@ void main(){
 	#endif
 
 	vec3 Ambient = vec3(0.01) * Albedo * 1.0;
+	//TODO(skade) assume for now that when neither depth and normal are set we have background
+	if (length(WorldPos) != 0. && length(N) != 0.)
+		Ambient *=  u_ambientLightStrength;
+
 	vec3 Col = Ambient + /*(1.0 - Ao)**/ Lo;
 
 	// Tone Mapping (Reinhardt operator)

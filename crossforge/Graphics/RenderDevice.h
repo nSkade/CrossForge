@@ -121,6 +121,7 @@ namespace CForge {
 
 		//TODO(skade)
 		float m_clearColor[4] = {.0,.0,.0,.0}; // clear color used for lighting and forward pass
+		float m_ambientLightStrength = 1.f;
 	protected:
 		struct ActiveLight {
 			ILight* pLight;

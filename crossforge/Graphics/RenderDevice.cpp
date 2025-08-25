@@ -489,6 +489,9 @@ namespace CForge {
 				if (m_ShadowCastingLights.size() > 1 && LocShadow2 != GL_INVALID_INDEX) {
 					m_ShadowCastingLights[1]->pLight->bindShadowTexture(m_pActiveShader, GLShader::DEFAULTTEX_SHADOW1);
 				}
+
+				glUniform1f(m_pDeferredLightingPassShader->uniformLocation("u_ambientLightStrength"),m_ambientLightStrength);
+
 				requestRendering(&m_ScreenQuad, Quaternionf::Identity(), Vector3f::Zero(), Vector3f::Ones());
 			}
 		}break;
