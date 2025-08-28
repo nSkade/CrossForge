@@ -28,6 +28,7 @@ public:
 	bool m_copy_rootPos = true;
 	float m_scale_rootPos = 1.;
 	bool m_copy_rootRot = true;
+	bool m_showMatchedJoints = false;
 
 	std::vector<float> m_scale_limbs;
 

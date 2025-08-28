@@ -63,6 +63,7 @@ public:
 
 	void restoreColor() { colorSelect = colorSelect0; };
 
+	bool colorOverride = false; //TODO(skade) badly used
 	Vector4f colorSelect = Vector4f(227./255,142./255,48./255,1.);
 	Vector4f colorSelect0 = Vector4f(227./255,142./255,48./255,1.); // standard color for reset
 	SkeletalAnimationController::SkeletalJoint* m_pJoint;

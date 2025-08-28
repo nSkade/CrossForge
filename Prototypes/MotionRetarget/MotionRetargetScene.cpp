@@ -52,6 +52,26 @@ void MotionRetargetScene::init() {
 	m_config.load("theme.darkmode",&m_settings.theme_darkmode);
 	m_config.load("theme.alpha",&m_settings.theme_alpha);
 	m_config.load("theme.fontScale",&m_settings.theme_fontScale);
+	m_config.load("theme.cbgEnabled",&m_settings.theme_cbgEnabled);
+	m_config.load("theme.bgBrightness",&m_settings.theme_bgBrightness);
+	m_config.load("theme.gridBrightness",&m_settings.theme_gridBrightness);
+	m_config.load("lighting.autoload ",   &m_lighting.autoload);
+
+	// load light setup
+	if (m_lighting.autoload) {
+		m_config.load("lighting.sunAngleY",   &m_lighting.sunAngleY);
+		m_config.load("lighting.sunAngleX",   &m_lighting.sunAngleX);
+		m_config.load("lighting.sunEnable",   &m_lighting.sunEnable);
+		m_config.load("lighting.sunIntensity",&m_lighting.sunIntensity);
+		m_config.load("lighting.BGLightPos",  &m_lighting.BGLightPos);
+		m_config.load("lighting.BGLEnable",   &m_lighting.BGLEnable);
+		m_config.load("lighting.BGLIntensity",&m_lighting.BGLIntensity);
+		m_config.load("lighting.ambientI ",   &m_lighting.ambientI);
+	}
+	else {
+		resetLighting();
+	}
+	setLighting();
 
 	initUI();
 	
@@ -88,8 +108,7 @@ void MotionRetargetScene::initCameraAndLights(bool CastShadows) {
 
 	// initialize sun (key light) and back ground light (fill light)
 	Vector3f SunDir = Vector3f(-5.0f, 15.0f, 35.0f);
-	Vector3f SunPos = Vector3f(-5.0f, 15.0f, 35.0f);
-	m_Sun.init(SunPos, -SunDir.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 5.0f);
+	m_Sun.init(SunDir.normalized()*38., -SunDir.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 5.0f);
 
 	//TODOf(skade) make shadow light toggable in preferences
 	//TODOfff(skade) depth test for shadow map sometimes wrong because gl clear color affects gPosition
@@ -154,6 +173,21 @@ void MotionRetargetScene::mainLoop() {
 	if (m_MRlimb.m_isBaking) {
 		m_MRlimb.bakingUpdate(m_FPS);
 	} else { // animation update
+		m_MRlimb.m_showMatchedJoints = m_settings.showMatchedJoints; //TODOff(skade)
+		if (!m_MRlimb.m_showMatchedJoints) { // reset color of all chars if overridden
+			for (auto& c : m_charEntities)
+				if (c->controller) {
+					auto& jp = c->controller->getJointPickables();
+					for (auto& j : jp)
+						if (auto& jl = j.lock())
+							if (jl->colorOverride) {
+								jl->restoreColor();
+								jl->m_highlight = false;
+								jl->colorOverride = false;
+							}
+				}
+		}
+
 		m_MRlimb.update();
 		for (uint32_t i=0;i<m_charEntities.size();++i) {
 			auto c = m_charEntities[i];
@@ -533,12 +567,14 @@ void MotionRetargetScene::renderVisualizers() {
 	if (m_settings.renderAABB) {
 		if (auto c = std::dynamic_pointer_cast<CharEntity>(m_picker.getLastPick().lock())) {
 			Matrix4f m = MRMutil::buildTransformation(c->sgn);
-			m_lineBox.color = Vector4f(227./255,142./255,48./255,.75);
+			m_lineBox.color = Vector4f(227./255,142./255,48./255,1.);
+			m_lineBox.color.block<3,1>(0,0) *= 1.f-m_settings.theme_gridBrightness;
 			m_lineBox.render(&m_RenderDev,c->bv.aabb(),m);
 		}
 		if (auto c = std::dynamic_pointer_cast<CharEntity>(m_charEntitySec.lock())) {
 			Matrix4f m = MRMutil::buildTransformation(c->sgn);
-			m_lineBox.color = Vector4f(227./255,142./255,48./255,.25);
+			m_lineBox.color = Vector4f(227./255,142./255,48./255,.5);
+			m_lineBox.color.block<3,1>(0,0) *= 1.f-m_settings.theme_gridBrightness;
 			m_lineBox.render(&m_RenderDev,c->bv.aabb(),m);
 		}
 	}
@@ -694,6 +730,44 @@ bool MotionRetargetScene::keyboardAnyKeyPressed() {
 	if (scrollDelta.x() != 0. || scrollDelta.y() != 0.)
 		r = true;
 	return r;
+}
+
+void MotionRetargetScene::setLighting() {
+	Eigen::Vector4f sd = CForgeMath::rotationMatrix(Quaternionf(AngleAxisf(CForgeMath::degToRad(m_lighting.sunAngleY),Vector3f(0.0,1.0,0.0))))
+						 * CForgeMath::rotationMatrix(Quaternionf(AngleAxisf(CForgeMath::degToRad(m_lighting.sunAngleX),Vector3f(1.0,0.0,0.0))))
+						 * Eigen::Vector4f(0.0,0.0,-1.0,1.0);
+	Eigen::Vector3f sunDir(sd[0],sd[1],sd[2]);
+	
+	m_Sun.position(sunDir * 38.);
+	m_Sun.direction(-sunDir);
+	m_Sun.intensity(m_lighting.sunIntensity);
+	if (!m_lighting.sunEnable)
+		m_Sun.intensity(0.);
+	
+	m_BGLight.position( m_lighting.BGLightPos);
+	m_BGLight.intensity(m_lighting.BGLIntensity);
+	if (!m_lighting.BGLEnable)
+		m_BGLight.intensity(0.);
+
+	m_RenderDev.m_ambientLightStrength = m_lighting.ambientI;
+}
+
+void MotionRetargetScene::resetLighting() {
+	Vector3f SunDir = Vector3f(-5.0f, 15.0f, 35.0f);
+	Eigen::Vector3f dir = SunDir.normalized();
+	float sunAngleY = atan2(dir.x(), -dir.z()); // Yaw
+	float sunAngleX = asin(dir.y());            // Pitch
+	sunAngleY = fmod(CForgeMath::radToDeg(sunAngleY)+360.,360.);
+	sunAngleX = fmod(CForgeMath::radToDeg(sunAngleX)+360.,360.);
+	
+	m_lighting.sunAngleX = sunAngleX;
+	m_lighting.sunAngleY = sunAngleY;
+	m_lighting.sunEnable = true;
+	m_lighting.sunIntensity = 5.;
+	m_lighting.BGLightPos = Vector3f(0.0f, 5.0f, -30.0f);
+	m_lighting.BGLEnable = true;
+	m_lighting.BGLIntensity = 1.5f;
+	m_lighting.ambientI = 1.f;
 }
 
 }//CForge

@@ -11,10 +11,15 @@ class GLWindow;
  */
 class Config {
 public:
+	void store(const VirtualCamera& object, std::string name);
 	void store(const VirtualCamera& object);
+	void load(VirtualCamera* object, std::string name);
 	void load(VirtualCamera* object);
 	void store(const GLWindow& object);
 	void load(GLWindow* object); 
+
+	void store(std::string name, const Eigen::Vector3f& object);
+	void load(std::string name, Eigen::Vector3f* object); 
 
 public:
 	void baseStore();

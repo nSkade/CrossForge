@@ -86,13 +86,14 @@ void JointPickable::render(RenderDevice* pRD) {
 		pRD->modelUBO()->modelMatrix(m_transform);
 		actor.render(pRD,Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
 	}
-	//TODO(skade) if (m_highlight) {
+	//TODO(skade)
+	if (m_highlight) {
 		glCullFace(GL_FRONT);
 		pRD->modelUBO()->modelMatrix(m_transform * CForgeMath::scaleMatrix(Vector3f(1.,1.3,1.3)));
 		actorSel.material(0)->color(colorSelect);
 		actorSel.render(pRD, Eigen::Quaternionf::Identity(),Eigen::Vector3f(),Eigen::Vector3f(1.f,1.f,1.f));
 		glCullFace(GL_BACK);
-	//}
+	}
 	glDisable(GL_BLEND);
 }
 

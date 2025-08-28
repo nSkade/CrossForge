@@ -74,21 +74,24 @@ void MotionRetargetScene::renderUI() {
 		if (moReLimb && ImGui::CollapsingHeader("MoRe")) {
 			ImGui::Checkbox("Enabled",&moReLimb);
 			ImGui::Checkbox("imitiate angle",&m_MRlimb.m_imitiateAngle);
+			static bool slider = true;
 			if (ImGui::CollapsingHeader("Root Options")) {
 				ImGui::Checkbox("copy pos",&m_MRlimb.m_copy_rootPos);
 				ImGui::Checkbox("copy rot",&m_MRlimb.m_copy_rootRot);
-				ImGui::SliderFloat("pos scale",&m_MRlimb.m_scale_rootPos,0.,1.);
+				if (slider)
+					ImGui::SliderFloat("pos scale",&m_MRlimb.m_scale_rootPos,0.,1.);
+				else
+					ImGui::DragFloat("pos scale",&m_MRlimb.m_scale_rootPos,0.01f);
 			}
 			if (ImGui::CollapsingHeader("limb scalings")) {
-				static bool slider = true;
 				if (slider)
 					for (int i = 0; i < m_MRlimb.m_scale_limbs.size(); ++i)
 						ImGui::SliderFloat(m_MRlimb.m_targets[i]->name.c_str(),&m_MRlimb.m_scale_limbs[i],0.,1.);
 				else
 					for (int i = 0; i < m_MRlimb.m_scale_limbs.size(); ++i)
 						ImGui::DragFloat(m_MRlimb.m_targets[i]->name.c_str(),&m_MRlimb.m_scale_limbs[i],0.01f);
-				ImGui::Checkbox("limit scalings 0-1",&slider);
 			}
+			ImGui::Checkbox("limit scalings 0-1",&slider);
 			if(ImGui::Button("Bake Animation")) {
 				m_MRlimb.bakingInit();
 			}
@@ -549,8 +552,11 @@ void MotionRetargetScene::renderUI_menuBar() {
 			}
 			if (ImGui::MenuItem("current pose to restpose")) {
 				if (auto c = m_charEntityPrim.lock()) {
-					if (c->controller)
+					if (c->controller) {
 						c->controller->initRestpose();
+						c->controller->forwardKinematics(); // required to set posGlobal in update
+						c->controller->updateTargetPoints();
+					}
 				}
 				m_picker.reset();
 			}
@@ -582,6 +588,10 @@ void MotionRetargetScene::renderUI_menuBar() {
 			if (ImGui::MenuItem("create Targets for limbs")) {
 				if (auto c = m_charEntityPrim.lock())
 					c->autoCreateTargets();
+			}
+			if (ImGui::MenuItem("remove all Targets of char")) {
+				if (auto c = m_charEntityPrim.lock())
+					c->controller->m_targets.clear();
 			}
 			if (ImGui::MenuItem("remove Armature")) {
 				if (auto c = m_charEntityPrim.lock())
@@ -615,9 +625,18 @@ void MotionRetargetScene::renderUI_menuBar() {
 
 		//TODOff(skade) move logic outside
 		if (ImGui::BeginMenu("Options")) {
-			if (ImGui::MenuItem("Reset Camera")) {
-				Vector3f c = Vector3f(.5,0.,-.5);
-				m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
+			if (ImGui::BeginMenu("Camera")) {
+				if (ImGui::MenuItem("Reset Camera")) {
+					Vector3f c = Vector3f(.5,0.,-.5);
+					m_Cam.lookAt(Vector3f(4.,2.5,4.)+c,c);
+				}
+				if (ImGui::MenuItem("Load custom Camera")) {
+					m_config.load(&m_Cam,"customCam");
+				}
+				if (ImGui::MenuItem("Store custom Camera")) {
+					m_config.store(m_Cam,"customCam");
+				}
+				ImGui::EndMenu();
 			}
 			if (ImGui::MenuItem("Lighting")) {
 				m_showPop[POP_LIGHTING] = true;
@@ -668,7 +687,11 @@ void MotionRetargetScene::renderUI_menuBar() {
 					ImGui::Text("Theme");
 					if (ImGui::Checkbox("darkmode",&m_settings.theme_darkmode) ||
 						ImGui::DragFloat("alpha",&m_settings.theme_alpha,.01f) ||
-						ImGui::DragFloat("font scale",&m_settings.theme_fontScale,.1f,1.f,5.f))
+						ImGui::DragFloat("font scale",&m_settings.theme_fontScale,.1f,1.f,5.f) ||
+						ImGui::Checkbox("custom brightness",&m_settings.theme_cbgEnabled) ||
+						ImGui::DragFloat("bg brightness",&m_settings.theme_bgBrightness,0.01,0.,10.) ||
+						ImGui::DragFloat("grid brightness",&m_settings.theme_gridBrightness,0.01,0.05,0.95)
+					)
 						setTheme(m_settings.theme_darkmode,m_settings.theme_alpha,m_settings.theme_fontScale);
 					ImGui::Separator();
 				} ImGui::EndChild();
@@ -681,6 +704,9 @@ void MotionRetargetScene::renderUI_menuBar() {
 					m_config.store("theme.darkmode",m_settings.theme_darkmode);
 					m_config.store("theme.alpha",m_settings.theme_alpha);
 					m_config.store("theme.fontScale",m_settings.theme_fontScale);
+					m_config.store("theme.cbgEnabled",m_settings.theme_cbgEnabled);
+					m_config.store("theme.bgBrightness",m_settings.theme_bgBrightness);
+					m_config.store("theme.gridBrightness",m_settings.theme_gridBrightness);
 					m_config.baseStore();
 					popState = false;
 				}
@@ -697,58 +723,57 @@ void MotionRetargetScene::renderUI_menuBar() {
 				Vector3f SunDir = Vector3f(-5.0f, 15.0f, 35.0f);
 				Vector3f SunPos = Vector3f(-5.0f, 15.0f, 35.0f);
 
-				static float sunAngleY = 1.;
-				static float sunAngleX = 1.;
-				static bool sunEnable = true;
-				static float sunIntensity = 5.;
-
 				ImGui::PushID("Sun"); // push id so we can use same options as labels
 				ImGui::Text("Sun");
-				ImGui::Checkbox("enable",&sunEnable);
-				ImGui::SliderFloat("Angle X",&sunAngleX,0.,360.);
-				ImGui::SliderFloat("Angle Y",&sunAngleY,0.,360.);
-				ImGui::SliderFloat("intensity",&sunIntensity,0.,100.);
+				ImGui::Checkbox("enable",    &m_lighting.sunEnable);
+				ImGui::DragFloat("Angle X",  &m_lighting.sunAngleX,.1,0.,360.);
+				ImGui::DragFloat("Angle Y",  &m_lighting.sunAngleY,.1,0.,360.);
+				ImGui::DragFloat("intensity",&m_lighting.sunIntensity,.1,0.,100.);
 
-				Eigen::Vector4f sd = CForgeMath::rotationMatrix(Quaternionf(AngleAxisf(CForgeMath::degToRad(sunAngleY),Vector3f(0.0,1.0,0.0))))
-									 * CForgeMath::rotationMatrix(Quaternionf(AngleAxisf(CForgeMath::degToRad(sunAngleX),Vector3f(1.0,0.0,0.0))))
-									 * Eigen::Vector4f(0.0,0.0,-1.0,1.0);
-				Eigen::Vector3f sunDir(sd[0],sd[1],sd[2]);
-				
-				m_Sun.position(sunDir * 38.);
-				m_Sun.direction(-sunDir);
-				m_Sun.intensity(sunIntensity);
-				if (!sunEnable)
-					m_Sun.intensity(0.);
 				ImGui::Separator();
 				ImGui::PopID();
 
 				ImGui::PushID("BGLight");
 				ImGui::Text("BGLight");
-				static Vector3f BGLightPos = Vector3f(0.0f, 5.0f, -30.0f);
-				static bool BGLEnable = true;
-				static float BGLIntensity = 5.;
+
 				//m_BGLight.init(BGLightPos, -BGLightPos.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 1.5f, Vector3f(0.0f, 0.0f, 0.0f));
 
-				ImGui::Checkbox("enable",&BGLEnable);
-				ImGui::DragFloat3("pos",BGLightPos.data());
-				ImGui::SliderFloat("intensity",&BGLIntensity,0.,100.);
-				m_BGLight.position(BGLightPos);
-				m_BGLight.intensity(BGLIntensity);
-				if (!BGLEnable)
-					m_BGLight.intensity(0.);
+				ImGui::Checkbox("enable",    &m_lighting.BGLEnable);
+				ImGui::DragFloat3("pos",      m_lighting.BGLightPos.data(),.1);
+				ImGui::DragFloat("intensity",&m_lighting.BGLIntensity,.1,0.,100.);
+
 				ImGui::Separator();
 				ImGui::PopID();
 
 				ImGui::PushID("ambient Light");
 				ImGui::Text("ambient Light");
-				static float ambientI = 1.;
-				ImGui::SliderFloat("strength",&ambientI,0.,100.);
-				m_RenderDev.m_ambientLightStrength = ambientI;
+				ImGui::DragFloat("strength",&m_lighting.ambientI,.1,0.,100.);
 				
 				ImGui::Separator();
 				ImGui::PopID();
 
-				//TODOf(skade) make config
+				ImGui::Checkbox("Load Config Lighting on startup",&m_lighting.autoload);
+				
+				if (ImGui::Button("Save Lighting")) {
+					//TODOff(skade) abstract strings
+					m_config.store("lighting.sunAngleY",   m_lighting.sunAngleY);
+					m_config.store("lighting.sunAngleX",   m_lighting.sunAngleX);
+					m_config.store("lighting.sunEnable",   m_lighting.sunEnable);
+					m_config.store("lighting.sunIntensity",m_lighting.sunIntensity);
+					m_config.store("lighting.BGLightPos",  m_lighting.BGLightPos);
+					m_config.store("lighting.BGLEnable",   m_lighting.BGLEnable);
+					m_config.store("lighting.BGLIntensity",m_lighting.BGLIntensity);
+					m_config.store("lighting.ambientI ",   m_lighting.ambientI);
+					m_config.baseStore();
+					popState = false;
+				}
+				m_config.store("lighting.autoload ",   m_lighting.autoload);
+
+				if (ImGui::Button("Reset Lighting")) {
+					resetLighting();
+				}
+
+				setLighting();
 			}
 
 			m_showPop[POP_LIGHTING] = popState;
@@ -759,10 +784,15 @@ void MotionRetargetScene::renderUI_menuBar() {
 
 void MotionRetargetScene::renderUI_tools() {
 	ImGui::Begin("Tools");
-	if (ImGui::CollapsingHeader("Visualizers", ImGuiTreeNodeFlags_None)) {
+	if (ImGui::CollapsingHeader("Visualizers", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Checkbox("Show Joints", &m_settings.showJoints);
 		ImGui::SameLine();
 		ImGui::Checkbox("Show Targets", &m_settings.showTargets);
+		ImGui::SameLine();
+		ImGui::Checkbox("select bBox", &m_settings.renderAABB);
+		
+		ImGui::Checkbox("show matched joints",&m_settings.showMatchedJoints);
+		
 		//TODOfff(skade)
 		//if (m_FPSLabelActive)
 		//	m_FPSLabel.render(&m_RenderDev);
@@ -1113,31 +1143,28 @@ void MotionRetargetScene::renderUI_ikChainEditor(int* item_current_idx) {
 						nChain->joints.push_back(j);
 					} while (j != m_ikceRootJoint);
 				}
-				
 				m_ikceName = "new"; m_ikceNameInit = false;
 				m_showPop[POP_CHAINED] = false;
 			}
 			ImGui::End();
 		}
+		if (m_showPop[POP_CHAINED] != popState) {
+			// restore joint colors
+			if (m_ikceRootJoint) {
+				auto jp = c->controller->getJointPickable(m_ikceRootJoint).lock();
+				jp->restoreColor();
+				jp->m_highlight = false;
+			}
+			if (m_ikceEndEffJoint) {
+				auto jp = c->controller->getJointPickable(m_ikceEndEffJoint).lock();
+				jp->restoreColor();
+				jp->m_highlight = false;
+			}
+		}
 		m_showPop[POP_CHAINED] = popState;
 	} // if addChainPopup
 	else {
 		m_ikceName = "new"; m_ikceNameInit = false;
-		//TODO potential bug rootJoint still from other charEntity on swap
-		if (m_ikceRootJoint) {
-			auto jp = c->controller->getJointPickable(m_ikceRootJoint).lock();
-			if (jp) {
-				jp->restoreColor();
-				jp->m_highlight = false;
-			}
-		}
-		if (m_ikceEndEffJoint) {
-			auto jp = c->controller->getJointPickable(m_ikceEndEffJoint).lock();
-			if (jp) {
-				jp->restoreColor();
-				jp->m_highlight = false;
-			}
-		}
 	}
 }
 void MotionRetargetScene::renderUI_ikTargetEditor() {
@@ -1355,7 +1382,26 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 
 void MotionRetargetScene::setTheme(bool darkmode,float alpha, float fontScale) {
 	SetupImGuiStyle(darkmode,alpha,fontScale);
-	if (darkmode) {
+	if (m_settings.theme_cbgEnabled) {
+		m_RenderDev.m_clearColor[0] = m_settings.theme_bgBrightness;
+		m_RenderDev.m_clearColor[1] = m_settings.theme_bgBrightness;
+		m_RenderDev.m_clearColor[2] = m_settings.theme_bgBrightness;
+		m_RenderDev.m_clearColor[3] = m_settings.theme_bgBrightness;
+		Vector4f cThin = Vector4f(
+			m_settings.theme_gridBrightness-.05,
+			m_settings.theme_gridBrightness-.05,
+			m_settings.theme_gridBrightness-.05,
+			1.);
+		Vector4f cThick = Vector4f(
+			m_settings.theme_gridBrightness+.05,
+			m_settings.theme_gridBrightness+.05,
+			m_settings.theme_gridBrightness+.05,
+			1.);
+		if (darkmode)
+			std::swap(cThin,cThick);
+		m_editGrid.m_colorThick = cThick;
+		m_editGrid.m_colorThin = cThin;
+	} else if (darkmode) {
 		m_RenderDev.m_clearColor[0] = 1.;
 		m_RenderDev.m_clearColor[1] = 1.;
 		m_RenderDev.m_clearColor[2] = 1.;

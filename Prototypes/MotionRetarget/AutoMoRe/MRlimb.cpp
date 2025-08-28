@@ -420,7 +420,7 @@ void MRlimb::update() {
 			//TODO(skade) check why i need to do this here
 			std::reverse(matchIdx.begin(), matchIdx.end());
 
-			{//TODO(skade) debug visualize joint matching
+			if (m_showMatchedJoints) {//TODO(skade) debug visualize joint matching
 				Vector4f col = Vector4f::Zero(); {
 					int isc = jt->ID;
 					col = Vector4f(
@@ -432,12 +432,14 @@ void MRlimb::update() {
 				if (auto& jp = tCtrl->getJointPickable(jt).lock()) {
 
 					jp->colorSelect = col;
-					//jp->m_highlight = true;
+					jp->m_highlight = true;
+					jp->colorOverride = true;
 				}
 				for (auto& idx : matchIdx) {
 					if (auto& jp = sCtrl->getJointPickable(cs.joints[idx]).lock()) {
 						jp->colorSelect = col;
-						//jp->m_highlight = true;
+						jp->m_highlight = true;
+						jp->colorOverride = true;
 					}
 				}
 			}

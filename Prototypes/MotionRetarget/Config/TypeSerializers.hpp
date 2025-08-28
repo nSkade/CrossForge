@@ -4,21 +4,19 @@
 #include <typeinfo>
 #include <fstream>
 
+// Matrix4f adl_serializer
 namespace nlohmann {
-
 template <>
 struct adl_serializer<Eigen::Matrix4f> {
-	static void to_json(json& j, const Eigen::Matrix4f& v) {
-		j = std::vector<float>(v.data(),v.data()+16);
+	static void to_json(json& j, const Eigen::Matrix4f& m) {
+		j = std::vector<float>(m.data(), m.data() + 16);
 	}
-	static void from_json(const json& j, Eigen::Matrix4f& v) {
-		std::vector<float> d = j;
+	static void from_json(const json& j, Eigen::Matrix4f& m) {
+		std::vector<float> d = j.get<std::vector<float>>();
 		assert(d.size() == 16);
-
-		std::copy(d.data(),d.data()+16,v.data());
+		std::copy(d.begin(), d.end(), m.data());
 	}
 };
-
 }//nlohmann
 
 namespace CForge {

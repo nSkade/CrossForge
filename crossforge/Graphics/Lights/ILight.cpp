@@ -33,7 +33,7 @@ namespace CForge {
 		position(Pos);
 		direction(Dir.normalized());
 		color(Color);
-		intensity(Intensity);	
+		intensity(Intensity);
 	}//initialize
 
 	void ILight::clear(void) {

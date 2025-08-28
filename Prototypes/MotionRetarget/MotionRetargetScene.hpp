@@ -94,12 +94,16 @@ private:
 	// helper functions for better structure
 	void forcePickCharEntity(std::weak_ptr<CharEntity> c);
 
+	void setLighting();
+	void resetLighting();
+
 private:
 	struct settings {
 		float gridSize = 3.f;
 		bool  renderDebugGrid = true;
 		bool  showJoints = true;
 		bool  showTargets = true;
+		bool showMatchedJoints = false;
 		bool  cesStartup = false; // start scene with cesium man on startup
 		bool  renderAABB = true; // render line aabb around charEntities when selected
 		std::string pathAnaconda = "";
@@ -108,7 +112,22 @@ private:
 		bool  theme_darkmode = false; // render line aabb around charEntities when selected
 		float theme_alpha = .5f; // render line aabb around charEntities when selected
 		float theme_fontScale = 1.f; // render line aabb around charEntities when selected
+		bool theme_cbgEnabled = 1.f;
+		float theme_bgBrightness = 1.f;
+		float theme_gridBrightness = .05f;
 	} m_settings;
+
+	struct lighting {
+		float sunAngleY = 1.;
+		float sunAngleX = 1.;
+		bool sunEnable = true;
+		float sunIntensity = 5.;
+		Vector3f BGLightPos = Vector3f(0.0f, 5.0f, -30.0f);
+		bool BGLEnable = true;
+		float BGLIntensity = 5.;
+		float ambientI = 1.;
+		bool autoload = false;
+	} m_lighting;
 
 	std::vector<std::shared_ptr<CharEntity>> m_charEntities;
 	std::weak_ptr<CharEntity> m_charEntityPrim; // currently selected char entity

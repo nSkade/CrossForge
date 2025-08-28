@@ -90,6 +90,11 @@ public:
 	*/
 	void initTargetPoints();
 	void clearTargetPoints();
+	
+	/**
+	 * @brief update target points from corresponding current animation joint positions.
+	*/
+	void updateTargetPoints();
 public:
 	// no smartptr needed as controller owns SkeletalJoint
 	std::map<SkeletalJoint*,IKJoint> m_IKJoints; // extends m_Joints
@@ -111,11 +116,6 @@ private:
 
 	void initConstraints(T3DMesh<float>* pMesh, const nlohmann::json& ConstraintData);
 	void initSkeletonStructure(T3DMesh<float>* pMesh, const nlohmann::json& StructureData);
-
-	/**
-	 * @brief update target points from corresponding current animation joint positions.
-	*/
-	void updateTargetPoints();
 
 	//TODOff(skade) rotate head
 	//void rotateGaze();
