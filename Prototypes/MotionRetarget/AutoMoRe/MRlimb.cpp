@@ -21,6 +21,8 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 
 	for (int it = 0; it < m_ikcorr.size();++it) {
 		int is = m_ikcorr[it];
+		if (is==-1)
+			continue;
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 		
@@ -53,6 +55,8 @@ void MRlimb::initialize(std::shared_ptr<CharEntity> source, std::shared_ptr<Char
 	m_targets.clear();
 	for (int it = 0; it < m_ikcorr.size();++it) {
 		int is = m_ikcorr[it];
+		if (is==-1)
+			continue;
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 
@@ -77,8 +81,7 @@ std::vector<int> MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct)
 	}
 	auto& sCtrl = source->controller;
 	auto& tCtrl = target->controller;
-#if 0
-	// by distance
+#if 0 // by distance
 	float closestDist = std::numeric_limits<float>::max();
 	int closestIdx = -1;
 	SkeletalAnimationController::SkeletalJoint* jt = ct.joints[tarIdx];
@@ -92,55 +95,18 @@ std::vector<int> MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct)
 	}
 	return closestIdx;
 #endif
-#if 0
-	// by distribution
+#if 0 // by distribution
 	return std::floor((float(tarIdx)/ct.joints.size())*cs.joints.size());
 #endif
-#if 0
-	// by index
+#if 0 // by index
 	if (tarIdx < cs.joints.size())
 		return {tarIdx};
 #endif
-#if 1
+#if 1 // smart mapping by assigning priority to close nodes in the relative length chains
 	//TODOff(skade) cache these results in init func
 	if (cs.joints.size() == ct.joints.size())
 		return {tarIdx}; // identical matching possible
 	else {
-		//// the ideal method
-		//// distribute by joint length
-		//float totalLenS = 0.f;
-		//for (auto j : cs.joints)
-		//	totalLenS += j->LocalPosition.norm();
-		//float totalLenT = 0.f;
-		//for (auto j : ct.joints)
-		//	totalLenT += j->LocalPosition.norm();
-
-		//float currSrcLen=0.f;
-		//float currTarLen=0.f;
-		//for (int i=ct.joints.size()-1;i>=0;--i) {
-		//	//
-		//	currTarLen += ct.joints[i]->LocalPosition.norm();
-		//	//if (i==tarIdx)
-
-		//}
-
-		////for (int i=cs.joints.size()-1;i>=0;--i) {
-		////	//
-		////	currSrcLen += cs.joints[i]->LocalPosition.norm();
-		////}
-
-		//if (cs.joints.size() > ct.joints.size()) {
-		//	// more source joints, need to merge multiple source joints
-		//	// ideally combine into longest bone as it should have most influence
-		//} else {
-		// //(cs.joints.size() < ct.joints.size())
-		//	// more target joints, need to omit some indexing
-		//	// ideally omit shortest bone which should have least significant influence
-		//}
-
-//////////
-#if 0 // old distributed matching function, does not consider already distributed source joints (source joints can be mapped twice)
-	// Compute cumulative lengths from end effector to root
 		std::vector<float> srcCumulative, tarCumulative;
 		float totalLenS = 0.f, totalLenT = 0.f;
 
@@ -163,156 +129,88 @@ std::vector<int> MRlimb::jointIndexingFunc(int tarIdx, IKChain& cs, IKChain& ct)
 			tarNorm.push_back((totalLenT > 0) ? (len / totalLenT) : 0.f);
 		}
 
-		if (cs.joints.size() > ct.joints.size()) {
-			// Merge source joints into target
-			float start = (tarIdx == 0) ? -std::numeric_limits<float>::infinity() : tarNorm[tarIdx - 1];
-			float end = tarNorm[tarIdx];
-			std::vector<int> indices;
-			for (int j = 0; j < srcNorm.size(); ++j) {
-				if (srcNorm[j] > start && srcNorm[j] <= end) {
-					indices.push_back(j);
-				}
+		const int numTarNodes = tarNorm.size();
+		const int numSrcNodes = srcNorm.size();
+		std::vector<std::vector<int>> finalMap(numTarNodes);
+		using NodeDistPair = std::pair<int, float>;
+		///**
+		// * @brief Compares two NodeDistPair objects based on their distance.
+		// * * This is used for sorting.
+		// */
+		auto compareDistPairs = [](const NodeDistPair& a, const NodeDistPair& b) -> bool {
+			return a.second < b.second;
+		};
+		// Step 1: Calculate and sort distances for each target node.
+		// idxDist[i] will store a sorted list of pairs {source_index, distance}
+		// for the target node i.
+		std::vector<std::vector<NodeDistPair>> idxDist(numTarNodes);
+		for (int i = 0; i < numTarNodes; ++i) {
+			for (int j = 0; j < numSrcNodes; ++j) {
+				float distance = std::abs(tarNorm[i] - srcNorm[j]);
+				idxDist[i].push_back({j, distance});
 			}
-			return indices;
-		} else {
-			// Source is shorter: find closest source joint or omit
-			float tarValue = tarNorm[tarIdx];
-			int closestJ = -1;
-			float minDist = std::numeric_limits<float>::max();
-			for (int j = 0; j < srcNorm.size(); ++j) {
-				float dist = std::abs(srcNorm[j] - tarValue);
-				if (dist < minDist) {
-					minDist = dist;
-					closestJ = j;
-				}
-			}
+			// Sort each inner vector to easily find the closest source nodes.
+			std::sort(idxDist[i].begin(), idxDist[i].end(), compareDistPairs);
+		}
 
-			if (closestJ == -1) {
-				return {};
-			}
+		// Step 2: Perform a greedy one-to-one mapping to handle the most confident
+		// assignments first. This prevents a source node from being used for multiple
+		// target nodes in this initial pass.
+		std::vector<int> nodeMapping(numTarNodes, -1);
+		std::vector<bool> usedSrcNodes(numSrcNodes, false);
 
-			// Calculate threshold as half the average interval between source joints
-			float avgInterval = (srcNorm.size() > 1) ? (1.0f / (srcNorm.size() - 1)) : 1.0f;
-			float threshold = 0.5f * avgInterval;
-
-			if (minDist <= threshold) {
-				return {closestJ};
-			} else {
-				return {};
+		// Create a flattened list of all possible mappings sorted by distance.
+		std::vector<std::pair<float, std::pair<int, int>>> sortedPairs;
+		for (int i = 0; i < numTarNodes; ++i) {
+			for (const auto& pair : idxDist[i]) {
+				sortedPairs.push_back({pair.second, {i, pair.first}});
 			}
 		}
-#endif
-#if 1
-		// 1. Normalization of Cumulative Lengths
-		// Calculate cumulative lengths for source skeleton
-		std::vector<float> srcCumulative;
-		float totalLenS = 0.f;
-		for (int i = 0; i < cs.joints.size(); ++i) {
-			totalLenS += cs.joints[i]->LocalPosition.norm();
-			srcCumulative.push_back(totalLenS);
-		}
+		std::sort(sortedPairs.begin(), sortedPairs.end());
 
-		// Calculate cumulative lengths for target skeleton
-		std::vector<float> tarCumulative;
-		float totalLenT = 0.f;
-		for (int i = 0; i < ct.joints.size(); ++i) {
-			totalLenT += ct.joints[i]->LocalPosition.norm();
-			tarCumulative.push_back(totalLenT);
-		}
+		for (const auto& pair : sortedPairs) {
+			int tarIdx = pair.second.first;
+			int srcIdx = pair.second.second;
 
-		// Normalize cumulative lengths for source
-		std::vector<float> srcNorm;
-		for (float len : srcCumulative) {
-			srcNorm.push_back((totalLenS > 0) ? (len / totalLenS) : 0.f);
-		}
-
-		// Normalize cumulative lengths for target
-		std::vector<float> tarNorm;
-		for (float len : tarCumulative) {
-			tarNorm.push_back((totalLenT > 0) ? (len / totalLenT) : 0.f);
-		}
-
-		// Get sizes of source and target joint lists
-		int m = cs.joints.size(); // Number of source joints
-		int n = ct.joints.size(); // Number of target joints
-
-		// Ensure tarIdx is within valid bounds
-		if (tarIdx < 0 || tarIdx >= n) {
-			// Handle out-of-bounds tarIdx gracefully
-			return {};
-		}
-
-		// 2. Conditional Mapping Logic - Compute the WHOLE distribution first
-
-		if (m > n) {
-			// Case 1: Source Skeleton has More Joints than Target (m > n)
-			// In this case, multiple source joints can map to a single target joint.
-			// The original logic for this case is already correct for a single tarIdx,
-			// as each source joint naturally falls into one target's interval.
-			// We just compute the specific set for the requested tarIdx.
-			float start_interval = (tarIdx == 0) ? -std::numeric_limits<float>::infinity() : tarNorm[tarIdx - 1];
-			float end_interval = tarNorm[tarIdx];
-			std::vector<int> indices_for_tarIdx;
-
-			for (int j = 0; j < m; ++j) {
-				if (srcNorm[j] > start_interval && srcNorm[j] <= end_interval) {
-					indices_for_tarIdx.push_back(j);
-				}
+			if (nodeMapping[tarIdx] == -1 && !usedSrcNodes[srcIdx]) {
+				nodeMapping[tarIdx] = srcIdx;
+				usedSrcNodes[srcIdx] = true;
 			}
-			return indices_for_tarIdx;
+		}
 
-		} else {
-			// Case 2: Source Skeleton has Fewer or Equal Joints than Target (m <= n)
-			// Here, we need to compute the *entire* mapping to ensure each source joint
-			// is used at most once. A greedy assignment strategy is used.
+		// Step 3: Final mapping, including handling the surjective case (many-to-one).
+		// Initialize the final map with the one-to-one assignments from the greedy step.
+		//std::vector<std::vector<int>> finalMap(numTarNodes);
+		for (int i = 0; i < numTarNodes; ++i) {
+			if (nodeMapping[i] != -1) {
+				finalMap[i].push_back(nodeMapping[i]);
+			}
+		}
 
-			// This vector will store the mapped source index for each target index.
-			// Initialized to -1, indicating no mapping yet.
-			std::vector<int> targetToSourceMapping(n, -1);
+		// Assign any unmapped source nodes to their closest mapped target node.
+		for (int j = 0; j < numSrcNodes; ++j) {
+			if (!usedSrcNodes[j]) {
+				float minDistance = std::numeric_limits<float>::max();
+				int bestTarIdx = -1;
 
-			// This boolean vector tracks if a source joint has already been assigned.
-			std::vector<bool> sourceJointUsed(m, false);
-
-			// Calculate the threshold once (assuming m > 1 as per user's request)
-			// If m <= 1, avgInterval is 1.0f, threshold 0.5f, which is reasonable.
-			float avgInterval = (m > 1) ? (1.0f / (m - 1)) : 1.0f;
-			float threshold = 0.5f * avgInterval;
-
-			// Iterate through all target joints (from 0 to n-1) to build the complete mapping
-			for (int i = 0; i < n; ++i) {
-				float currentTarValue = tarNorm[i];
-				int closestJ = -1;
-				float minDist = std::numeric_limits<float>::max();
-
-				// Find the closest *available* source joint
-				for (int j = 0; j < m; ++j) {
-					if (!sourceJointUsed[j]) { // Only consider source joints that haven't been used yet
-						float dist = std::abs(srcNorm[j] - currentTarValue);
-						if (dist < minDist) {
-							minDist = dist;
-							closestJ = j;
+				for (int i = 0; i < numTarNodes; ++i) {
+					// Only consider already mapped target nodes.
+					if (nodeMapping[i] != -1) {
+						float distance = std::abs(tarNorm[i] - srcNorm[j]);
+						if (distance < minDistance) {
+							minDistance = distance;
+							bestTarIdx = i;
 						}
 					}
 				}
-
-				// If a closest available joint is found and its distance is within the threshold
-				if (closestJ != -1 && minDist <= threshold) {
-					targetToSourceMapping[i] = closestJ; // Assign this source joint to the current target joint
-					sourceJointUsed[closestJ] = true;    // Mark this source joint as used
+				// If a suitable target was found, add the unmapped source node to it.
+				if (bestTarIdx != -1) {
+					finalMap[bestTarIdx].push_back(j);
 				}
-				// If closestJ is -1 (no available source joint) or doesn't meet the threshold,
-				// targetToSourceMapping[i] remains -1, meaning this target joint is unmapped.
 			}
+		} // reult in finalMap
 
-			// After computing the complete mapping for all target joints,
-			// return the specific result for the requested tarIdx.
-			if (targetToSourceMapping[tarIdx] != -1) {
-				return {targetToSourceMapping[tarIdx]}; // Return a vector containing the single mapped source index
-			} else {
-				return {}; // Return an empty vector if no source joint was mapped to tarIdx
-			}
-		}
-#endif
+		return finalMap[tarIdx];
 	}
 
 #endif
@@ -333,6 +231,8 @@ void MRlimb::update() {
 
 	for (int it = 0; it < m_ikcorr.size();++it) {
 		int is = m_ikcorr[it];
+		if (is==-1)
+			continue;
 		IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 		IKChain& ct = tCtrl->m_ikArmature.m_jointChains[it];
 		//ct.target = cs.target; // old way, assign other char entity target 
@@ -413,137 +313,139 @@ void MRlimb::update() {
 			for (int it = 0; it < m_ikcorr.size();++it)
 				if (&tCtrl->m_ikArmature.m_jointChains[it] == ct)
 					is = m_ikcorr[it];
-			IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
+			if (is!=-1) {
+				IKChain& cs = sCtrl->m_ikArmature.m_jointChains[is];
 
-			int i = std::distance(ct->joints.begin(),std::find(ct->joints.begin(),ct->joints.end(),jt));
-			std::vector<int> matchIdx = jointIndexingFunc(i,cs,*ct);
-			//TODO(skade) check why i need to do this here
-			std::reverse(matchIdx.begin(), matchIdx.end());
+				int i = std::distance(ct->joints.begin(),std::find(ct->joints.begin(),ct->joints.end(),jt));
+				std::vector<int> matchIdx = jointIndexingFunc(i,cs,*ct);
+				//TODO(skade) check why i need to do this here
+				std::reverse(matchIdx.begin(), matchIdx.end());
 
-			if (m_showMatchedJoints) {//TODO(skade) debug visualize joint matching
-				Vector4f col = Vector4f::Zero(); {
-					int isc = jt->ID;
-					col = Vector4f(
-						float(isc & 1),
-						float(isc >> 1 & 1),
-						float(isc >> 2 & 1),
-						1.f);
-				}
-				if (auto& jp = tCtrl->getJointPickable(jt).lock()) {
+				if (m_showMatchedJoints) {//TODO(skade) debug visualize joint matching
+					Vector4f col = Vector4f::Zero(); {
+						int isc = jt->ID;
+						col = Vector4f(
+							float(isc & 1),
+							float(isc >> 1 & 1),
+							float(isc >> 2 & 1),
+							1.f);
+					}
+					if (auto& jp = tCtrl->getJointPickable(jt).lock()) {
 
-					jp->colorSelect = col;
-					jp->m_highlight = true;
-					jp->colorOverride = true;
-				}
-				for (auto& idx : matchIdx) {
-					if (auto& jp = sCtrl->getJointPickable(cs.joints[idx]).lock()) {
 						jp->colorSelect = col;
 						jp->m_highlight = true;
 						jp->colorOverride = true;
 					}
-				}
-			}
-
-			if (matchIdx.size()) {
-				// old parent joint retrival
-				SkeletalAnimationController::SkeletalJoint* js = cs.joints[matchIdx[matchIdx.size()-1]];
-				Eigen::Matrix4f jsT = CForgeMath::translationMatrix(js->LocalPosition)
-				                    * CForgeMath::rotationMatrix(js->LocalRotation)
-				                    * CForgeMath::scaleMatrix(js->LocalScale);
-				Eigen::Matrix4f parentS = Matrix4f::Identity();
-				{
-					auto* jsc = js;
-					Matrix4f adjS = Matrix4f::Identity();
-					while (jsc->Parent != -1) {
-						jsc = sCtrl->getBone(jsc->Parent);
-						Eigen::Matrix4f jscT = CForgeMath::translationMatrix(jsc->LocalPosition)
-											* CForgeMath::rotationMatrix(jsc->LocalRotation)
-											* CForgeMath::scaleMatrix(jsc->LocalScale);
-						parentS = jscT * parentS;
-
-						////TODO(skade) adj
-						//// with adjustment
-						//parentS = jscT * adjS * parentS;
-						//Matrix4f adjS = js->OffsetMatrix.inverse() * adjS;
+					for (auto& idx : matchIdx) {
+						if (auto& jp = sCtrl->getJointPickable(cs.joints[idx]).lock()) {
+							jp->colorSelect = col;
+							jp->m_highlight = true;
+							jp->colorOverride = true;
+						}
 					}
 				}
-				
-				//Matrix4f t = jt->OffsetMatrix * parentT.inverse() * parentS * js->OffsetMatrix.inverse() * jsT;
-				//Matrix4f t = jt->OffsetMatrix * parentT.inverse() * parentS * js->OffsetMatrix.inverse() * jsT;
 
-				// new local transform
-				Matrix4f t = Matrix4f::Identity();
+				if (matchIdx.size()) {
+					// old parent joint retrival
+					SkeletalAnimationController::SkeletalJoint* js = cs.joints[matchIdx[matchIdx.size()-1]];
+					Eigen::Matrix4f jsT = CForgeMath::translationMatrix(js->LocalPosition)
+										* CForgeMath::rotationMatrix(js->LocalRotation)
+										* CForgeMath::scaleMatrix(js->LocalScale);
+					Eigen::Matrix4f parentS = Matrix4f::Identity();
+					{
+						auto* jsc = js;
+						Matrix4f adjS = Matrix4f::Identity();
+						while (jsc->Parent != -1) {
+							jsc = sCtrl->getBone(jsc->Parent);
+							Eigen::Matrix4f jscT = CForgeMath::translationMatrix(jsc->LocalPosition)
+												* CForgeMath::rotationMatrix(jsc->LocalRotation)
+												* CForgeMath::scaleMatrix(jsc->LocalScale);
+							parentS = jscT * parentS;
 
-				// parent target
-				//if (jt->Parent != -1 && js->Parent != -1) {
-				//	auto* jtp = tCtrl->getBone(jt->Parent);
-				//	auto* jsp = sCtrl->getBone(js->Parent);
-
-					// current global transform of retargeted parent
-					//Matrix4f parentGlobal =  parentT * jtp->OffsetMatrix;
-					//Matrix4f parentGlobalS = parentS * jsp->OffsetMatrix;
-
-					// allign next transform so global transform of target and source are identical
-					//t = jsT;
-
-					////TODO(skade) adj
-					//// get parent relative joint change of restpose
-					//Matrix4f adjS = js->OffsetMatrix.inverse() * jsp->OffsetMatrix;
-					//Matrix4f adjT = jt->OffsetMatrix.inverse() * jtp->OffsetMatrix;
-					//adjS.block<3,1>(0,3) = Vector3f::Zero();
-					//adjT.block<3,1>(0,3) = Vector3f::Zero();
-					//t = adjT.inverse() * parentT.inverse() * parentS * adjS
-					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-					
-					// correct but doesnt account for rest pose differences
-					//t = parentT.inverse() * js->SkinningMatrix * jt->OffsetMatrix.inverse();
-					//t = parentT.inverse() * parentS * jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-
-					//t = parentT.inverse() * parentS
-					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-
-					//TODO(skade) optionally insert multiple source joints
-					//if (js->Parent != -1) {
-						Quaternionf combinedSourceRot = sCtrl->m_IKJoints[js].rotGlobal;
-						for (int j=0;j<matchIdx.size()-1;++j) {
-							//combinedSourceRot = cs.joints[j]->LocalRotation * combinedSourceRot;
-							combinedSourceRot =  combinedSourceRot * cs.joints[j]->LocalRotation; //TODO(skade) this order correct?
-							//* Quaternionf(cs.joints[j]->OffsetMatrix.block<3,3>(0,0))
-							//* Quaternionf(cs.joints[j-1]->OffsetMatrix.block<3,3>(0,0).inverse());
+							////TODO(skade) adj
+							//// with adjustment
+							//parentS = jscT * adjS * parentS;
+							//Matrix4f adjS = js->OffsetMatrix.inverse() * adjS;
 						}
+					}
+					
+					//Matrix4f t = jt->OffsetMatrix * parentT.inverse() * parentS * js->OffsetMatrix.inverse() * jsT;
+					//Matrix4f t = jt->OffsetMatrix * parentT.inverse() * parentS * js->OffsetMatrix.inverse() * jsT;
 
-						t = parentT.inverse() //* parentS
-							//* jsT
-							//* CForgeMath::rotationMatrix(sCtrl->m_IKJoints[sCtrl->getBone(js->Parent)].rotGlobal).inverse()
-							* CForgeMath::rotationMatrix(combinedSourceRot)
-							* js->OffsetMatrix
-							* jt->OffsetMatrix.inverse();
+					// new local transform
+					Matrix4f t = Matrix4f::Identity();
+
+					// parent target
+					//if (jt->Parent != -1 && js->Parent != -1) {
+					//	auto* jtp = tCtrl->getBone(jt->Parent);
+					//	auto* jsp = sCtrl->getBone(js->Parent);
+
+						// current global transform of retargeted parent
+						//Matrix4f parentGlobal =  parentT * jtp->OffsetMatrix;
+						//Matrix4f parentGlobalS = parentS * jsp->OffsetMatrix;
+
+						// allign next transform so global transform of target and source are identical
+						//t = jsT;
+
+						////TODO(skade) adj
+						//// get parent relative joint change of restpose
+						//Matrix4f adjS = js->OffsetMatrix.inverse() * jsp->OffsetMatrix;
+						//Matrix4f adjT = jt->OffsetMatrix.inverse() * jtp->OffsetMatrix;
+						//adjS.block<3,1>(0,3) = Vector3f::Zero();
+						//adjT.block<3,1>(0,3) = Vector3f::Zero();
+						//t = adjT.inverse() * parentT.inverse() * parentS * adjS
+						//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+						
+						// correct but doesnt account for rest pose differences
+						//t = parentT.inverse() * js->SkinningMatrix * jt->OffsetMatrix.inverse();
+						//t = parentT.inverse() * parentS * jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+						//t = parentT.inverse() * parentS
+						//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+						//TODO(skade) optionally insert multiple source joints
+						//if (js->Parent != -1) {
+							Quaternionf combinedSourceRot = sCtrl->m_IKJoints[js].rotGlobal;
+							for (int j=0;j<matchIdx.size()-1;++j) {
+								//combinedSourceRot = cs.joints[j]->LocalRotation * combinedSourceRot;
+								combinedSourceRot =  combinedSourceRot * cs.joints[j]->LocalRotation; //TODO(skade) this order correct?
+								//* Quaternionf(cs.joints[j]->OffsetMatrix.block<3,3>(0,0))
+								//* Quaternionf(cs.joints[j-1]->OffsetMatrix.block<3,3>(0,0).inverse());
+							}
+
+							t = parentT.inverse() //* parentS
+								//* jsT
+								//* CForgeMath::rotationMatrix(sCtrl->m_IKJoints[sCtrl->getBone(js->Parent)].rotGlobal).inverse()
+								* CForgeMath::rotationMatrix(combinedSourceRot)
+								* js->OffsetMatrix
+								* jt->OffsetMatrix.inverse();
+						//}
+								//* (CForgeMath::translationMatrix(sCtrl->m_IKJoints[js].posGlobal)
+
+						//parentS = parentS * js->OffsetMatrix * jsT;
+
+						// correct
+						parentT = parentT * t;
+						// but also means:
+						//parentT = parentS
+						//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
+
+						////TODO(skade) adj
+						//parentT = parentS * adjS
+						//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
 					//}
-							//* (CForgeMath::translationMatrix(sCtrl->m_IKJoints[js].posGlobal)
-
-					//parentS = parentS * js->OffsetMatrix * jsT;
-
-					// correct
-					parentT = parentT * t;
-					// but also means:
-					//parentT = parentS
-					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-
-					////TODO(skade) adj
-					//parentT = parentS * adjS
-					//	* jsT * js->OffsetMatrix * jt->OffsetMatrix.inverse();
-				//}
-				
-				{ // set local rotation of joint
-					Vector3f p,s; Quaternionf r;
-					MRMutil::deconstructMatrix(t,&p,&r,&s);
-					//jt->LocalPosition = p;
-					jt->LocalRotation = r;
-					//jt->LocalScale = s;
-				}
-				noMatch = false;
-			}
-		}
+					
+					{ // set local rotation of joint
+						Vector3f p,s; Quaternionf r;
+						MRMutil::deconstructMatrix(t,&p,&r,&s);
+						//jt->LocalPosition = p;
+						jt->LocalRotation = r;
+						//jt->LocalScale = s;
+					}
+					noMatch = false;
+				} // if (matchIdx.size())
+			} // if (is!=-1)
+		} // if (ct)
 		if (noMatch) {
 			Eigen::Matrix4f jtT = CForgeMath::translationMatrix(jt->LocalPosition)
 			                    * CForgeMath::rotationMatrix(jt->LocalRotation)

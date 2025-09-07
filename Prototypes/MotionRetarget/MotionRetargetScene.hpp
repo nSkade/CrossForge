@@ -115,6 +115,7 @@ private:
 		bool theme_cbgEnabled = 1.f;
 		float theme_bgBrightness = 1.f;
 		float theme_gridBrightness = .05f;
+		bool theme_groundShadows = false;
 	} m_settings;
 
 	struct lighting {
@@ -186,6 +187,10 @@ private:
 
 	// consts
 	const std::string m_cesStartupStr = "load cesium man on startup";
+	
+	// ground
+	T3DMesh<float> m_groundM;
+	StaticActor m_ground;
 };//MotionRetargetScene
 
 }//CForge

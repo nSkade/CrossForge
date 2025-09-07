@@ -690,7 +690,8 @@ void MotionRetargetScene::renderUI_menuBar() {
 						ImGui::DragFloat("font scale",&m_settings.theme_fontScale,.1f,1.f,5.f) ||
 						ImGui::Checkbox("custom brightness",&m_settings.theme_cbgEnabled) ||
 						ImGui::DragFloat("bg brightness",&m_settings.theme_bgBrightness,0.01,0.,10.) ||
-						ImGui::DragFloat("grid brightness",&m_settings.theme_gridBrightness,0.01,0.05,0.95)
+						ImGui::DragFloat("grid brightness",&m_settings.theme_gridBrightness,0.01,0.05,0.95) ||
+						ImGui::Checkbox("groundShadows",&m_settings.theme_groundShadows)
 					)
 						setTheme(m_settings.theme_darkmode,m_settings.theme_alpha,m_settings.theme_fontScale);
 					ImGui::Separator();
@@ -707,6 +708,7 @@ void MotionRetargetScene::renderUI_menuBar() {
 					m_config.store("theme.cbgEnabled",m_settings.theme_cbgEnabled);
 					m_config.store("theme.bgBrightness",m_settings.theme_bgBrightness);
 					m_config.store("theme.gridBrightness",m_settings.theme_gridBrightness);
+					m_config.store("theme.groundShadows",m_settings.theme_groundShadows);
 					m_config.baseStore();
 					popState = false;
 				}
@@ -1274,8 +1276,12 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 
 				if (ctc && csc) {
 					// limb matching initial guess
-					if (m_skeletalMatcher.m_corr.size() != ctc->m_ikArmature.m_jointChains.size())
-						m_skeletalMatcher.skelMatch(csc.get(),ctc.get());
+					if (m_skeletalMatcher.m_corr.size() != ctc->m_ikArmature.m_jointChains.size()) {
+						if (m_skeletalMatcher.injectiveOnly)
+							m_skeletalMatcher.skelMatchInj(csc.get(),ctc.get());
+						else
+							m_skeletalMatcher.skelMatch(csc.get(),ctc.get());
+					}
 
 					bool change = false;
 
@@ -1284,24 +1290,32 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 					change |= ImGui::DragFloat("weight direction",&m_skeletalMatcher.m_wDir,.01f);
 					change |= ImGui::DragFloat("weight mean pos",&m_skeletalMatcher.m_wMeanPos,.01f);
 					
-					//TODOff(skade) injective only
-					//change |= ImGui::Checkbox("injective matching only",&m_skeletalMatcher.injectiveOnly);
+					// TODOff(skade) injective only
+					change |= ImGui::Checkbox("injective matching only",&m_skeletalMatcher.injectiveOnly);
 
-					if (change)
-						m_skeletalMatcher.skelMatch(csc.get(),ctc.get());
+					if (change) {
+						if (m_skeletalMatcher.injectiveOnly)
+							m_skeletalMatcher.skelMatchInj(csc.get(),ctc.get());
+						else
+							m_skeletalMatcher.skelMatch(csc.get(),ctc.get());
+					}
 
 					int i=0;
 					for (auto& jct : ctc->m_ikArmature.m_jointChains) {
 						std::vector<std::string> jcsNames;
+						jcsNames.push_back("none");
 						for (auto& jcs : csc->m_ikArmature.m_jointChains)
 							jcsNames.push_back(jcs.name);
-						ImGui::ComboStr(jct.name.c_str(),&m_skeletalMatcher.m_corr[i],jcsNames);
+						int jcsIdx = m_skeletalMatcher.m_corr[i] + 1;
+						ImGui::ComboStr(jct.name.c_str(),&jcsIdx,jcsNames);
+						m_skeletalMatcher.m_corr[i] = jcsIdx - 1;
 						i++;
 					}
 
 					// set color coding on current skeletons
 					for (int it = 0; it < m_skeletalMatcher.m_corr.size();++it) {
 						int is = m_skeletalMatcher.m_corr[it];
+						if (is==-1) continue;
 						IKChain& cs = csc->m_ikArmature.m_jointChains[is];
 						IKChain& ct = ctc->m_ikArmature.m_jointChains[it];
 						
@@ -1358,6 +1372,7 @@ void MotionRetargetScene::renderUI_autoMoRe() {
 			if (ctc && csc) {
 				for (int it = 0; it < m_skeletalMatcher.m_corr.size();++it) {
 					int is = m_skeletalMatcher.m_corr[it];
+					if (is==-1) continue;
 					IKChain& cs = csc->m_ikArmature.m_jointChains[is];
 					IKChain& ct = ctc->m_ikArmature.m_jointChains[it];
 					

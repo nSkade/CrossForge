@@ -96,7 +96,7 @@ void LineBox::render(RenderDevice* pRDev, const Box& b, Matrix4f sgnT) {
 	pRDev->activeShader(m_AABBshader);
 	m_AABBvertArray.bind();
 	pRDev->modelUBO()->modelMatrix(sgnT);
-	glUniform4f(m_AABBshader->uniformLocation("u_color"),color[0],color[1],color[2],color[3]);
+	glUniform4fv(m_AABBshader->uniformLocation("u_color"),1,color.data());
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDrawElements(GL_TRIANGLE_STRIP, 14, GL_UNSIGNED_INT, nullptr);

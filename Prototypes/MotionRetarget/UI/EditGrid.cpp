@@ -163,18 +163,8 @@ void EditGrid::render(RenderDevice* pRDev,float fadeOutDist) {
 	
 	pRDev->modelUBO()->modelMatrix(sgnT);
 	glUniform1f(m_shader->uniformLocation("u_fadeOutDist"),fadeOutDist*20.);
-	glUniform4f(m_shader->uniformLocation("u_cThick"),
-		m_colorThick.x(),
-		m_colorThick.y(),
-		m_colorThick.z(),
-		m_colorThick.w()
-	);
-	glUniform4f(m_shader->uniformLocation("u_cThin"),
-		m_colorThin.x(),
-		m_colorThin.y(),
-		m_colorThin.z(),
-		m_colorThin.w()
-	);
+	glUniform4fv(m_shader->uniformLocation("u_cThick"),1,m_colorThick.data());
+	glUniform4fv(m_shader->uniformLocation("u_cThin"),1,m_colorThin.data());
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

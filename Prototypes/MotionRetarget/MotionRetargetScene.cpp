@@ -55,6 +55,7 @@ void MotionRetargetScene::init() {
 	m_config.load("theme.cbgEnabled",&m_settings.theme_cbgEnabled);
 	m_config.load("theme.bgBrightness",&m_settings.theme_bgBrightness);
 	m_config.load("theme.gridBrightness",&m_settings.theme_gridBrightness);
+	m_config.load("theme.groundShadows",&m_settings.theme_groundShadows);
 	m_config.load("lighting.autoload ",   &m_lighting.autoload);
 
 	// load light setup
@@ -89,6 +90,10 @@ void MotionRetargetScene::init() {
 	m_editCam.setCamProj(&m_Cam,&m_RenderWin);
 	m_lineBox.init();
 	m_editGrid.init();
+
+	SAssetIO::load("MyAssets/ground.obj", &m_groundM);
+	m_ground.init(&m_groundM);
+	m_groundM.clear();
 }//initialize
 
 void MotionRetargetScene::clear() {
@@ -108,12 +113,12 @@ void MotionRetargetScene::initCameraAndLights(bool CastShadows) {
 
 	// initialize sun (key light) and back ground light (fill light)
 	Vector3f SunDir = Vector3f(-5.0f, 15.0f, 35.0f);
-	m_Sun.init(SunDir.normalized()*38., -SunDir.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 5.0f);
+	m_Sun.init(SunDir.normalized()*38.*2., -SunDir.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 5.0f);
 
 	//TODOf(skade) make shadow light toggable in preferences
 	//TODOfff(skade) depth test for shadow map sometimes wrong because gl clear color affects gPosition
 	if(CastShadows)
-		m_Sun.initShadowCasting(2048, 2048, Vector2i(2, 2), 0.1f, 1000.0f);
+		m_Sun.initShadowCasting(2048*2, 2048*2, Vector2i(2*4, 2*4), 0.1f, 1000.0f);
 
 	Vector3f BGLightPos = Vector3f(0.0f, 5.0f, -30.0f);
 	m_BGLight.init(BGLightPos, -BGLightPos.normalized(), Vector3f(1.0f, 1.0f, 1.0f), 1.5f, Vector3f(0.0f, 0.0f, 0.0f));
@@ -362,6 +367,10 @@ void MotionRetargetScene::mainLoop() {
 		m_RenderDev.activePass(RenderDevice::RENDERPASS_GEOMETRY);
 		m_RenderDev.activeCamera(&m_Cam);
 		m_SG.render(&m_RenderDev);
+		if (m_settings.theme_groundShadows) {
+			m_RenderDev.modelUBO()->modelMatrix(Matrix4f::Identity());
+			m_ground.render(&m_RenderDev,Quaternionf(),Vector3f(),Vector3f(5.,5.,5.));
+		}
 
 		m_RenderDev.activePass(RenderDevice::RENDERPASS_LIGHTING);
 		
@@ -738,7 +747,7 @@ void MotionRetargetScene::setLighting() {
 						 * Eigen::Vector4f(0.0,0.0,-1.0,1.0);
 	Eigen::Vector3f sunDir(sd[0],sd[1],sd[2]);
 	
-	m_Sun.position(sunDir * 38.);
+	m_Sun.position(sunDir * 38.*2.);
 	m_Sun.direction(-sunDir);
 	m_Sun.intensity(m_lighting.sunIntensity);
 	if (!m_lighting.sunEnable)

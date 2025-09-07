@@ -82,6 +82,7 @@ FIND_PACKAGE(tinyxml2 CONFIG REQUIRED)	# support for xml loading, storing, and p
 FIND_PACKAGE(nlohmann_json CONFIG REQUIRED) # support for json loading, storing, and processing
 FIND_PACKAGE(imgui CONFIG REQUIRED) # dear-imgui
 find_package(imguizmo  CONFIG REQUIRED)
+find_package(hungarian CONFIG REQUIRED)
 FIND_PACKAGE(JPEG REQUIRED)
 FIND_PACKAGE(libjpeg-turbo)
 FIND_PACKAGE(FFMPEG REQUIRED)
@@ -155,6 +156,7 @@ add_executable(CForgeSandbox
 	Prototypes/MotionRetarget/Animation/JointPickable.cpp
 
 	Prototypes/MotionRetarget/AutoMoRe/MRlimb.cpp
+	Prototypes/MotionRetarget/AutoMoRe/SkeletalMatching.cpp
 
 	#Prototypes/MotionRetarget/JointLimits/JointLimits.cpp
 	#Prototypes/MotionRetarget/JointLimits/HingeLimits.cpp
@@ -235,6 +237,7 @@ elseif(WIN32)
 		PRIVATE nlohmann_json::nlohmann_json
 		PRIVATE imgui::imgui
 		PRIVATE imguizmo::imguizmo
+		PRIVATE hungarian::hungarian
 		PRIVATE ${FFMPEG_LIBRARIES}
 		${FREETYPE_LIBRARIES}
 	)
